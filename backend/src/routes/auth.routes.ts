@@ -22,7 +22,7 @@ router.post("/login", async (req, res) => {
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: env.nodeEnv === "production",
-    sameSite: "lax",
+    sameSite: env.nodeEnv === "production" ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -51,7 +51,7 @@ router.post("/refresh", async (req, res) => {
 router.post("/logout", (_req, res) => {
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: env.nodeEnv === "production" ? "none" : "lax",
     secure: env.nodeEnv === "production",
   });
   return res.json({ message: "Logged out" });
