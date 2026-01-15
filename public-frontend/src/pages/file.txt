@@ -1,0 +1,342 @@
+// Full updated Home page (Lucide icons instead of emojis) :contentReference[oaicite:0]{index=0}
+import React, { useState } from "react";
+import {
+  ArrowRight,
+  X,
+  ChevronDown,
+  Puzzle,
+  Coins,
+  TrendingUp,
+  Lock,
+  DollarSign,
+  ShieldCheck,
+  Lightbulb,
+  BarChart3,
+  Wrench,
+  Link2,
+} from "lucide-react";
+
+const AccessPropertiesHome = () => {
+  // ✅ only 1 open at a time
+  const [openSections, setOpenSections] = useState({});
+  const [showHowItWorksVideo, setShowHowItWorksVideo] = useState(false);
+
+  const toggleSection = (section) => {
+    setOpenSections((prev) => {
+      const nextOpen = !prev[section];
+      return nextOpen ? { [section]: true } : {};
+    });
+  };
+
+  // ✅ Why Invest (Lucide icons)
+  const investReasons = {
+    diversification: {
+      icon: Puzzle,
+      title: "Diversification",
+      content:
+        "Real estate historically strengthens portfolios by balancing exposure between stocks and bonds, reducing overall risk.",
+    },
+    income: {
+      icon: Coins,
+      title: "Income",
+      content:
+        "Real estate has consistently delivered higher yields than traditional fixed-income investments, even in inflationary periods.",
+    },
+    growth: {
+      icon: TrendingUp,
+      title: "Growth",
+      content:
+        "Properties can appreciate over time, providing long-term value growth and wealth accumulation opportunities.",
+    },
+    stability: {
+      icon: Lock,
+      title: "Stability",
+      content:
+        "Real estate offers tangible assets with intrinsic value that tends to be more stable than other investment types.",
+    },
+  };
+
+  // ✅ Access Advantage (Lucide icons)
+  const advantages = {
+    minimums: {
+      icon: DollarSign,
+      title: "Low Investment Minimums",
+      content:
+        "Start investing with as little as $100, making real estate accessible to everyone.",
+    },
+    safer: {
+      icon: ShieldCheck,
+      title: "A Safer Approach",
+      content:
+        "Our rigorous due diligence and strategic property selection minimize risk and maximize returns.",
+    },
+    philosophy: {
+      icon: Lightbulb,
+      title: "Investment Philosophy",
+      content:
+        "We focus on value-add opportunities in growing markets with strong fundamentals.",
+    },
+    management: {
+      icon: BarChart3,
+      title: "Active Portfolio Management",
+      content:
+        "Professional management ensures your investments are continuously optimized for performance.",
+    },
+    value: {
+      icon: Wrench,
+      title: "Unlocking Value",
+      content:
+        "Strategic renovations and operational improvements enhance property value and returns.",
+    },
+    integrated: {
+      icon: Link2,
+      title: "Integrated Model",
+      content:
+        "End-to-end platform combining acquisition, management, and technology for seamless investing.",
+    },
+  };
+
+  // ✅ Section header bar
+  const SectionBar = ({ children }) => (
+    <div className="mx-auto max-w-6xl px-4">
+      <div className="bg-black text-white rounded-xl py-5 md:py-6 px-6 shadow-sm">
+        <h2 className="text-center text-3xl md:text-4xl font-medium">
+          {children}
+        </h2>
+      </div>
+    </div>
+  );
+
+  /**
+   * ✅ Clean expander row (replaces grey boxes)
+   * Uses Lucide icon + title, expand/collapse with chevron
+   */
+  const IconAccordionRow = ({ id, Icon, title, content }) => {
+    const open = !!openSections[id];
+
+    return (
+      <div className="relative border border-gray-200 rounded-lg overflow-hidden bg-white">
+        <button
+          onClick={() => toggleSection(id)}
+          className="w-full flex items-center justify-between px-4 py-4 text-left hover:bg-gray-50 transition"
+        >
+          <div className="flex items-center gap-3">
+            <Icon className="w-5 h-5 text-gray-800" />
+            <span className="text-[15px] md:text-[16px] text-gray-900 font-semibold">
+              {title}
+            </span>
+          </div>
+
+          <ChevronDown
+            size={18}
+            className={`text-gray-500 transition-transform duration-300 ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        {open && (
+          <div className="px-4 pb-4">
+            <div className="h-px bg-gray-200 mb-4" />
+            <p className="text-gray-700 text-[14px] md:text-[15px] leading-relaxed">
+              {content}
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ✅ Center button like screenshot
+  const CenterCTA = ({ label }) => (
+    <div className="text-center mt-10">
+      <button className="bg-gray-600 hover:bg-gray-700 text-white px-10 py-4 rounded-md inline-flex items-center gap-3 text-[15px] font-medium">
+        {label} <ArrowRight size={20} />
+      </button>
+    </div>
+  );
+
+  const closeVideo = () => setShowHowItWorksVideo(false);
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* HERO (same layout, improved readability) */}
+      <section
+        className="relative h-[560px] bg-cover bg-center"
+        style={{
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1600&h=900&fit=crop')",
+        }}
+      >
+        {/* ✅ stronger overlay */}
+        <div className="absolute inset-0 bg-black/55" />
+
+        <div className="relative h-full flex flex-col items-center justify-center px-4">
+          <div className="w-full max-w-6xl">
+            {/* ✅ glass panel so text is always readable */}
+            <div className="mx-auto rounded-xl py-7 px-6 md:px-10 shadow-lg animate-slideDown bg-black/70 backdrop-blur-md border border-white/10">
+              <h1 className="text-white text-center text-3xl md:text-5xl font-medium tracking-wide">
+                Simple Real Estate Investing for Anyone, Anywhere
+              </h1>
+            </div>
+
+            <div
+              className="mx-auto mt-6 rounded-md py-3 px-5 max-w-2xl animate-slideUp bg-black/55 backdrop-blur-sm border border-white/10"
+              style={{ animationDelay: "0.15s" }}
+            >
+              <p className="text-white text-center text-sm md:text-base font-medium">
+                Starting at just $100
+              </p>
+            </div>
+
+            <div
+              className="mt-10 flex flex-wrap gap-6 justify-center animate-slideUp"
+              style={{ animationDelay: "0.3s" }}
+            >
+              <button className="bg-gray-700 hover:bg-gray-800 text-white px-10 py-3 rounded-sm text-sm font-semibold tracking-wide transition-colors">
+                INVEST NOW
+              </button>
+
+              <button
+                onClick={() => setShowHowItWorksVideo(true)}
+                className="bg-gray-700 hover:bg-gray-800 text-white px-10 py-3 rounded-sm text-sm font-semibold tracking-wide transition-colors"
+              >
+                HOW IT WORKS
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* VIDEO MODAL */}
+      {showHowItWorksVideo && (
+        <div
+          className="fixed inset-0 z-[999] bg-black/80 flex items-center justify-center px-4"
+          onClick={closeVideo}
+        >
+          <div
+            className="relative w-full max-w-4xl bg-black rounded-xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closeVideo}
+              className="absolute top-3 right-3 z-10 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 transition"
+              aria-label="Close video"
+            >
+              <X size={22} />
+            </button>
+
+            <div className="aspect-video">
+              <iframe
+                className="w-full h-full"
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+                title="How It Works"
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WELCOME */}
+      <div className="mt-10">
+        <SectionBar>Welcome to Access Properties</SectionBar>
+
+        <div className="text-center mt-6">
+          <button className="bg-gray-700 hover:bg-gray-800 text-white px-10 py-3 rounded-sm text-sm font-semibold tracking-wide transition-colors">
+            About Us
+          </button>
+        </div>
+      </div>
+
+      {/* Mission + Story */}
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-10">
+        <div className="grid md:grid-cols-2 gap-16">
+          <div>
+            <h3 className="text-3xl font-medium mb-4">Our Mission</h3>
+            <p className="text-gray-800 leading-relaxed text-[15px] text-justify">
+              Real estate continues to create immense wealth — yet the vast
+              majority remain locked out. Faced with that inequity, we turned
+              our passion into an opportunity. Founded in November 2022, Access
+              Properties is a mission-driven real estate syndication and
+              investment technology startup committed to creating value through
+              strategic property investments.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-3xl font-medium mb-4">Our Story</h3>
+            <p className="text-gray-800 leading-relaxed text-[15px] text-justify">
+              Our story began with a simple belief: real estate investment
+              should be accessible to everyone. This drives our mission to
+              democratize property investing through innovation, transparency,
+              and inclusion. With minimum investments starting at just $100, our
+              digital platform empowers individuals to participate in markets
+              once reserved for institutions and the wealthy.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* WHY INVEST */}
+      <SectionBar>Why Invest in Real Estate</SectionBar>
+
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-10">
+        <div className="grid md:grid-cols-2 gap-6">
+          {Object.entries(investReasons).map(([key, v]) => (
+            <IconAccordionRow
+              key={key}
+              id={`invest-${key}`}
+              Icon={v.icon}
+              title={v.title}
+              content={v.content}
+            />
+          ))}
+        </div>
+
+        <CenterCTA label="Portfolios" />
+      </div>
+
+      {/* ACCESS ADVANTAGE */}
+      <SectionBar>The Access Advantage</SectionBar>
+
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-10">
+        <div className="grid md:grid-cols-2 gap-6">
+          {Object.entries(advantages).map(([key, v]) => (
+            <IconAccordionRow
+              key={key}
+              id={`advantage-${key}`}
+              Icon={v.icon}
+              title={v.title}
+              content={v.content}
+            />
+          ))}
+        </div>
+
+        <CenterCTA label="Invest Now" />
+      </div>
+
+      {/* FOOTER */}
+      <footer className="bg-black text-white py-6">
+        <p className="text-center">© 2025 AP Boston</p>
+      </footer>
+
+      {/* Animations */}
+      <style>{`
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slideDown { animation: slideDown 0.8s ease-out; }
+        .animate-slideUp { animation: slideUp 0.8s ease-out; }
+      `}</style>
+    </div>
+  );
+};
+
+export default AccessPropertiesHome;

@@ -1,0 +1,51 @@
+import {
+  Puzzle,
+  Coins,
+  TrendingUp,
+  Lock,
+  DollarSign,
+  ShieldCheck,
+  Lightbulb,
+  BarChart3,
+  Wrench,
+  Link2,
+  BadgeCheck,
+  Scale,
+  Shield,
+  LayoutDashboard,
+  Briefcase,
+  Building2,
+  ChevronDown,
+  Settings,
+  Calculator,
+  Quote,
+  Sparkles,
+} from "lucide-react";
+
+export const iconMap = {
+  Puzzle,
+  Coins,
+  TrendingUp,
+  Lock,
+  DollarSign,
+  ShieldCheck,
+  Lightbulb,
+  BarChart3,
+  Wrench,
+  Link2,
+  BadgeCheck,
+  Scale,
+  Shield,
+  LayoutDashboard,
+  Briefcase,
+  Building2,
+  ChevronDown,
+  Settings,
+  Calculator,
+  Quote,
+  Sparkles,
+};
+
+export const getIcon = (name) => {
+  return iconMap[name] || Lightbulb;
+};
