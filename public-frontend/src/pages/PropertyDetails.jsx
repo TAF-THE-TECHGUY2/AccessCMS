@@ -50,7 +50,11 @@ function normalizePhoto(item, fallbackCaption = "", fallbackAlt = "") {
 
 function normalizeList(list, defaults = {}) {
   const arr = Array.isArray(list) ? list : [];
-  return arr
+  const hasOrder = arr.some((item) => typeof item?.order === "number");
+  const ordered = hasOrder
+    ? [...arr].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
+    : arr;
+  return ordered
     .map((it, idx) =>
       normalizePhoto(
         it,
