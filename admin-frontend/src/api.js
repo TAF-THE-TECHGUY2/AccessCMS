@@ -1,9 +1,38 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 let accessToken = null;
+try {
+  accessToken = localStorage.getItem("accessToken");
+} catch {
+  accessToken = null;
+}
 
 export const setAccessToken = (token) => {
   accessToken = token;
+  try {
+    if (token) {
+      localStorage.setItem("accessToken", token);
+    } else {
+      localStorage.removeItem("accessToken");
+    }
+  } catch {
+    // ignore storage errors
+  }
+};
+
+const refreshAccessToken = async () => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    setAccessToken(data.accessToken);
+    return data.accessToken;
+  } catch {
+    return null;
+  }
 };
 
 const request = async (path, options = {}) => {
@@ -14,11 +43,23 @@ const request = async (path, options = {}) => {
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
   }
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  let res = await fetch(`${API_BASE_URL}${path}`, {
     credentials: "include",
     ...options,
     headers,
   });
+
+  if (res.status === 401) {
+    const newToken = await refreshAccessToken();
+    if (newToken) {
+      headers.Authorization = `Bearer ${newToken}`;
+      res = await fetch(`${API_BASE_URL}${path}`, {
+        credentials: "include",
+        ...options,
+        headers,
+      });
+    }
+  }
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
@@ -80,12 +121,24 @@ export const api = {
       form.append("file", file);
       const headers = {};
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-      const res = await fetch(`${API_BASE_URL}/api/admin/media/upload`, {
+      let res = await fetch(`${API_BASE_URL}/api/admin/media/upload`, {
         method: "POST",
         body: form,
         headers,
         credentials: "include",
       });
+      if (res.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          const retryHeaders = { Authorization: `Bearer ${newToken}` };
+          res = await fetch(`${API_BASE_URL}/api/admin/media/upload`, {
+            method: "POST",
+            body: form,
+            headers: retryHeaders,
+            credentials: "include",
+          });
+        }
+      }
       if (!res.ok) {
         const error = await res.json().catch(() => ({}));
         throw new Error(error.message || "Upload failed");
