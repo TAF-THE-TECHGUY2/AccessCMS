@@ -363,7 +363,8 @@ export default function PropertyDetails() {
       <div className="relative h-[520px] overflow-hidden border-b-4 border-black">
         <img
           src={resolveUrl(
-            property.galleries?.afterImages?.[0]?.url ||
+            property.heroImage ||
+              property.galleries?.afterImages?.[0]?.url ||
               property.galleries?.beforeImages?.[0]?.url ||
               ""
           )}

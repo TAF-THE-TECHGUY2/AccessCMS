@@ -22,6 +22,7 @@ export interface PropertyDoc extends Document {
   sqft?: number;
   lotSqft?: number;
   description?: string;
+  heroImage?: string;
   status: "coming_soon" | "active" | "sold";
   featured: boolean;
   highlights: string[];
@@ -59,6 +60,7 @@ const PropertySchema = new Schema<PropertyDoc>(
     sqft: Number,
     lotSqft: Number,
     description: String,
+    heroImage: String,
     status: {
       type: String,
       enum: ["coming_soon", "active", "sold"],

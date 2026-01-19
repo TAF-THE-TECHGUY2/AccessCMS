@@ -20,6 +20,7 @@ import {
 } from "@mui/icons-material";
 import { api, API_BASE_URL } from "../api.js";
 import RichTextEditor from "../components/RichTextEditor.jsx";
+import ImagePicker from "../components/pageBuilder/ImagePicker.jsx";
 
 const emptyGalleries = { beforeImages: [], duringImages: [], afterImages: [] };
 const stageOptions = [
@@ -59,6 +60,7 @@ export default function PropertyEditor() {
     parking: "",
     sqft: "",
     lotSqft: "",
+    heroImage: "",
     status: "active",
   });
   const [description, setDescription] = useState("");
@@ -86,6 +88,7 @@ export default function PropertyEditor() {
         parking: item.parking || "",
         sqft: item.sqft ?? "",
         lotSqft: item.lotSqft ?? "",
+        heroImage: item.heroImage || "",
         status: item.status || "active",
       });
       setDescription(item.description || "");
@@ -198,6 +201,7 @@ export default function PropertyEditor() {
       sqft: form.sqft ? Number(form.sqft) : undefined,
       lotSqft: form.lotSqft ? Number(form.lotSqft) : undefined,
       description,
+      heroImage: form.heroImage || undefined,
       galleries: orderedGalleries,
     };
     try {
@@ -239,6 +243,11 @@ export default function PropertyEditor() {
       </TextField>
       <Typography variant="subtitle2">Description</Typography>
       <RichTextEditor value={description} onChange={setDescription} />
+      <ImagePicker
+        label="Hero Image"
+        value={form.heroImage}
+        onChange={(val) => setForm({ ...form, heroImage: val })}
+      />
       <Stack spacing={2}>
         <Typography variant="h6">Photo Galleries</Typography>
         <Typography variant="body2" color="text.secondary">
