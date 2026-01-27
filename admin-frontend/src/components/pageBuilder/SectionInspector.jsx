@@ -38,6 +38,32 @@ export default function SectionInspector({ section, onChange, onRemove }) {
     onChange({ ...section, data: { ...data, [key]: nextItems } });
   };
 
+  const mappingItems = Object.entries(data.mapping || {}).map(([column, entry]) => ({
+    column,
+    slug: typeof entry === "string" ? entry : entry?.slug,
+    image: typeof entry === "object" ? entry?.image : "",
+  }));
+
+  const updateMappingItems = (items) =>
+    update(
+      "mapping",
+      items.reduce((acc, item) => {
+        if (!item.column) return acc;
+        acc[item.column] = item.image ? { slug: item.slug, image: item.image } : item.slug;
+        return acc;
+      }, {})
+    );
+
+  const setMappingItem = (index, patch) => {
+    const next = mappingItems.map((item, idx) => (idx === index ? { ...item, ...patch } : item));
+    updateMappingItems(next);
+  };
+
+  const removeMappingItem = (index) => {
+    const next = mappingItems.filter((_, idx) => idx !== index);
+    updateMappingItems(next);
+  };
+
   return (
     <Stack spacing={rowGap} sx={{ p: 3 }}>
       <Stack spacing={1}>
@@ -448,35 +474,44 @@ export default function SectionInspector({ section, onChange, onRemove }) {
             onChange={(items) => update("columns", items.map((item) => item.label).filter(Boolean))}
             onAdd={() => update("columns", [...(data.columns || []), ""])}
           />
-          <ArrayEditor
-            label="Mapping"
-            items={Object.entries(data.mapping || {}).map(([column, entry]) => ({
-              column,
-              slug: typeof entry === "string" ? entry : entry?.slug,
-              image: typeof entry === "object" ? entry?.image : "",
-            }))}
-            fields={[
-              { name: "column", label: "Column" },
-              { name: "slug", label: "Property Slug" },
-              { name: "image", label: "Image Override" },
-            ]}
-            onChange={(items) =>
-              update(
-                "mapping",
-                items.reduce((acc, item) => {
-                  if (!item.column) return acc;
-                  acc[item.column] = item.image ? { slug: item.slug, image: item.image } : item.slug;
-                  return acc;
-                }, {})
-              )
-            }
-            onAdd={() =>
-              update(
-                "mapping",
-                Object.assign({}, data.mapping || {}, { "": { slug: "", image: "" } })
-              )
-            }
-          />
+          <Stack spacing={2}>
+            <Typography variant="subtitle2">Mapping</Typography>
+            <Stack spacing={2}>
+              {mappingItems.map((item, index) => (
+                <Box key={`mapping-${index}`} sx={{ p: 2, border: "1px solid #e0e0e0", borderRadius: 2 }}>
+                  <Stack spacing={1}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography variant="subtitle2">Item {index + 1}</Typography>
+                      <Button color="error" size="small" onClick={() => removeMappingItem(index)}>
+                        Remove
+                      </Button>
+                    </Stack>
+                    <TextField
+                      label="Column"
+                      value={item.column || ""}
+                      onChange={(e) => setMappingItem(index, { column: e.target.value })}
+                    />
+                    <TextField
+                      label="Property Slug"
+                      value={item.slug || ""}
+                      onChange={(e) => setMappingItem(index, { slug: e.target.value })}
+                    />
+                    <ImagePicker
+                      label="Image Override"
+                      value={item.image || ""}
+                      onChange={(val) => setMappingItem(index, { image: val })}
+                    />
+                  </Stack>
+                </Box>
+              ))}
+            </Stack>
+            <Button
+              variant="outlined"
+              onClick={() => updateMappingItems([...mappingItems, { column: "", slug: "", image: "" }])}
+            >
+              Add Mapping
+            </Button>
+          </Stack>
         </Stack>
       ) : null}
 

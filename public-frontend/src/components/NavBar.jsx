@@ -66,7 +66,7 @@ export default function NavBar() {
   const faqLink = findLink("FAQ", { label: "FAQ", href: "/faq" });
   const contactLink = findLink("Contact", { label: "Contact", href: "/contact" });
   const greaterBostonLink = findLink("Greater Boston", { label: "Greater Boston", href: "/greater-boston" });
-  const opportunitiesLink = findLink("Opportunities", { label: "Opportunities", href: "/invest-now/opportunities" });
+  // Opportunities removed from Invest Now dropdown
 
   const NavLink = ({ to, active, onClick, children }) => (
     <Link to={to} className={desktopLinkClass(active)} onClick={onClick}>
@@ -202,15 +202,7 @@ export default function NavBar() {
                       desktopInvestOpen ? "opacity-100 visible" : "",
                     ].join(" ")}
                   >
-                    <li>
-                      <Link
-                        to={opportunitiesLink.href}
-                        className="block px-5 py-3 text-sm text-black hover:bg-black hover:text-white transition"
-                        onClick={closeDesktopDropdowns}
-                      >
-                        {opportunitiesLink.label}
-                      </Link>
-                    </li>
+                    {/* Opportunities link removed */}
                   </ul>
                 </li>
                 <li>
@@ -319,15 +311,7 @@ export default function NavBar() {
                     </svg>
                   </button>
                   {mobileInvestOpen ? (
-                    <div className="pl-6 space-y-1 mt-1 bg-gray-900 rounded-lg py-2 animate-slideDown">
-                      <Link
-                        to={opportunitiesLink.href}
-                        onClick={closeMobile}
-                        className="block py-2 px-4 text-sm text-gray-300 hover:text-white transition-colors"
-                      >
-                        {opportunitiesLink.label}
-                      </Link>
-                    </div>
+                    <div className="pl-6 space-y-1 mt-1 bg-gray-900 rounded-lg py-2 animate-slideDown" />
                   ) : null}
                 </div>
                 <Link to={faqLink.href} onClick={closeMobile} className={mobileLinkClass(faqLink.href)}>
