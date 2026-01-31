@@ -1,6 +1,7 @@
-window.__APP_CONFIG__ = {
+
+w.indow.__APP_CONFIG__ = {
   apiBaseUrl: "https://api.ap.boston"
-}; 
+};
 
 /*
 window.__APP_CONFIG__ = {

@@ -41,7 +41,7 @@ const seedPages = async () => {
             subtitle: "for Anyone, Anywhere",
             badgeText: "Starting at just $100",
             primaryButton: { label: "HOW IT WORKS" },
-            secondaryButton: { label: "INVEST NOW", href: "/contact" },
+            secondaryButton: { label: "INVEST NOW", href: "/invest-now" },
           },
         },
         {

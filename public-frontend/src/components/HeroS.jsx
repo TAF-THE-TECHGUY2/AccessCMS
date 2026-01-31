@@ -10,8 +10,8 @@ export default function HeroSection({
   backgroundImage = buildImg,
   overlayOpacity = 0.55,
   primaryButton = { label: "HOW IT WORKS", href: "" },
-  secondaryButton = { label: "INVEST NOW", href: "/contact" },
-  videoUrl = "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1",
+  secondaryButton = { label: "INVEST NOW", href: "/invest-now" },
+  videoUrl = "",
 }) {
   const [showHowItWorksVideo, setShowHowItWorksVideo] = useState(false);
   const closeVideo = () => setShowHowItWorksVideo(false);
