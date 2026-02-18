@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #0b0b0b;
+  background-color: #ffffff;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", "Montserrat", "Helvetica Neue", Arial, sans-serif;
+  background: #ffffff;
+  color: #0b0b0b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+input, button, select, textarea {
+  font-family: inherit;
+}
