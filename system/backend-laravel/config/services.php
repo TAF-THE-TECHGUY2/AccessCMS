@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'wefunder' => [
+        'campaign_url' => env('WEFUNDER_CAMPAIGN_URL'),
+        'provider_name' => env('WEFUNDER_PROVIDER_NAME', 'wefunder'),
+    ],
+
 ];

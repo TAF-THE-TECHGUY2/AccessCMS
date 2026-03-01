@@ -3,28 +3,146 @@ import { useNavigate } from "react-router-dom";
 import Shell from "../components/Shell";
 import { api } from "../lib/api";
 
-const introMessage = "Hi! I’ll help you complete your investor application. I’ll ask a few short questions to populate your registration form.";
+const introMessage =
+  "Welcome to Access Properties - I'm your personal investing assistant. " +
+  "I'll guide you through a few steps to create your investor profile. Not financial advice.";
 
 const steps = [
   {
-    key: "full_name",
-    prompt: "What’s your full legal name?",
-    validate: (value) => value.trim().length > 1 || "Please enter your full name."
+    key: "__ready",
+    prompt:
+      "Before we start, here's the overall journey:\n" +
+      "1) Create your investor profile\n" +
+      "2) Confirm eligibility\n" +
+      "3) Choose your fund portfolio\n" +
+      "4) Verify accredited status (if applicable)\n" +
+      "5) Receive funding instructions (if applicable)\n" +
+      "6) Access your Investor Dashboard\n\n" +
+      "Ready to begin?",
+    choices: [
+      { label: "Yes, let's start", value: "start", next: "__profile_intro" },
+      { label: "I want to learn more first", value: "learn_more", next: "__learn_more" }
+    ],
+    validate: () => true
   },
   {
-    key: "title",
-    prompt: "Do you have a title? (e.g., CEO, Manager). You can leave this blank.",
-    optional: true
+    key: "__learn_more",
+    prompt:
+      "Access Properties is a fund-based real estate investment platform. You invest into a real estate fund (not a single property).\n\n" +
+      "When you're ready, tap 'Yes, let's start'.",
+    choices: [{ label: "Yes, let's start", value: "start", next: "__profile_intro" }],
+    validate: () => true
   },
   {
-    key: "phone",
-    prompt: "What’s the best phone number to reach you?",
-    validate: (value) => value.trim().length > 6 || "Please enter a valid phone number."
+    key: "__profile_intro",
+    prompt:
+      "First, let's set up your investor profile so I can personalize your experience and save your progress.",
+    autoAdvance: true,
+    validate: () => true
+  },
+  {
+    key: "first_name",
+    prompt: "First, what's your first name?",
+    validate: (value) => value.trim().length > 0 || "First name is required."
+  },
+  {
+    key: "last_name",
+    prompt: "What's your last name?",
+    validate: (value) => value.trim().length > 0 || "Last name is required."
   },
   {
     key: "email",
-    prompt: "What’s your email address?",
+    prompt: "What's your email address?",
     validate: (value) => /\S+@\S+\.\S+/.test(value) || "Please enter a valid email."
+  },
+  {
+    key: "phone",
+    prompt: "What's your mobile phone number?",
+    validate: (value) => value.trim().length > 6 || "Please enter a valid phone number."
+  },
+  {
+    key: "newsletter_opt_in",
+    prompt: "Sign me up for the Access Properties newsletter?",
+    choices: [
+      { label: "Yes", value: true },
+      { label: "No", value: false }
+    ],
+    validate: () => true
+  },
+  {
+    key: "has_invested_before",
+    prompt: "Have you invested in real estate, private investments, or investment funds before?",
+    choices: [
+      { label: "Yes, I have invested before", value: true, next: "__experience_yes" },
+      { label: "No, I am new to investing", value: false, next: "__experience_no" }
+    ],
+    validate: () => true
+  },
+  {
+    key: "__experience_yes",
+    prompt: "Great - I'll keep things efficient.",
+    autoAdvance: true,
+    validate: () => true
+  },
+  {
+    key: "__experience_no",
+    prompt: "No problem - I'll explain terms as we go.",
+    autoAdvance: true,
+    validate: () => true
+  },
+  {
+    key: "planned_amount_bucket",
+    prompt: "How much are you planning to invest right now?",
+    choices: [
+      { label: "Less than $10,000", value: "LT_10K" },
+      { label: "$10,000 or more", value: "GTE_10K" },
+      { label: "Not sure yet", value: "NOT_SURE" }
+    ],
+    validate: () => true
+  },
+  {
+    key: "sec_accredited",
+    prompt:
+      "To follow SEC rules, do you meet at least ONE Accredited Investor requirement?\n" +
+      "- Annual income over $200,000 (or $300,000 with spouse), OR\n" +
+      "- Net worth over $1 million (excluding primary home)",
+    choices: [
+      { label: "Yes", value: "YES" },
+      { label: "No", value: "NO" },
+      { label: "Not sure", value: "NOT_SURE" }
+    ],
+    validate: () => true
+  },
+  {
+    key: "investor_track",
+    prompt: "Which option best describes what you want?",
+    choices: [
+      { label: "I want to invest smaller amounts with other investors (crowdfunding)", value: "CROWDFUNDER" },
+      { label: "I want to invest directly as an accredited investor", value: "ACCREDITED" }
+    ],
+    validate: (value, state) => {
+      if (state.sec_accredited === "NO" && value === "ACCREDITED") {
+        return "Based on your eligibility answer, you should continue via crowdfunding.";
+      }
+      return true;
+    }
+  },
+  {
+    key: "__fund_clarification",
+    prompt:
+      "Quick clarification before we continue:\n" +
+      "Access Properties does not offer property-specific deals. Instead, you invest into a real estate investment fund.\n\n" +
+      "Your investment is:\n" +
+      "- pooled with other investors\n" +
+      "- allocated according to the fund strategy\n" +
+      "- represented as a percentage ownership interest in the fund\n\n" +
+      "Current offering:\n" +
+      "Access Properties Real Estate Diversified Income Fund I (Greater Boston Fund)",
+    choices: [
+      { label: "Continue", value: "continue", next: "password" },
+      { label: "View Portfolios", value: "view_portfolios", next: "__fund_clarification", action: { type: "open", target: "/portfolios" } }
+    ],
+    validate: () => true
   },
   {
     key: "password",
@@ -38,7 +156,7 @@ const steps = [
   },
   {
     key: "address_line1",
-    prompt: "What’s your street address?",
+    prompt: "What's your street address?",
     validate: (value) => value.trim().length > 3 || "Please enter your street address."
   },
   {
@@ -76,7 +194,7 @@ const steps = [
         return "Please enter a valid dollar amount.";
       }
       if (amount < 100) {
-        return "Crowdfunder minimum is $100. Please enter a higher amount.";
+        return "Please enter an amount of at least $100.";
       }
       return true;
     }
@@ -120,10 +238,19 @@ const AssistantRegister = () => {
 
   const step = steps[currentStep];
 
-  const investorTrack = useMemo(() => {
-    const amount = Number(answers.capital_contribution_amount || 0);
-    return amount >= 10000 ? "ACCREDITED" : "CROWDFUNDER";
-  }, [answers.capital_contribution_amount]);
+  const plannedAmountLabel = useMemo(() => {
+    const bucket = answers.planned_amount_bucket;
+    if (bucket === "LT_10K") return "Less than $10,000";
+    if (bucket === "GTE_10K") return "$10,000 or more";
+    if (bucket === "NOT_SURE") return "Not sure yet";
+    return null;
+  }, [answers.planned_amount_bucket]);
+
+  const getChoiceLabel = (stepKey, value) => {
+    const stepDef = steps.find((s) => s.key === stepKey);
+    const choice = stepDef?.choices?.find((item) => item.value === value);
+    return choice?.label ?? value;
+  };
 
   const typeAssistant = (text) => {
     if (!text) return Promise.resolve();
@@ -164,13 +291,22 @@ const AssistantRegister = () => {
     setMessages((prev) => [...prev, { role: "user", text }]);
   };
 
-  const goNext = async () => {
-    if (currentStep + 1 >= steps.length) {
+  const advanceTo = async (index, options = {}) => {
+    const { skipAutoAdvance = false } = options;
+    if (index >= steps.length) {
       setReview(true);
       return;
     }
-    setCurrentStep((prev) => prev + 1);
-    await enqueueAssistant(steps[currentStep + 1].prompt);
+    setCurrentStep(index);
+    const nextStep = steps[index];
+    await enqueueAssistant(nextStep.prompt);
+    if (nextStep.autoAdvance && !skipAutoAdvance) {
+      await advanceTo(index + 1, options);
+    }
+  };
+
+  const goNext = async () => {
+    await advanceTo(currentStep + 1);
   };
 
   const goBack = async () => {
@@ -179,7 +315,7 @@ const AssistantRegister = () => {
     setReview(false);
     setError("");
     setInput(answers[steps[currentStep - 1].key] ?? "");
-    await enqueueAssistant(`Let’s update: ${steps[currentStep - 1].prompt}`);
+    await enqueueAssistant(`Let's update: ${steps[currentStep - 1].prompt}`);
   };
 
   const jumpToStep = async (index, reason, editOnly = false) => {
@@ -199,21 +335,57 @@ const AssistantRegister = () => {
     if (!step) return;
     const value = input.trim();
     const finalValue = value === "" && step.optional ? step.defaultValue ?? "" : value;
-    const validation = step.validate ? step.validate(finalValue, answers) : true;
+    const normalized = step.normalize ? step.normalize(finalValue, answers) : finalValue;
+    const validation = step.validate ? step.validate(normalized, answers) : true;
     if (validation !== true) {
       setError(validation);
       return;
     }
     setError("");
     emitUser(value || (step.optional ? "Skipped" : value));
-    setAnswers((prev) => ({ ...prev, [step.key]: finalValue }));
+    setAnswers((prev) => ({ ...prev, [step.key]: normalized }));
     setInput("");
     if (editIndex !== null) {
       setEditIndex(null);
       setReview(true);
-      enqueueAssistant("Got it. I updated that field. Review your details when you’re ready.");
+      enqueueAssistant("Got it. I updated that field. Review your details when you're ready.");
       return;
     }
+    goNext();
+  };
+
+  const handleChoice = async (choice) => {
+    if (!step) return;
+    const rawValue = choice.value;
+    const normalized = step.normalize ? step.normalize(rawValue, answers) : rawValue;
+    const validation = step.validate ? step.validate(normalized, answers) : true;
+    if (validation !== true) {
+      setError(validation);
+      return;
+    }
+    setError("");
+    emitUser(choice.label);
+    setAnswers((prev) => ({ ...prev, [step.key]: normalized }));
+
+    if (choice.action?.type === "open" && choice.action?.target) {
+      navigate(choice.action.target);
+    }
+
+    if (editIndex !== null) {
+      setEditIndex(null);
+      setReview(true);
+      enqueueAssistant("Got it. I updated that field. Review your details when you're ready.");
+      return;
+    }
+
+    if (choice.next) {
+      const targetIndex = steps.findIndex((s) => s.key === choice.next);
+      if (targetIndex !== -1) {
+        await advanceTo(targetIndex);
+        return;
+      }
+    }
+
     goNext();
   };
 
@@ -222,10 +394,11 @@ const AssistantRegister = () => {
     setServerErrors(null);
     const payload = {
       ...answers,
+      full_name: [answers.first_name, answers.last_name].filter(Boolean).join(" ").trim(),
       capital_contribution_amount: Number(answers.capital_contribution_amount || 0),
       units_purchased: Number(answers.units_purchased || 0),
       equity_percent: Number(answers.equity_percent || 0),
-      investor_track: investorTrack,
+      investor_track: answers.investor_track,
       country: answers.country || "USA"
     };
     try {
@@ -242,7 +415,7 @@ const AssistantRegister = () => {
           const message = Array.isArray(errors[fieldKey]) ? errors[fieldKey].join(", ") : String(errors[fieldKey]);
           await jumpToStep(
             index,
-            `There’s an issue with ${fieldKey.replace(/_/g, " ")}: ${message}. Please re-enter it.`,
+            `There's an issue with ${fieldKey.replace(/_/g, " ")}: ${message}. Please re-enter it.`,
             true
           );
         }
@@ -255,7 +428,7 @@ const AssistantRegister = () => {
   useEffect(() => {
     const run = async () => {
       await enqueueAssistant(introMessage);
-      await enqueueAssistant(steps[0].prompt);
+      await advanceTo(0);
     };
     if (messages.length === 0) {
       run();
@@ -272,126 +445,146 @@ const AssistantRegister = () => {
     <Shell hideHeader>
       <div className="p-6">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="flex h-full flex-col rounded-2xl border border-border bg-white shadow-card">
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="space-y-4">
-              {messages.map((msg, idx) => (
-                <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
-                    msg.role === "user" ? "bg-ink text-white" : "bg-pearl text-ink"
-                  }`}>
-                    {msg.text}
-                  </div>
-                </div>
-              ))}
-              <div ref={messageEndRef} />
-            </div>
-          </div>
-
-          <div className="border-t border-border p-6">
-            {review ? (
-              <div className="rounded-xl border border-border p-4">
-              <h3 className="text-sm font-semibold">Review & Submit</h3>
-              <div className="mt-3 grid gap-2 text-sm">
-                {steps.map((s, index) => (
-                  <div key={s.key} className="flex items-center justify-between gap-4">
-                    <div>
-                      <span className="text-slate">{s.key.replace(/_/g, " ")}</span>
-                      <span className="ml-3">{answers[s.key] ?? "-"}</span>
+          <div className="flex h-full flex-col rounded-2xl border border-border bg-white shadow-card">
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-4">
+                {messages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
+                      msg.role === "user" ? "bg-ink text-white" : "bg-pearl text-ink"
+                    }`}>
+                      {msg.text}
                     </div>
-                    <button
-                      className="rounded-full border border-ink px-3 py-1 text-[10px] uppercase tracking-widest"
-                      onClick={() => jumpToStep(index, null, true)}
-                    >
-                      Edit
-                    </button>
                   </div>
                 ))}
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate">investor_track</span>
-                  <span>{investorTrack}</span>
-                </div>
-              </div>
-              {serverErrors ? (
-                <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                  {serverErrors.general || "Please fix the highlighted fields."}
-                  {serverErrors && typeof serverErrors === "object" ? (
-                    <ul className="mt-2 list-disc pl-5">
-                      {Object.entries(serverErrors).map(([field, messages]) => {
-                        if (field === "general") return null;
-                        const text = Array.isArray(messages) ? messages.join(", ") : String(messages);
-                        return (
-                          <li key={field}>
-                            <strong>{field}:</strong> {text}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : null}
-                </div>
-              ) : null}
-              <div className="mt-4 flex items-center gap-3">
-                <button
-                  className="rounded-full border border-ink px-4 py-2 text-xs uppercase tracking-widest"
-                  onClick={goBack}
-                >
-                  Back
-                </button>
-                <button
-                  className="rounded-full bg-ink px-4 py-2 text-xs uppercase tracking-widest text-white"
-                  disabled={submitting}
-                  onClick={handleReviewSubmit}
-                >
-                  {submitting ? "Submitting..." : "Submit"}
-                </button>
+                <div ref={messageEndRef} />
               </div>
             </div>
-            ) : (
-            <div>
-              {error ? <div className="mb-3 text-sm text-red-600">{error}</div> : null}
-              <div className="flex items-center gap-3">
-                <input
-                  className="flex-1 rounded-full border border-border px-4 py-3 text-sm"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type your answer..."
-                  disabled={isTyping}
-                  onKeyDown={(e) => (e.key === "Enter" ? handleSubmitAnswer() : null)}
-                />
-                <button
-                  className="rounded-full bg-ink px-4 py-3 text-xs uppercase tracking-widest text-white"
-                  onClick={handleSubmitAnswer}
-                  disabled={isTyping}
-                >
-                  Send
-                </button>
-              </div>
-              <div className="mt-4 flex items-center gap-3">
-                <button
-                  className="rounded-full border border-ink px-4 py-2 text-xs uppercase tracking-widest"
-                  onClick={goBack}
-                  disabled={currentStep === 0}
-                >
-                  Back
-                </button>
-                <div className="text-xs text-slate">Step {currentStep + 1} of {steps.length}</div>
-              </div>
-            </div>
-          )}
-          </div>
-        </div>
 
-        <aside className="h-full rounded-2xl border border-border bg-pearl p-6">
-          <h3 className="text-xs uppercase tracking-[0.3em] text-slate">Summary</h3>
-          <div className="mt-4 space-y-2 text-sm">
-            <div><strong>Investor Track:</strong> {investorTrack}</div>
-            <div><strong>Contribution:</strong> {answers.capital_contribution_amount || "—"}</div>
-            <div><strong>Email:</strong> {answers.email || "—"}</div>
+            <div className="border-t border-border p-6">
+              {review ? (
+                <div className="rounded-xl border border-border p-4">
+                  <h3 className="text-sm font-semibold">Review & Submit</h3>
+                  <div className="mt-3 grid gap-2 text-sm">
+                    {steps.map((s, index) => (
+                      <div key={s.key} className="flex items-center justify-between gap-4">
+                        <div>
+                          <span className="text-slate">{s.key.replace(/_/g, " ")}</span>
+                          <span className="ml-3">
+                            {s.choices ? (getChoiceLabel(s.key, answers[s.key]) || "-") : (answers[s.key] ?? "-")}
+                          </span>
+                        </div>
+                        {s.key.startsWith("__") ? null : (
+                          <button
+                            className="rounded-full border border-ink px-3 py-1 text-[10px] uppercase tracking-widest"
+                            onClick={() => jumpToStep(index, null, true)}
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <div className="flex justify-between gap-4">
+                      <span className="text-slate">investor_track</span>
+                      <span>{answers.investor_track || "-"}</span>
+                    </div>
+                  </div>
+                  {serverErrors ? (
+                    <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                      {serverErrors.general || "Please fix the highlighted fields."}
+                      {serverErrors && typeof serverErrors === "object" ? (
+                        <ul className="mt-2 list-disc pl-5">
+                          {Object.entries(serverErrors).map(([field, messages]) => {
+                            if (field === "general") return null;
+                            const text = Array.isArray(messages) ? messages.join(", ") : String(messages);
+                            return (
+                              <li key={field}>
+                                <strong>{field}:</strong> {text}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <div className="mt-4 flex items-center gap-3">
+                    <button
+                      className="rounded-full border border-ink px-4 py-2 text-xs uppercase tracking-widest"
+                      onClick={goBack}
+                    >
+                      Back
+                    </button>
+                    <button
+                      className="rounded-full bg-ink px-4 py-2 text-xs uppercase tracking-widest text-white"
+                      disabled={submitting}
+                      onClick={handleReviewSubmit}
+                    >
+                      {submitting ? "Submitting..." : "Submit"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  {error ? <div className="mb-3 text-sm text-red-600">{error}</div> : null}
+                  {step?.choices ? (
+                    <div className="flex flex-wrap gap-3">
+                      {step.choices.map((choice) => (
+                        <button
+                          key={choice.label}
+                          className="rounded-full border border-ink px-4 py-2 text-xs uppercase tracking-widest"
+                          onClick={() => handleChoice(choice)}
+                          disabled={isTyping}
+                        >
+                          {choice.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <input
+                        className="flex-1 rounded-full border border-border px-4 py-3 text-sm"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder="Type your answer..."
+                        disabled={isTyping}
+                        onKeyDown={(e) => (e.key === "Enter" ? handleSubmitAnswer() : null)}
+                      />
+                      <button
+                        className="rounded-full bg-ink px-4 py-3 text-xs uppercase tracking-widest text-white"
+                        onClick={handleSubmitAnswer}
+                        disabled={isTyping}
+                      >
+                        Send
+                      </button>
+                    </div>
+                  )}
+                  <div className="mt-4 flex items-center gap-3">
+                    <button
+                      className="rounded-full border border-ink px-4 py-2 text-xs uppercase tracking-widest"
+                      onClick={goBack}
+                      disabled={currentStep === 0}
+                    >
+                      Back
+                    </button>
+                    <div className="text-xs text-slate">Step {currentStep + 1} of {steps.length}</div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          <p className="mt-6 text-xs text-slate">
-            Anything below $10,000 is automatically classified as Crowdfunder. $10,000 or above is Accredited.
-          </p>
-        </aside>
+
+          <aside className="h-full rounded-2xl border border-border bg-pearl p-6">
+            <h3 className="text-xs uppercase tracking-[0.3em] text-slate">Summary</h3>
+            <div className="mt-4 space-y-2 text-sm">
+              <div><strong>Investor Track:</strong> {answers.investor_track || "—"}</div>
+              <div><strong>Planned Amount:</strong> {plannedAmountLabel || "—"}</div>
+              <div><strong>Contribution:</strong> {answers.capital_contribution_amount || "—"}</div>
+              <div><strong>Email:</strong> {answers.email || "—"}</div>
+            </div>
+            <p className="mt-6 text-xs text-slate">
+              Not financial advice.
+            </p>
+          </aside>
         </div>
       </div>
     </Shell>

@@ -12,6 +12,7 @@ class DocumentSubmission extends Model
     protected $fillable = [
         'user_id',
         'document_type_id',
+        'external_purchase_id',
         'file_path',
         'disk',
         'version',
@@ -35,6 +36,11 @@ class DocumentSubmission extends Model
         return $this->belongsTo(DocumentType::class);
     }
 
+    public function externalPurchase()
+    {
+        return $this->belongsTo(ExternalPurchase::class);
+    }
+
     public function reviewer()
     {
         return $this->belongsTo(User::class, 'reviewed_by');
@@ -43,5 +49,10 @@ class DocumentSubmission extends Model
     public function isPartnerProof(): bool
     {
         return $this->documentType?->code === 'partner_profile_screenshot';
+    }
+
+    public function isSharesConfirmation(): bool
+    {
+        return $this->documentType?->code === 'shares_confirmation';
     }
 }

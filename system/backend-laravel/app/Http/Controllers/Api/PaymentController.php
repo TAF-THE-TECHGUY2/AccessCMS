@@ -7,6 +7,7 @@ use App\Models\DocumentSubmission;
 use App\Models\DocumentType;
 use App\Models\Investment;
 use App\Models\Payment;
+use App\Services\InvestorEligibility;
 use App\Services\WorkflowEventService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -15,6 +16,8 @@ class PaymentController extends Controller
 {
     public function uploadProof(Request $request, WorkflowEventService $events)
     {
+        InvestorEligibility::assertKycApproved($request->user());
+
         $data = $request->validate([
             'investment_id' => ['required', 'exists:investments,id'],
             'amount' => ['required', 'numeric', 'min:1'],

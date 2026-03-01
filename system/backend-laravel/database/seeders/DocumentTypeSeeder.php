@@ -18,6 +18,7 @@ class DocumentTypeSeeder extends Seeder
             ['code' => 'accreditation_evidence', 'name' => 'Accreditation Evidence', 'required_for_track' => 'ACCREDITED', 'stage' => 'initial'],
             ['code' => 'partner_profile_screenshot', 'name' => 'Partner Profile Screenshot', 'required_for_track' => 'CROWDFUNDER', 'stage' => 'initial'],
             ['code' => 'payment_proof', 'name' => 'Payment Proof', 'required_for_track' => 'BOTH', 'stage' => 'payment'],
+            ['code' => 'shares_confirmation', 'name' => 'Shares/Ownership Confirmation', 'required_for_track' => 'CROWDFUNDER', 'stage' => 'external'],
             ['code' => 'signed_mipa', 'name' => 'Signed MIPA', 'required_for_track' => 'BOTH', 'stage' => 'signed'],
             ['code' => 'signed_joinder', 'name' => 'Signed Joinder', 'required_for_track' => 'BOTH', 'stage' => 'signed'],
             ['code' => 'signed_acknowledgement', 'name' => 'Signed Acknowledgement', 'required_for_track' => 'BOTH', 'stage' => 'signed'],

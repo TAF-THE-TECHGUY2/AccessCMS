@@ -7,6 +7,7 @@ use App\Models\FundingInstruction;
 use App\Models\InvestorOnboarding;
 use App\Models\OnboardingProfile;
 use App\Models\OnboardingDocument;
+use App\Services\InvestorEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -166,9 +167,22 @@ class OnboardingController extends Controller
 
     public function funding(Request $request)
     {
+        InvestorEligibility::assertKycApproved($request->user());
+
         $onboarding = $this->requireOnboarding($request);
         if ($onboarding->review_status !== 'approved') {
             return response()->json(['message' => 'Funding instructions are not available yet.'], 403);
+        }
+
+        $profile = $request->user()->investorProfile;
+        if (strtoupper((string) $profile?->investor_track) === 'CROWDFUNDER') {
+            return response()->json([
+                'mode' => 'EXTERNAL',
+                'provider' => config('services.wefunder.provider_name', 'wefunder'),
+                'instructions' => 'Complete your investment on Wefunder, then upload your Shares Confirmation for approval.',
+                'redirect_url' => config('services.wefunder.campaign_url'),
+                'start_purchase_endpoint' => '/api/crowdfunder/purchases',
+            ]);
         }
 
         $instructions = FundingInstruction::where('is_active', true)

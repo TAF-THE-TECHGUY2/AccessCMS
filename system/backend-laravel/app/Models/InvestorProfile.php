@@ -18,6 +18,9 @@ class InvestorProfile extends Model
     public const INVESTOR_TYPE_ACCREDITED = 'accredited';
     public const INVESTOR_TYPE_CROWDFUNDER = 'crowdfunder';
 
+    public const TRACK_STATUS_ACCREDITED_APPROVED = 'ACCREDITED_APPROVED';
+    public const TRACK_STATUS_CROWDFUNDER_ACTIVE = 'CROWDFUNDER_ACTIVE';
+
     protected $fillable = [
         'user_id',
         'investor_type',

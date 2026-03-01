@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OnboardingDocumentController;
 use App\Http\Controllers\Api\AccreditationController;
+use App\Http\Controllers\Api\CrowdfunderPurchaseController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['throttle:20,1'])->group(function () {
@@ -35,6 +36,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/offerings', [OfferingController::class, 'index']);
     Route::post('/investments', [InvestmentController::class, 'store']);
     Route::post('/payments/proof', [PaymentController::class, 'uploadProof']);
+    Route::post('/crowdfunder/purchases', [CrowdfunderPurchaseController::class, 'store']);
+    Route::post('/crowdfunder/purchases/{purchase}/proof', [CrowdfunderPurchaseController::class, 'uploadProof']);
 
     Route::post('/onboarding/basic', [OnboardingController::class, 'basic']);
     Route::post('/onboarding/experience', [OnboardingController::class, 'experience']);

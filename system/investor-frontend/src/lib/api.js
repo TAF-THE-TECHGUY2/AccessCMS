@@ -50,6 +50,9 @@ export const api = {
   getOfferings: () => client.get("/api/offerings").then((r) => r.data),
   createInvestment: (payload) => client.post("/api/investments", payload).then((r) => r.data),
   uploadPaymentProof: (payload) => client.post("/api/payments/proof", payload).then((r) => r.data),
+  createCrowdfunderPurchase: (payload) => client.post("/api/crowdfunder/purchases", payload).then((r) => r.data),
+  uploadCrowdfunderProof: (purchaseId, payload) =>
+    client.post(`/api/crowdfunder/purchases/${purchaseId}/proof`, payload).then((r) => r.data),
   investorDashboard: () => client.get("/api/investor/dashboard").then((r) => r.data),
   onboardingBasic: (payload) => client.post("/api/onboarding/basic", payload).then((r) => r.data),
   onboardingExperience: (payload) => client.post("/api/onboarding/experience", payload).then((r) => r.data),

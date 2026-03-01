@@ -130,8 +130,8 @@ class DocumentReviewController extends Controller
 
         if ($requiredSigned->count() > 0 && $approvedSigned === $requiredSigned->count()) {
             $trackStatus = $profile->investor_track === 'ACCREDITED'
-                ? 'ACCREDITED_APPROVED'
-                : 'CROWDFUNDER_ACTIVE';
+                ? \App\Models\InvestorProfile::TRACK_STATUS_ACCREDITED_APPROVED
+                : \App\Models\InvestorProfile::TRACK_STATUS_CROWDFUNDER_ACTIVE;
             $profile->update([
                 'status' => 'APPROVED',
                 'track_status' => $trackStatus,

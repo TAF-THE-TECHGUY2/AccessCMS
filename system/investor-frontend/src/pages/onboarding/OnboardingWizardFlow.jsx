@@ -36,7 +36,13 @@ const OnboardingWizardFlow = () => {
   const [approvedNotice, setApprovedNotice] = useState(false);
   const [status, setStatus] = useState({ status: "pending", rejection_reason: "" });
   const [funding, setFunding] = useState(null);
-  const [dashboard, setDashboard] = useState({ profile: null, investments: [], payments: [] });
+  const [dashboard, setDashboard] = useState({
+    profile: null,
+    investments: [],
+    payments: [],
+    external_purchases: [],
+    portfolio_allocations: []
+  });
   const [offerings, setOfferings] = useState([]);
   const successTimer = useRef(null);
 
@@ -259,6 +265,8 @@ const OnboardingWizardFlow = () => {
               data={funding}
               investments={dashboard?.investments || []}
               payments={dashboard?.payments || []}
+              externalPurchases={dashboard?.external_purchases || []}
+              portfolioAllocations={dashboard?.portfolio_allocations || []}
               offerings={offerings}
               onCreateInvestment={async (payload) => {
                 setError("");
@@ -274,6 +282,20 @@ const OnboardingWizardFlow = () => {
                   setError(err?.response?.data?.message || "Unable to create investment.");
                 }
               }}
+              onCreateExternalPurchase={async (payload) => {
+                setError("");
+                setSuccess("");
+                try {
+                  const created = await api.createCrowdfunderPurchase(payload);
+                  api.investorDashboard().then(setDashboard).catch(() => {});
+                  flashSuccess("Purchase started. Continue on Wefunder.");
+                  if (created?.redirect_url) {
+                    window.open(created.redirect_url, "_blank", "noopener");
+                  }
+                } catch (err) {
+                  setError(err?.response?.data?.message || "Unable to start purchase.");
+                }
+              }}
               onUpload={async (payload) => {
                 setError("");
                 setSuccess("");
@@ -281,6 +303,17 @@ const OnboardingWizardFlow = () => {
                   await api.uploadPaymentProof(payload);
                   api.investorDashboard().then(setDashboard).catch(() => {});
                   flashSuccess("Proof of payment submitted.");
+                } catch (err) {
+                  setError(err?.response?.data?.message || "Upload failed.");
+                }
+              }}
+              onUploadExternalProof={async (purchaseId, payload) => {
+                setError("");
+                setSuccess("");
+                try {
+                  await api.uploadCrowdfunderProof(purchaseId, payload);
+                  api.investorDashboard().then(setDashboard).catch(() => {});
+                  flashSuccess("Shares confirmation submitted.");
                 } catch (err) {
                   setError(err?.response?.data?.message || "Upload failed.");
                 }
@@ -567,7 +600,18 @@ const StatusStep = ({ status }) => (
   </div>
 );
 
-const FundingStep = ({ data, investments, payments, offerings, onCreateInvestment, onUpload }) => {
+const FundingStep = ({
+  data,
+  investments,
+  payments,
+  externalPurchases,
+  portfolioAllocations,
+  offerings,
+  onCreateInvestment,
+  onCreateExternalPurchase,
+  onUpload,
+  onUploadExternalProof
+}) => {
   const pending = investments.filter((inv) => inv.status !== "active");
   const [investmentId, setInvestmentId] = useState(pending[0]?.id || "");
   const [amount, setAmount] = useState("");
@@ -575,11 +619,21 @@ const FundingStep = ({ data, investments, payments, offerings, onCreateInvestmen
   const [selectedOffering, setSelectedOffering] = useState(offerings[0]?.id || "");
   const [investmentAmount, setInvestmentAmount] = useState("");
   const [investmentError, setInvestmentError] = useState("");
+  const [purchaseOffering, setPurchaseOffering] = useState(offerings[0]?.id || "");
+  const [purchaseAmount, setPurchaseAmount] = useState("");
+  const [purchaseUnits, setPurchaseUnits] = useState("");
+  const [purchaseId, setPurchaseId] = useState(externalPurchases[0]?.id || "");
+  const [purchaseFile, setPurchaseFile] = useState(null);
 
   const latestPayment = payments
     ?.filter((payment) => String(payment.investment_id) === String(investmentId))
     ?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
   const hasPendingPayment = payments?.some((payment) => payment.status === "pending");
+  const latestPurchase = externalPurchases
+    ?.filter((purchase) => String(purchase.id) === String(purchaseId))
+    ?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+  const hasActiveAllocation = portfolioAllocations?.some((item) => item.status === "active");
+  const isExternal = data?.mode === "EXTERNAL";
 
   useEffect(() => {
     if (!investmentId && pending[0]?.id) {
@@ -593,28 +647,166 @@ const FundingStep = ({ data, investments, payments, offerings, onCreateInvestmen
     }
   }, [offerings, selectedOffering]);
 
+  useEffect(() => {
+    if (!purchaseOffering && offerings[0]?.id) {
+      setPurchaseOffering(offerings[0].id);
+    }
+  }, [offerings, purchaseOffering]);
+
+  useEffect(() => {
+    if (!purchaseId && externalPurchases[0]?.id) {
+      setPurchaseId(externalPurchases[0].id);
+    }
+  }, [externalPurchases, purchaseId]);
+
   return (
     <div>
       <h2 className="text-2xl font-semibold">Funding Instructions</h2>
       {data ? (
         <div className="mt-4 rounded-xl border border-border p-4 text-sm">
-          <p><strong>Bank:</strong> {data.bank_name}</p>
-          <p><strong>Account Name:</strong> {data.account_name}</p>
-          <p><strong>Routing:</strong> {data.routing_number}</p>
-          <p><strong>Account:</strong> {data.account_number}</p>
-          <p><strong>Reference:</strong> {data.reference}</p>
-          <button
-            className="mt-4 rounded-full border border-ink px-4 py-2 text-xs uppercase tracking-widest"
-            onClick={() => navigator.clipboard?.writeText(data.reference || "")}
-          >
-            Copy Reference
-          </button>
+          {isExternal ? (
+            <>
+              <p className="text-sm">{data.instructions}</p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  className="rounded-full bg-ink px-6 py-3 text-xs uppercase tracking-widest text-white"
+                  onClick={() => data.redirect_url && window.open(data.redirect_url, "_blank", "noopener")}
+                >
+                  Continue on {data.provider || "Wefunder"}
+                </button>
+              </div>
+              {hasActiveAllocation ? (
+                <p className="mt-3 text-xs text-emerald-700">
+                  Your crowdfunder allocation is active. You can now access the crowdfunder portal.
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <p><strong>Bank:</strong> {data.bank_name}</p>
+              <p><strong>Account Name:</strong> {data.account_name}</p>
+              <p><strong>Routing:</strong> {data.routing_number}</p>
+              <p><strong>Account:</strong> {data.account_number}</p>
+              <p><strong>Reference:</strong> {data.reference}</p>
+              <button
+                className="mt-4 rounded-full border border-ink px-4 py-2 text-xs uppercase tracking-widest"
+                onClick={() => navigator.clipboard?.writeText(data.reference || "")}
+              >
+                Copy Reference
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <div className="mt-4 text-sm text-slate">Not available yet.</div>
       )}
 
-      {!hasPendingPayment ? (
+      {isExternal ? (
+        <div className="mt-6 grid gap-6">
+          <div className="rounded-xl border border-border p-4">
+            <h3 className="text-sm font-semibold">Start External Purchase</h3>
+            {offerings.length ? (
+              <div className="mt-4 grid gap-4">
+                <div>
+                  <label className="text-xs uppercase tracking-widest text-slate">Offering</label>
+                  <select
+                    className="mt-2 w-full rounded-lg border border-border px-4 py-3"
+                    value={purchaseOffering}
+                    onChange={(e) => setPurchaseOffering(e.target.value)}
+                  >
+                    {offerings.map((offering) => (
+                      <option key={offering.id} value={offering.id}>
+                        {offering.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs uppercase tracking-widest text-slate">Expected Amount (optional)</label>
+                  <input
+                    className="mt-2 w-full rounded-lg border border-border px-4 py-3"
+                    value={purchaseAmount}
+                    onChange={(e) => setPurchaseAmount(e.target.value)}
+                    placeholder="Amount"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs uppercase tracking-widest text-slate">Expected Units (optional)</label>
+                  <input
+                    className="mt-2 w-full rounded-lg border border-border px-4 py-3"
+                    value={purchaseUnits}
+                    onChange={(e) => setPurchaseUnits(e.target.value)}
+                    placeholder="Units"
+                  />
+                </div>
+                <button
+                  className="rounded-full bg-ink px-6 py-3 text-xs uppercase tracking-widest text-white"
+                  onClick={() => {
+                    const payload = {
+                      offering_id: purchaseOffering,
+                    };
+                    if (purchaseAmount) payload.amount_expected = Number(purchaseAmount);
+                    if (purchaseUnits) payload.units_expected = Number(purchaseUnits);
+                    onCreateExternalPurchase(payload);
+                  }}
+                >
+                  Start Purchase
+                </button>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-slate">No offerings available yet.</p>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-border p-4">
+            <h3 className="text-sm font-semibold">Upload Shares Confirmation</h3>
+            {externalPurchases.length ? (
+              <div className="mt-4 grid gap-4">
+                <div>
+                  <label className="text-xs uppercase tracking-widest text-slate">Purchase</label>
+                  <select
+                    className="mt-2 w-full rounded-lg border border-border px-4 py-3"
+                    value={purchaseId}
+                    onChange={(e) => setPurchaseId(e.target.value)}
+                  >
+                    {externalPurchases.map((purchase) => (
+                      <option key={purchase.id} value={purchase.id}>
+                        {purchase.reference} — {purchase.offering?.title || "Offering"} ({purchase.status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs uppercase tracking-widest text-slate">Upload File</label>
+                  <input className="mt-2 w-full" type="file" onChange={(e) => setPurchaseFile(e.target.files[0])} />
+                </div>
+                <button
+                  className="rounded-full bg-ink px-6 py-3 text-xs uppercase tracking-widest text-white disabled:opacity-60"
+                  disabled={latestPurchase?.status === "pending_review" || latestPurchase?.status === "approved"}
+                  onClick={() => {
+                    const form = new FormData();
+                    if (purchaseFile) form.append("file", purchaseFile);
+                    onUploadExternalProof(purchaseId, form);
+                  }}
+                >
+                  {latestPurchase?.status === "approved"
+                    ? "Approved"
+                    : latestPurchase?.status === "pending_review"
+                    ? "Waiting for Approval"
+                    : "Submit Confirmation"}
+                </button>
+                {latestPurchase ? (
+                  <p className="text-xs text-slate">
+                    Latest status: <strong>{latestPurchase.status}</strong>
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-slate">No purchases yet.</p>
+            )}
+          </div>
+        </div>
+      ) : !hasPendingPayment ? (
         <div className="mt-6 rounded-xl border border-border p-4">
           <h3 className="text-sm font-semibold">Choose a Fund</h3>
           {offerings.length ? (

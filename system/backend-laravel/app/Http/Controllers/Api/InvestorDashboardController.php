@@ -7,6 +7,8 @@ use App\Models\Investment;
 use App\Models\InvestmentPerformanceUpdate;
 use App\Models\OfferingPerformanceUpdate;
 use App\Models\Payment;
+use App\Models\ExternalPurchase;
+use App\Models\PortfolioAllocation;
 use Illuminate\Http\Request;
 
 class InvestorDashboardController extends Controller
@@ -65,10 +67,42 @@ class InvestorDashboardController extends Controller
                 'created_at' => $payment->created_at,
             ]);
 
+        $externalPurchases = ExternalPurchase::with('offering')
+            ->where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn (ExternalPurchase $purchase) => [
+                'id' => $purchase->id,
+                'offering' => $purchase->offering,
+                'provider' => $purchase->provider,
+                'reference' => $purchase->reference,
+                'status' => $purchase->status,
+                'amount_expected' => $purchase->amount_expected,
+                'units_expected' => $purchase->units_expected,
+                'created_at' => $purchase->created_at,
+            ]);
+
+        $portfolioAllocations = PortfolioAllocation::with('offering')
+            ->where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn (PortfolioAllocation $allocation) => [
+                'id' => $allocation->id,
+                'offering' => $allocation->offering,
+                'amount' => $allocation->amount,
+                'units' => $allocation->units,
+                'status' => $allocation->status,
+                'source' => $allocation->source,
+                'as_of_date' => $allocation->as_of_date,
+                'created_at' => $allocation->created_at,
+            ]);
+
         return response()->json([
             'profile' => $profile,
             'investments' => $investments,
             'payments' => $payments,
+            'external_purchases' => $externalPurchases,
+            'portfolio_allocations' => $portfolioAllocations,
         ]);
     }
 }
