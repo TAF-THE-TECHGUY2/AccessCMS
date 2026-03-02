@@ -14,9 +14,7 @@ export default function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [mobilePortfoliosOpen, setMobilePortfoliosOpen] = useState(false);
-  const [mobileInvestOpen, setMobileInvestOpen] = useState(false);
   const [desktopPortfoliosOpen, setDesktopPortfoliosOpen] = useState(false);
-  const [desktopInvestOpen, setDesktopInvestOpen] = useState(false);
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
@@ -27,8 +25,6 @@ export default function NavBar() {
   const isActive = (path) => location.pathname === path;
   const isActivePrefix = (prefix) =>
     location.pathname === prefix || location.pathname.startsWith(prefix + "/");
-  const isInvestActive = () => isActivePrefix("/invest-now") || isActive("/faq");
-
   const desktopLinkClass = (active) =>
     `relative text-black font-medium text-[15px] transition-colors ${
       active ? "font-semibold" : "hover:opacity-80"
@@ -43,7 +39,6 @@ export default function NavBar() {
 
   const closeDesktopDropdowns = () => {
     setDesktopPortfoliosOpen(false);
-    setDesktopInvestOpen(false);
   };
 
   const closeMobile = () => {
@@ -52,7 +47,6 @@ export default function NavBar() {
       setIsOpen(false);
       setIsClosing(false);
       setMobilePortfoliosOpen(false);
-      setMobileInvestOpen(false);
     }, 300);
   };
 
@@ -174,36 +168,14 @@ export default function NavBar() {
                     </li>
                   </ul>
                 </li>
-                <li className="relative group flex items-center" onMouseLeave={() => setDesktopInvestOpen(false)}>
-                  <NavLink to="/invest-now" active={isInvestActive()} onClick={closeDesktopDropdowns}>
+                <li className="relative group flex items-center">
+                  <a
+                    href="https://investor.ap.boston/assistant-register"
+                    className={desktopLinkClass(false)}
+                    onClick={closeDesktopDropdowns}
+                  >
                     Invest Now
-                  </NavLink>
-                  <button
-                    type="button"
-                    onClick={() => setDesktopInvestOpen((p) => !p)}
-                    className="ml-1"
-                    aria-label="Toggle Invest Now menu"
-                  >
-                    <svg
-                      className={`h-4 w-4 text-black transition-transform duration-200 ${
-                        desktopInvestOpen ? "rotate-180" : "group-hover:rotate-180"
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  <ul
-                    className={[
-                      "absolute left-0 top-full mt-3 w-64 bg-white border border-black/20 shadow-lg z-50",
-                      "opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200",
-                      desktopInvestOpen ? "opacity-100 visible" : "",
-                    ].join(" ")}
-                  >
-                    {/* Opportunities link removed */}
-                  </ul>
+                  </a>
                 </li>
                 <li>
                   <NavLink to={faqLink.href} active={isActive(faqLink.href)} onClick={closeDesktopDropdowns}>
@@ -220,9 +192,12 @@ export default function NavBar() {
           </div>
 
           <div className="flex items-center justify-end gap-3">
-            <button className="hidden md:inline-flex bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md text-sm font-medium transition-colors">
+            <a
+              href="https://investor.ap.boston/login"
+              className="hidden md:inline-flex bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md text-sm font-medium transition-colors"
+            >
               Login/Register
-            </button>
+            </a>
             <button
               className="md:hidden bg-black text-white p-2 hover:bg-gray-800 transition-colors"
               onClick={() => setIsOpen(true)}
@@ -295,25 +270,13 @@ export default function NavBar() {
                     </div>
                   ) : null}
                 </div>
-                <div>
-                  <button
-                    onClick={() => setMobileInvestOpen(!mobileInvestOpen)}
-                    className="w-full flex items-center justify-between text-gray-300 hover:text-white px-4 py-3 rounded-lg transition-colors"
-                  >
-                    <span className={isInvestActive() ? "font-semibold text-white" : ""}>Invest Now</span>
-                    <svg
-                      className={`h-4 w-4 transition-transform duration-300 ${mobileInvestOpen ? "rotate-180" : ""}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {mobileInvestOpen ? (
-                    <div className="pl-6 space-y-1 mt-1 bg-gray-900 rounded-lg py-2 animate-slideDown" />
-                  ) : null}
-                </div>
+                <a
+                  href="https://investor.ap.boston/assistant-register"
+                  onClick={closeMobile}
+                  className="block py-3 px-4 rounded-lg transition-colors duration-200 text-gray-300 hover:text-white"
+                >
+                  Invest Now
+                </a>
                 <Link to={faqLink.href} onClick={closeMobile} className={mobileLinkClass(faqLink.href)}>
                   {faqLink.label}
                 </Link>
@@ -322,9 +285,12 @@ export default function NavBar() {
                 </Link>
               </nav>
               <div className="border-t border-gray-800 p-4">
-                <button className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                <a
+                  href="https://investor.ap.boston/login"
+                  className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center justify-center"
+                >
                   Login/Register
-                </button>
+                </a>
               </div>
             </div>
           </div>

@@ -27,13 +27,16 @@ class AuthController extends Controller
             'state' => ['required', 'string', 'max:255'],
             'postal_code' => ['required', 'string', 'max:50'],
             'country' => ['required', 'string', 'max:255'],
-            'capital_contribution_amount' => ['required', 'numeric', 'min:0'],
+            'capital_contribution_amount' => ['sometimes', 'numeric', 'min:0'],
             'units_purchased' => ['nullable', 'integer', 'min:0'],
             'equity_percent' => ['nullable', 'numeric', 'min:0'],
             'investor_track' => ['required', 'in:CROWDFUNDER,ACCREDITED'],
         ]);
 
         $validator->after(function ($validator) use ($request) {
+            if (!$request->filled('capital_contribution_amount')) {
+                return;
+            }
             $track = $request->input('investor_track');
             $amount = (float) $request->input('capital_contribution_amount', 0);
             if ($track === 'ACCREDITED' && $amount < 10000) {
@@ -67,7 +70,7 @@ class AuthController extends Controller
             'state' => $data['state'],
             'postal_code' => $data['postal_code'],
             'country' => $data['country'],
-            'capital_contribution_amount' => $data['capital_contribution_amount'],
+            'capital_contribution_amount' => $data['capital_contribution_amount'] ?? 0,
             'units_purchased' => $data['units_purchased'] ?? 0,
             'equity_percent' => $data['equity_percent'] ?? 0,
             'investor_track' => $data['investor_track'],

@@ -20,8 +20,6 @@ const Register = () => {
     state: "",
     postal_code: "",
     country: "USA",
-    capital_contribution_amount: 100,
-    units_purchased: 0,
     equity_percent: 0,
     investor_track: "CROWDFUNDER"
   });
@@ -103,14 +101,6 @@ const Register = () => {
           <div>
             <label className="text-xs uppercase tracking-widest text-slate">Country</label>
             <input className="mt-2 w-full rounded-lg border border-border px-4 py-3" value={form.country} onChange={(e) => update("country", e.target.value)} required />
-          </div>
-          <div>
-            <label className="text-xs uppercase tracking-widest text-slate">Contribution Amount</label>
-            <input type="number" className="mt-2 w-full rounded-lg border border-border px-4 py-3" value={form.capital_contribution_amount} onChange={(e) => update("capital_contribution_amount", e.target.value)} required />
-          </div>
-          <div>
-            <label className="text-xs uppercase tracking-widest text-slate">Units Purchased</label>
-            <input type="number" className="mt-2 w-full rounded-lg border border-border px-4 py-3" value={form.units_purchased} onChange={(e) => update("units_purchased", e.target.value)} />
           </div>
           <div className="md:col-span-2">
             <label className="text-xs uppercase tracking-widest text-slate">Equity Percent</label>

@@ -12,7 +12,7 @@ const steps = [
   { key: "documents", label: "Documents" },
   { key: "accreditation", label: "Accreditation", conditional: "accredited" },
   { key: "status", label: "Review Status" },
-  { key: "funding", label: "Funding" },
+  { key: "funding", label: "Funding", conditional: "crowdfunding" },
   { key: "dashboard", label: "Dashboard" }
 ];
 
@@ -50,6 +50,9 @@ const OnboardingWizardFlow = () => {
     return steps.filter((step) => {
       if (step.conditional === "accredited") {
         return state?.pathway?.pathway === "accredited";
+      }
+      if (step.conditional === "crowdfunding") {
+        return state?.pathway?.pathway === "crowdfunding";
       }
       return true;
     });

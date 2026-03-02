@@ -7,6 +7,30 @@ const introMessage =
   "Welcome to Access Properties - I'm your personal investing assistant. " +
   "I'll guide you through a few steps to create your investor profile. Not financial advice.";
 
+const parseFullAddress = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const parts = raw.split(",").map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 3) return null;
+  const [line1, city, stateZipRaw] = parts;
+  const stateZipParts = stateZipRaw.split(/\s+/).filter(Boolean);
+  if (stateZipParts.length < 1) return null;
+  let postalCode = "";
+  let state = stateZipParts.join(" ");
+  const lastToken = stateZipParts[stateZipParts.length - 1];
+  if (/\d/.test(lastToken) && stateZipParts.length >= 2) {
+    postalCode = lastToken;
+    state = stateZipParts.slice(0, -1).join(" ");
+  }
+  if (!line1 || !city || !state) return null;
+  return {
+    address_line1: line1,
+    city,
+    state,
+    postal_code: postalCode
+  };
+};
+
 const steps = [
   {
     key: "__ready",
@@ -140,7 +164,7 @@ const steps = [
       "Access Properties Real Estate Diversified Income Fund I (Greater Boston Fund)",
     choices: [
       { label: "Continue", value: "continue", next: "password" },
-      { label: "View Portfolios", value: "view_portfolios", next: "__fund_clarification", action: { type: "open", target: "/portfolios" } }
+      { label: "View Portfolios", value: "view_portfolios", next: "__fund_clarification", action: { type: "open", target: "https://ap.boston/portfolios" } }
     ],
     validate: () => true
   },
@@ -155,29 +179,10 @@ const steps = [
     validate: (value, state) => value === state.password || "Passwords do not match."
   },
   {
-    key: "address_line1",
-    prompt: "What's your street address?",
-    validate: (value) => value.trim().length > 3 || "Please enter your street address."
-  },
-  {
-    key: "address_line2",
-    prompt: "Apartment, suite, or unit? (optional)",
-    optional: true
-  },
-  {
-    key: "city",
-    prompt: "City?",
-    validate: (value) => value.trim().length > 1 || "Please enter your city."
-  },
-  {
-    key: "state",
-    prompt: "State or province?",
-    validate: (value) => value.trim().length > 1 || "Please enter your state."
-  },
-  {
-    key: "postal_code",
-    prompt: "ZIP or postal code?",
-    validate: (value) => value.trim().length > 2 || "Please enter your postal code."
+    key: "address_full",
+    prompt: "What's your full address? Format: Street, City, State ZIP",
+    validate: (value) =>
+      parseFullAddress(value) ? true : "Please use the format: Street, City, State ZIP."
   },
   {
     key: "country",
@@ -199,26 +204,7 @@ const steps = [
       return true;
     }
   },
-  {
-    key: "units_purchased",
-    prompt: "How many units do you plan to purchase? (optional, default 0)",
-    optional: true,
-    defaultValue: 0,
-    validate: (value) => {
-      if (value === "" || value === null || value === undefined) return true;
-      return !Number.isNaN(Number(value)) || "Please enter a valid number.";
-    }
-  },
-  {
-    key: "equity_percent",
-    prompt: "Estimated equity percent? (optional, default 0)",
-    optional: true,
-    defaultValue: 0,
-    validate: (value) => {
-      if (value === "" || value === null || value === undefined) return true;
-      return !Number.isNaN(Number(value)) || "Please enter a valid number.";
-    }
-  }
+  
 ];
 
 const AssistantRegister = () => {
@@ -392,14 +378,17 @@ const AssistantRegister = () => {
   const handleReviewSubmit = async () => {
     setSubmitting(true);
     setServerErrors(null);
+    const parsedAddress = parseFullAddress(answers.address_full);
     const payload = {
       ...answers,
       full_name: [answers.first_name, answers.last_name].filter(Boolean).join(" ").trim(),
       capital_contribution_amount: Number(answers.capital_contribution_amount || 0),
-      units_purchased: Number(answers.units_purchased || 0),
-      equity_percent: Number(answers.equity_percent || 0),
       investor_track: answers.investor_track,
-      country: answers.country || "USA"
+      country: answers.country || "USA",
+      address_line1: parsedAddress?.address_line1,
+      city: parsedAddress?.city,
+      state: parsedAddress?.state,
+      postal_code: parsedAddress?.postal_code
     };
     try {
       await api.register(payload);
