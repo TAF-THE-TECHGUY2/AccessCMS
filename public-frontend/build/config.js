@@ -1,8 +1,9 @@
-/*window.__APP_CONFIG__ = {
+window.__APP_CONFIG__ = {
   apiBaseUrl: "https://api.ap.boston"
-}; */
+}; 
 
-
+/*
 window.__APP_CONFIG__ = {
   apiBaseUrl: "http://localhost:5000"
 };
+*/

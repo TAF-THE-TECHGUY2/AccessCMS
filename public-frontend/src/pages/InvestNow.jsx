@@ -24,7 +24,7 @@ export default function InvestNow() {
 
           <div className="mt-8 flex items-center">
             <a
-              href="/greater-boston"
+              href="/portfolios"
               className="bg-[#b3a17a] hover:bg-[#9e8f6d] text-white px-7 py-3 text-sm font-semibold rounded-md transition"
             >
               View Portfolios

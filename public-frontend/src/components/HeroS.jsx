@@ -11,10 +11,11 @@ export default function HeroSection({
   overlayOpacity = 0.55,
   primaryButton = { label: "HOW IT WORKS", href: "" },
   secondaryButton = { label: "INVEST NOW", href: "/invest-now" },
-  videoUrl = "",
+  videoUrl = "/videos/how-it-works.mp4",
 }) {
   const [showHowItWorksVideo, setShowHowItWorksVideo] = useState(false);
   const closeVideo = () => setShowHowItWorksVideo(false);
+  const isMp4 = videoUrl && videoUrl.toLowerCase().endsWith(".mp4");
 const Container = ({ children }) => (
   <div className="max-w-6xl mx-auto px-4">
     {children}
@@ -106,13 +107,17 @@ const Container = ({ children }) => (
             </button>
 
             <div className="aspect-video">
-              <iframe
-                className="w-full h-full"
-                src={videoUrl}
-                title="How It Works"
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-              />
+              {isMp4 ? (
+                <video className="w-full h-full" src={videoUrl} controls autoPlay playsInline />
+              ) : (
+                <iframe
+                  className="w-full h-full"
+                  src={videoUrl}
+                  title="How It Works"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                />
+              )}
             </div>
           </div>
         </div>

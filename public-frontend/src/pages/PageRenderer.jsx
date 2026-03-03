@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import SectionRenderer from "../components/SectionRenderer.jsx";
+import NewsletterSignup from "../components/NewsletterSignup.jsx";
 import { api } from "../api.js";
 
 export default function PageRenderer({ slug }) {
@@ -38,5 +39,10 @@ export default function PageRenderer({ slug }) {
     );
   }
 
-  return <SectionRenderer sections={page.sections || []} />;
+  return (
+    <>
+      <SectionRenderer sections={page.sections || []} />
+      {(slug === "home" || slug === "contact") && <NewsletterSignup />}
+    </>
+  );
 }

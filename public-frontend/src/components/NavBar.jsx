@@ -168,15 +168,6 @@ export default function NavBar() {
                     </li>
                   </ul>
                 </li>
-                <li className="relative group flex items-center">
-                  <a
-                    href="https://investor.ap.boston/assistant-register"
-                    className={desktopLinkClass(false)}
-                    onClick={closeDesktopDropdowns}
-                  >
-                    Invest Now
-                  </a>
-                </li>
                 <li>
                   <NavLink to={faqLink.href} active={isActive(faqLink.href)} onClick={closeDesktopDropdowns}>
                     {faqLink.label}
@@ -192,12 +183,6 @@ export default function NavBar() {
           </div>
 
           <div className="flex items-center justify-end gap-3">
-            <a
-              href="https://investor.ap.boston/login"
-              className="hidden md:inline-flex bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              Login/Register
-            </a>
             <button
               className="md:hidden bg-black text-white p-2 hover:bg-gray-800 transition-colors"
               onClick={() => setIsOpen(true)}
@@ -270,13 +255,6 @@ export default function NavBar() {
                     </div>
                   ) : null}
                 </div>
-                <a
-                  href="https://investor.ap.boston/assistant-register"
-                  onClick={closeMobile}
-                  className="block py-3 px-4 rounded-lg transition-colors duration-200 text-gray-300 hover:text-white"
-                >
-                  Invest Now
-                </a>
                 <Link to={faqLink.href} onClick={closeMobile} className={mobileLinkClass(faqLink.href)}>
                   {faqLink.label}
                 </Link>
@@ -284,14 +262,7 @@ export default function NavBar() {
                   {contactLink.label}
                 </Link>
               </nav>
-              <div className="border-t border-gray-800 p-4">
-                <a
-                  href="https://investor.ap.boston/login"
-                  className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center justify-center"
-                >
-                  Login/Register
-                </a>
-              </div>
+              <div className="border-t border-gray-800 p-4" />
             </div>
           </div>
         ) : null}
