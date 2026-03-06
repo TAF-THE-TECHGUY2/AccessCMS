@@ -1,13 +1,16 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 export default function DisclosureBar() {
   const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+  const sectionBgClass = pathname === "/" ? "bg-white" : "bg-gray-100";
 
   return (
     <>
       {/* FULL DISCLOSURE */}
-      <section className="py-16 md:py-20 bg-gray-100 border-t border-gray-300">
+      <section className={`py-16 md:py-20 ${sectionBgClass} border-t border-gray-300`}>
         <div className="max-w-6xl mx-auto px-4 md:px-6">
           <div className="relative border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
             <button

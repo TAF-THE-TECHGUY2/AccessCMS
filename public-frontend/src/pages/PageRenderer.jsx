@@ -39,10 +39,26 @@ export default function PageRenderer({ slug }) {
     );
   }
 
+  const sections = page.sections || [];
+  const testimonialsIndex =
+    slug === "home"
+      ? sections.findIndex((section) => section?.type === "TESTIMONIALS")
+      : -1;
+
   return (
     <>
-      <SectionRenderer sections={page.sections || []} />
-      {(slug === "home" || slug === "contact") && <NewsletterSignup />}
+      {slug === "home" && testimonialsIndex >= 0 ? (
+        <>
+          <SectionRenderer sections={sections.slice(0, testimonialsIndex + 1)} />
+          <NewsletterSignup />
+          <SectionRenderer sections={sections.slice(testimonialsIndex + 1)} />
+        </>
+      ) : (
+        <>
+          <SectionRenderer sections={sections} />
+          {(slug === "home" || slug === "contact") && <NewsletterSignup />}
+        </>
+      )}
     </>
   );
 }

@@ -11,12 +11,16 @@ export default function Footer() {
   }, []);
 
   const footer = settings?.footer || {};
-  const quickLinks = footer.quickLinks || [
-    { label: "Invest Now", href: "/greater-boston" },
+  const quickLinks = (footer.quickLinks || [
+    { label: "Invest Now", href: "/portfolios" },
     { label: "FAQ", href: "/faq" },
     { label: "Contact Us", href: "/contact" },
     { label: "Privacy Policy", href: "/privacy-policy" },
-  ];
+  ]).map((link) =>
+    String(link?.label || "").trim().toLowerCase() === "invest now"
+      ? { ...link, href: "/portfolios" }
+      : link
+  );
 
   const socialLinks = footer.socialLinks || [];
   const getIcon = (label) => {
