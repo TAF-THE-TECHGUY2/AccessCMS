@@ -1,0 +1,15 @@
+server {
+    listen 80;
+    listen [::]:80;
+    server_name investor.ap.boston;
+
+    root /var/www/investor.ap.boston;
+    index index.html;
+
+    access_log /var/log/nginx/investor.ap.boston.access.log;
+    error_log /var/log/nginx/investor.ap.boston.error.log;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
