@@ -3,31 +3,282 @@ import { useNavigate } from "react-router-dom";
 import Shell from "../components/Shell";
 import { api } from "../lib/api";
 
-const introMessage =
-  "Welcome to Access Properties - I'm your personal investing assistant. " +
-  "I'll guide you through a few steps to create your investor profile. Not financial advice.";
+const FUND_NAME =
+  "Access Properties Real Estate Diversified Income Fund I (Greater Boston Fund)";
+const PORTFOLIOS_URL = "https://ap.boston/portfolios";
+const SESSION_STORAGE_KEY = "access-properties-assistant-register-script-exact-v2";
+
+const createMessageId = (prefix = "m") =>
+  `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const openPortfolios = () => {
+  window.open(PORTFOLIOS_URL, "_blank", "noopener,noreferrer");
+};
 
 const parseFullAddress = (value) => {
   const raw = String(value || "").trim();
   if (!raw) return null;
-  const parts = raw.split(",").map((part) => part.trim()).filter(Boolean);
+
+  const parts = raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
   if (parts.length < 3) return null;
-  const [line1, city, stateZipRaw] = parts;
+
+  const [address_line1, city, stateZipRaw, countryRaw] = parts;
   const stateZipParts = stateZipRaw.split(/\s+/).filter(Boolean);
-  if (stateZipParts.length < 1) return null;
-  let postalCode = "";
+  if (!address_line1 || !city || stateZipParts.length < 1) return null;
+
+  let postal_code = "";
   let state = stateZipParts.join(" ");
   const lastToken = stateZipParts[stateZipParts.length - 1];
+
   if (/\d/.test(lastToken) && stateZipParts.length >= 2) {
-    postalCode = lastToken;
+    postal_code = lastToken;
     state = stateZipParts.slice(0, -1).join(" ");
   }
-  if (!line1 || !city || !state) return null;
+
+  if (!state) return null;
+
   return {
-    address_line1: line1,
+    address_line1,
     city,
     state,
-    postal_code: postalCode
+    postal_code,
+    country: countryRaw || "USA",
+  };
+};
+
+const reviewLabels = {
+  first_name: "First name",
+  last_name: "Last name",
+  email: "Email",
+  phone: "Mobile phone number",
+  newsletter_opt_in: "Newsletter signup",
+  has_invested_before: "Investment experience",
+  planned_amount_bucket: "Planned amount",
+  sec_accredited: "SEC accredited status",
+  investor_preference: "Investor preference",
+  investor_track: "Investor track",
+  selected_fund: "Selected fund",
+};
+
+const FAQ_ITEMS = [
+  "What is Access Properties?",
+  "Who can invest with Access Properties?",
+  "Who owns the properties?",
+  "What legal structure does Access Properties use?",
+  "Are investments guaranteed?",
+  "Can I sell my investment?",
+  "How does Access Properties support a fund-family model?",
+  "Can non-U.S. investors participate?",
+  "Do I need a U.S. bank account to invest?",
+  "How does Access Properties select investments?",
+  "What investment strategies does Access Properties employ?",
+  "Who manages the properties?",
+  "How often will I receive updates on my investment?",
+  "What happens if a property needs major repairs?",
+  "How does Access Properties handle tenant issues?",
+  "Can I visit the properties I’ve invested in?",
+  "What tax documents will I receive?",
+  "How is rental income taxed?",
+  "What is depreciation and how does it benefit me?",
+  "Can I deduct losses from my investment?",
+  "What happens tax-wise when a property is sold?",
+  "Are distributions taxable?",
+  "Do I need to file taxes in Massachusetts?",
+  "Can I use a self-directed IRA or 401(k) to invest?",
+  "Are there special tax considerations for non-U.S. investors?",
+  "What is the minimum investment?",
+  "How are returns generated?",
+  "How often are distributions paid?",
+  "What fees does Access Properties charge?",
+  "How is property valuation determined?",
+  "What is the typical hold period?",
+  "What risks should I be aware of?",
+  "Full Disclosure",
+];
+
+const formatValue = (key, value) => {
+  if (value === null || value === undefined || value === "") return "—";
+
+  const mappedValues = {
+    newsletter_opt_in: {
+      true: "Yes",
+      false: "No",
+    },
+    has_invested_before: {
+      true: "Yes, I have invested before",
+      false: "No, I am new to investing",
+    },
+    planned_amount_bucket: {
+      LT_10K: "Less than $10,000",
+      GTE_10K: "$10,000 or more",
+      NOT_SURE: "Not sure yet",
+    },
+    sec_accredited: {
+      YES: "Yes",
+      NO: "No",
+      NOT_SURE: "Not sure",
+    },
+    investor_preference: {
+      CROWDFUNDING: "I want to invest smaller amounts with other investors (crowdfunding)",
+      ACCREDITED_DIRECT: "I want to invest directly as an accredited investor",
+    },
+    investor_track: {
+      CROWDFUNDER: "Crowdfunding",
+      ACCREDITED: "Accredited Investor",
+    },
+    us_person_status: {
+      US_PERSON: "U.S. citizen or U.S. permanent resident",
+      NON_US_PERSON: "Non-U.S. investor",
+    },
+    identity_document_type: {
+      DRIVERS_LICENSE: "Driver’s license",
+      PASSPORT: "Passport",
+    },
+    accreditation_method: {
+      VERIFY_COM: "Verify.com",
+      OTHER_PROVIDER: "Verification letter from another provider",
+    },
+  };
+
+  if (
+    mappedValues[key] &&
+    Object.prototype.hasOwnProperty.call(mappedValues[key], String(value))
+  ) {
+    return mappedValues[key][String(value)];
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  return String(value);
+};
+
+const determineInvestorRoute = (answers) => {
+  if (answers.planned_amount_bucket === "LT_10K") return "CROWDFUNDER";
+  if (answers.sec_accredited === "NO") return "CROWDFUNDER";
+  if (
+    answers.sec_accredited === "NOT_SURE" &&
+    answers.investor_preference === "CROWDFUNDING"
+  ) {
+    return "CROWDFUNDER";
+  }
+  if (
+    answers.sec_accredited === "YES" &&
+    (answers.planned_amount_bucket === "GTE_10K" ||
+      answers.investor_preference === "ACCREDITED_DIRECT")
+  ) {
+    return "ACCREDITED";
+  }
+  return "CROWDFUNDER";
+};
+
+const getFallbackContributionAmount = (answers) => {
+  const track = answers.investor_track || determineInvestorRoute(answers);
+  return track === "ACCREDITED" ? 10000 : 100;
+};
+
+const mapPlannedAmountBucket = (value) => {
+  if (value === "LT_10K") return "<10k";
+  if (value === "GTE_10K") return ">=10k";
+  return "unsure";
+};
+
+const buildSecAnswers = (answers) => ({
+  accredited_status: answers.sec_accredited,
+  investor_preference: answers.investor_preference,
+  accredited_eligible: answers.sec_accredited === "YES",
+});
+
+const seedOnboardingFromAssistant = async (answers) => {
+  await api.onboardingBasic({
+    first_name: answers.first_name,
+    last_name: answers.last_name,
+    email: answers.email,
+    phone: answers.phone,
+  });
+
+  await api.onboardingExperience({
+    invested_before: Boolean(answers.has_invested_before),
+    planned_amount: mapPlannedAmountBucket(answers.planned_amount_bucket),
+  });
+
+  await api.onboardingSec({
+    answers: buildSecAnswers(answers),
+  });
+
+  await api.onboardingPathway({
+    pathway: determineInvestorRoute(answers) === "ACCREDITED" ? "accredited" : "crowdfunding",
+  });
+};
+
+const getStageMeta = (stepKey, answers) => {
+  const track = determineInvestorRoute(answers);
+
+  if (
+    [
+      "__ready",
+      "__learn_more",
+      "__profile_intro",
+      "first_name",
+      "last_name",
+      "email",
+      "phone",
+      "newsletter_opt_in",
+      "__profile_started",
+    ].includes(stepKey)
+  ) {
+    return {
+      label: "Investor Profile",
+      note: "First, let’s set up your investor profile so we can personalize your experience and save your progress.",
+      next: "Confirm eligibility",
+    };
+  }
+
+  if (
+    [
+      "has_invested_before",
+      "__experience_yes",
+      "__experience_no",
+      "planned_amount_bucket",
+      "sec_accredited",
+      "investor_preference",
+      "__fund_clarification",
+      "__crowdfunding_intro",
+      "__accredited_intro",
+    ].includes(stepKey)
+  ) {
+    return {
+      label: "Eligibility",
+      note: "These questions help determine the appropriate investment pathway.",
+      next: track === "ACCREDITED" ? "Accredited onboarding" : "Crowdfunding pathway",
+    };
+  }
+
+  if (
+    [
+      "selected_fund",
+      "password",
+      "password_confirmation",
+      "__create_account",
+      "__handoff",
+    ].includes(stepKey)
+  ) {
+    return {
+      label: "Account Setup",
+      note: "The assistant stops at account setup. Documents, verification, review, and funding are completed in your onboarding dashboard.",
+      next: "Onboarding dashboard",
+    };
+  }
+
+  return {
+    label: "Access Properties",
+    note: "We’ll guide you through each step of the investment journey.",
+    next: "Continue",
   };
 };
 
@@ -35,236 +286,382 @@ const steps = [
   {
     key: "__ready",
     prompt:
-      "Before we start, here's the overall journey:\n" +
-      "1) Create your investor profile\n" +
-      "2) Confirm eligibility\n" +
-      "3) Choose your fund portfolio\n" +
-      "4) Verify accredited status (if applicable)\n" +
-      "5) Receive funding instructions (if applicable)\n" +
-      "6) Access your Investor Dashboard\n\n" +
+      "Welcome to Access Properties — I’m your personal investing assistant.\n" +
+      "I can help you:\n" +
+      "· Understand how Access Properties works\n" +
+      "· Choose the right fund portfolio\n" +
+      "· Complete onboarding and verification\n\n" +
+      "Before we start, here’s the overall investment journey so you know what to expect.\n" +
+      "1. Create your investor profile\n" +
+      "2. Confirm eligibility*1\n" +
+      "3. Choose your fund portfolio\n" +
+      "4. Verify accredited status\n" +
+      "5. Receive funding instructions\n" +
+      "6. Transfer funds*2\n" +
+      "7. Access your Investor Dashboard\n\n" +
+      "*1 Access Properties follows SEC rules regarding investor eligibility. Certain private investment opportunities are only available to Accredited Investors as defined by the U.S. Securities and Exchange Commission (SEC). We ask eligibility questions to ensure we only present investment pathways you are legally permitted to access.\n" +
+      "*2 Account becomes Active once funds clear\n\n" +
       "Ready to begin?",
     choices: [
-      { label: "Yes, let's start", value: "start", next: "__profile_intro" },
-      { label: "I want to learn more first", value: "learn_more", next: "__learn_more" }
+      { label: "Yes, let’s start", value: "start", next: "__profile_intro" },
+      { label: "I want to learn more first", value: "learn_more", next: "__learn_more" },
     ],
-    validate: () => true
+    persistValue: false,
   },
   {
     key: "__learn_more",
     prompt:
-      "Access Properties is a fund-based real estate investment platform. You invest into a real estate fund (not a single property).\n\n" +
-      "When you're ready, tap 'Yes, let's start'.",
-    choices: [{ label: "Yes, let's start", value: "start", next: "__profile_intro" }],
-    validate: () => true
+      "Quick clarification before we continue: Access Properties does not offer property-specific deals. Instead, you invest into a real estate investment fund.\n\n" +
+      "Your investment is:\n" +
+      "· pooled with other investors\n" +
+      "· allocated according to the fund strategy\n" +
+      "· represented as a percentage ownership interest in the fund based on your investment amount\n\n" +
+      `Current offering:\n${FUND_NAME}\n\n` +
+      "You can learn more about how Access Properties works:\n" +
+      "· on the Home page under Access Advantage, and\n" +
+      "· on the About page under How We’re Changing Real Estate Investment\n\n" +
+      "And once you sign in, your Investor Dashboard provides detailed materials for the fund, including among others:\n" +
+      "· Fund Presentation\n" +
+      "· Operating Agreement\n" +
+      "· Member Interest Purchase Agreement",
+    choices: [
+      { label: "Continue", value: "continue", next: "__profile_intro" },
+      {
+        label: "View Portfolios",
+        value: "view_portfolios",
+        stayOnStep: true,
+        action: openPortfolios,
+        afterActionMessage:
+          "I opened the Portfolios page in a new tab. When you’re ready, we can continue here.",
+      },
+    ],
+    persistValue: false,
   },
   {
     key: "__profile_intro",
     prompt:
-      "First, let's set up your investor profile so I can personalize your experience and save your progress.",
+      "First, let’s set up your investor profile so I can personalize your experience and save your progress.",
     autoAdvance: true,
-    validate: () => true
+    next: "first_name",
+    persistValue: false,
   },
   {
     key: "first_name",
-    prompt: "First, what's your first name?",
-    validate: (value) => value.trim().length > 0 || "First name is required."
+    prompt: "First name",
+    validate: (value) => value.trim().length > 0 || "First name is required.",
   },
   {
     key: "last_name",
-    prompt: "What's your last name?",
-    validate: (value) => value.trim().length > 0 || "Last name is required."
+    prompt: "Last name",
+    validate: (value) => value.trim().length > 0 || "Last name is required.",
   },
   {
     key: "email",
-    prompt: "What's your email address?",
-    validate: (value) => /\S+@\S+\.\S+/.test(value) || "Please enter a valid email."
+    prompt: "Email",
+    validate: (value) => /\S+@\S+\.\S+/.test(value) || "Please enter a valid email.",
   },
   {
     key: "phone",
-    prompt: "What's your mobile phone number?",
-    validate: (value) => value.trim().length > 6 || "Please enter a valid phone number."
+    prompt: "Mobile phone number",
+    validate: (value) => value.trim().length > 6 || "Please enter a valid phone number.",
   },
   {
     key: "newsletter_opt_in",
-    prompt: "Sign me up for the Access Properties newsletter?",
+    prompt: "☐ Sign me up for the Access Properties newsletter",
     choices: [
-      { label: "Yes", value: true },
-      { label: "No", value: false }
+      { label: "Yes, let’s start", value: true, next: "__profile_started" },
+      { label: "No, continue without newsletter", value: false, next: "__profile_started" },
     ],
-    validate: () => true
   },
   {
-    key: "has_invested_before",
+    key: "__profile_started",
     prompt: "Have you invested in real estate, private investments, or investment funds before?",
     choices: [
-      { label: "Yes, I have invested before", value: true, next: "__experience_yes" },
-      { label: "No, I am new to investing", value: false, next: "__experience_no" }
+      { label: "Yes, I have invested before", value: true, next: "__experience_yes", answerKey: "has_invested_before" },
+      { label: "No, I am new to investing", value: false, next: "__experience_no", answerKey: "has_invested_before" },
     ],
-    validate: () => true
+    persistValue: false,
   },
   {
     key: "__experience_yes",
-    prompt: "Great - I'll keep things efficient.",
+    prompt: "Great — I’ll keep things efficient.",
     autoAdvance: true,
-    validate: () => true
+    next: "planned_amount_bucket",
+    persistValue: false,
   },
   {
     key: "__experience_no",
-    prompt: "No problem - I'll explain terms as we go.",
+    prompt: "No problem — I’ll explain terms as we go.",
     autoAdvance: true,
-    validate: () => true
+    next: "planned_amount_bucket",
+    persistValue: false,
   },
   {
     key: "planned_amount_bucket",
     prompt: "How much are you planning to invest right now?",
     choices: [
-      { label: "Less than $10,000", value: "LT_10K" },
-      { label: "$10,000 or more", value: "GTE_10K" },
-      { label: "Not sure yet", value: "NOT_SURE" }
+      { label: "Less than $10,000", value: "LT_10K", next: "sec_accredited" },
+      { label: "$10,000 or more", value: "GTE_10K", next: "sec_accredited" },
+      { label: "Not sure yet", value: "NOT_SURE", next: "sec_accredited" },
     ],
-    validate: () => true
   },
   {
     key: "sec_accredited",
     prompt:
-      "To follow SEC rules, do you meet at least ONE Accredited Investor requirement?\n" +
-      "- Annual income over $200,000 (or $300,000 with spouse), OR\n" +
-      "- Net worth over $1 million (excluding primary home)",
+      "To follow SEC rules, I need to ask: do you meet at least ONE of the SEC Accredited Investor requirements?\n" +
+      "· Annual income over $200,000 (or $300,000 with spouse), OR\n" +
+      "· Net worth over $1 million (excluding primary home)",
     choices: [
-      { label: "Yes", value: "YES" },
-      { label: "No", value: "NO" },
-      { label: "Not sure", value: "NOT_SURE" }
+      { label: "Yes", value: "YES", next: "investor_preference" },
+      { label: "No", value: "NO", next: "investor_preference" },
+      { label: "Not sure", value: "NOT_SURE", next: "investor_preference" },
     ],
-    validate: () => true
   },
   {
-    key: "investor_track",
+    key: "investor_preference",
     prompt: "Which option best describes what you want?",
     choices: [
-      { label: "I want to invest smaller amounts with other investors (crowdfunding)", value: "CROWDFUNDER" },
-      { label: "I want to invest directly as an accredited investor", value: "ACCREDITED" }
+      {
+        label: "I want to invest smaller amounts with other investors (crowdfunding)",
+        value: "CROWDFUNDING",
+        next: "__fund_clarification",
+      },
+      {
+        label: "I want to invest directly as an accredited investor",
+        value: "ACCREDITED_DIRECT",
+        next: "__fund_clarification",
+      },
     ],
-    validate: (value, state) => {
-      if (state.sec_accredited === "NO" && value === "ACCREDITED") {
-        return "Based on your eligibility answer, you should continue via crowdfunding.";
-      }
-      return true;
-    }
   },
   {
     key: "__fund_clarification",
     prompt:
-      "Quick clarification before we continue:\n" +
-      "Access Properties does not offer property-specific deals. Instead, you invest into a real estate investment fund.\n\n" +
-      "Your investment is:\n" +
-      "- pooled with other investors\n" +
-      "- allocated according to the fund strategy\n" +
-      "- represented as a percentage ownership interest in the fund\n\n" +
-      "Current offering:\n" +
-      "Access Properties Real Estate Diversified Income Fund I (Greater Boston Fund)",
+      "Quick clarification before we continue: Access Properties does not offer property-specific deals. Instead, you invest into a real estate investment fund. Your investment is:\n" +
+      "· pooled with other investors\n" +
+      "· allocated according to the fund strategy\n" +
+      "· represented as a percentage ownership interest in the fund based on your investment amount\n\n" +
+      `Current offering:\n${FUND_NAME}\n\n` +
+      "You can learn more about how Access Properties works:\n" +
+      "· on the Home page under Access Advantage, and\n" +
+      "· on the About page under How We’re Changing Real Estate Investment\n\n" +
+      "And once you sign in, your Investor Dashboard provides detailed materials for the fund, including among others:\n" +
+      "· Fund Presentation\n" +
+      "· Operating Agreement\n" +
+      "· Member Interest Purchase Agreement",
     choices: [
-      { label: "Continue", value: "continue", next: "password" },
-      { label: "View Portfolios", value: "view_portfolios", next: "__fund_clarification", action: { type: "open", target: "https://ap.boston/portfolios" } }
+      {
+        label: "Continue",
+        value: "continue",
+        next: (answers) =>
+          determineInvestorRoute(answers) === "ACCREDITED"
+            ? "__accredited_intro"
+            : "__crowdfunding_intro",
+      },
+      {
+        label: "View Portfolios",
+        value: "view_portfolios",
+        stayOnStep: true,
+        action: openPortfolios,
+        afterActionMessage:
+          "I opened the Portfolios page in a new tab. When you’re ready, continue here.",
+      },
     ],
-    validate: () => true
+    persistValue: false,
+  },
+  {
+    key: "__crowdfunding_intro",
+    prompt:
+      "Based on your answers, the best fit is our crowdfunding pathway.\n" +
+      "This pathway is designed for:\n" +
+      "· Non-accredited Investors, or\n" +
+      "· Investors starting with smaller amounts",
+    choices: [
+      {
+        label: "Continue to Crowdfunding",
+        value: "continue_crowdfunding",
+        next: "selected_fund",
+      },
+      {
+        label: "Review Portfolios First",
+        value: "review_portfolios",
+        stayOnStep: true,
+        action: openPortfolios,
+        afterActionMessage:
+          "I opened the Portfolios page in a new tab. When you’re ready, select Continue to Crowdfunding here.",
+      },
+    ],
+    persistValue: false,
+  },
+  {
+    key: "__accredited_intro",
+    prompt:
+      "Great — based on your answers, you may qualify as an Accredited Investor, which means you can invest directly into:\n" +
+      `${FUND_NAME}\n\n` +
+      "We’ll handle profile completion, identity documents, accreditation verification, review, and funding in your onboarding dashboard after account creation.",
+    choices: [
+      {
+        label: "Continue with Accredited Onboarding",
+        value: "continue_accredited",
+        next: "selected_fund",
+      },
+      {
+        label: "Review Portfolios First",
+        value: "review_portfolios",
+        stayOnStep: true,
+        action: openPortfolios,
+        afterActionMessage:
+          "I opened the Portfolios page in a new tab. When you’re ready, continue with accredited onboarding here.",
+      },
+    ],
+    persistValue: false,
+  },
+  {
+    key: "selected_fund",
+    prompt:
+      "Choose the fund you want to continue with. You can review all options on the Portfolios page.\n" +
+      `Current offering: ${FUND_NAME}`,
+    choices: [
+      {
+        label: "View Portfolios",
+        value: "view_portfolios",
+        stayOnStep: true,
+        action: openPortfolios,
+        afterActionMessage:
+          "I opened the Portfolios page in a new tab. When you’re ready, come back here and select the fund.",
+      },
+      {
+        label: "Select Access Properties Real Estate Diversified Income Fund I",
+        value: FUND_NAME,
+        next: "password",
+      },
+    ],
   },
   {
     key: "password",
-    prompt: "Create a password (minimum 8 characters).",
-    validate: (value) => value.length >= 8 || "Password must be at least 8 characters."
+    prompt: "Create a password for your investor account.",
+    validate: (value) => value.length >= 8 || "Password must be at least 8 characters.",
   },
   {
     key: "password_confirmation",
     prompt: "Confirm your password.",
-    validate: (value, state) => value === state.password || "Passwords do not match."
+    validate: (value, answers) => value === answers.password || "Passwords do not match.",
   },
   {
-    key: "address_full",
-    prompt: "What's your full address? Format: Street, City, State ZIP",
-    validate: (value) =>
-      parseFullAddress(value) ? true : "Please use the format: Street, City, State ZIP."
+    key: "__create_account",
+    prompt:
+      "Create your account now. The remaining operational steps happen in your onboarding dashboard after sign-in.",
+    choices: [
+      {
+        label: "Create account and continue",
+        value: "create_account",
+        next: "__handoff",
+      },
+    ],
+    persistValue: false,
+    onBeforeNext: async (ctx) => {
+      const payload = {
+        first_name: ctx.answers.first_name,
+        last_name: ctx.answers.last_name,
+        email: ctx.answers.email,
+        phone: ctx.answers.phone,
+        newsletter_opt_in: ctx.answers.newsletter_opt_in,
+        has_invested_before: ctx.answers.has_invested_before,
+        planned_amount_bucket: ctx.answers.planned_amount_bucket,
+        sec_accredited: ctx.answers.sec_accredited,
+        investor_preference: ctx.answers.investor_preference,
+        investor_track: ctx.answers.investor_track || determineInvestorRoute(ctx.answers),
+        selected_fund: ctx.answers.selected_fund || FUND_NAME,
+        full_name: [ctx.answers.first_name, ctx.answers.last_name].filter(Boolean).join(" "),
+        capital_contribution_amount: getFallbackContributionAmount(ctx.answers),
+        password: ctx.answers.password,
+        password_confirmation: ctx.answers.password_confirmation,
+      };
+
+      await api.register(payload);
+      await seedOnboardingFromAssistant(ctx.answers);
+    },
   },
   {
-    key: "country",
-    prompt: "Country? (default: USA)",
-    optional: true,
-    defaultValue: "USA"
+    key: "__handoff",
+    prompt: (answers) =>
+      `Your account is ready, ${answers.first_name || "there"}.\n\n` +
+      "Next, continue in your onboarding dashboard to complete:\n" +
+      "· full profile details\n" +
+      "· identity document upload\n" +
+      (determineInvestorRoute(answers) === "ACCREDITED"
+        ? "· accredited investor verification\n"
+        : "") +
+      "· review status tracking\n" +
+      "· funding instructions when they become available",
+    choices: [
+      { label: "Continue to onboarding dashboard", value: "continue", next: "__done" },
+    ],
+    persistValue: false,
   },
   {
-    key: "capital_contribution_amount",
-    prompt: "How much do you plan to invest (USD)?",
-    validate: (value) => {
-      const amount = Number(value);
-      if (Number.isNaN(amount)) {
-        return "Please enter a valid dollar amount.";
-      }
-      if (amount < 100) {
-        return "Please enter an amount of at least $100.";
-      }
-      return true;
-    }
+    key: "__done",
+    prompt:
+      "Taking you to the onboarding dashboard.",
+    complete: true,
+    persistValue: false,
   },
-  
 ];
 
+const stepMap = Object.fromEntries(steps.map((step) => [step.key, step]));
+
+const sanitizeStepKey = (value) => (value && stepMap[value] ? value : "__ready");
+
+const sanitizeHistory = (value) =>
+  Array.isArray(value) ? value.filter((key) => Boolean(stepMap[key])) : [];
+
 const AssistantRegister = () => {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [input, setInput] = useState("");
-  const [answers, setAnswers] = useState({});
-  const [messages, setMessages] = useState([]);
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [review, setReview] = useState(false);
-  const [serverErrors, setServerErrors] = useState(null);
-  const [isTyping, setIsTyping] = useState(false);
-  const typingQueue = useRef(Promise.resolve());
-  const [editIndex, setEditIndex] = useState(null);
-  const messageEndRef = useRef(null);
   const navigate = useNavigate();
+  const [currentStepKey, setCurrentStepKey] = useState("__ready");
+  const [messages, setMessages] = useState([]);
+  const [answers, setAnswers] = useState({});
+  const [input, setInput] = useState("");
+  const [error, setError] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [history, setHistory] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
 
-  const step = steps[currentStep];
+  const typingQueue = useRef(Promise.resolve());
+  const initRef = useRef(false);
+  const messageEndRef = useRef(null);
 
-  const plannedAmountLabel = useMemo(() => {
-    const bucket = answers.planned_amount_bucket;
-    if (bucket === "LT_10K") return "Less than $10,000";
-    if (bucket === "GTE_10K") return "$10,000 or more";
-    if (bucket === "NOT_SURE") return "Not sure yet";
-    return null;
-  }, [answers.planned_amount_bucket]);
-
-  const getChoiceLabel = (stepKey, value) => {
-    const stepDef = steps.find((s) => s.key === stepKey);
-    const choice = stepDef?.choices?.find((item) => item.value === value);
-    return choice?.label ?? value;
-  };
+  const step = stepMap[currentStepKey];
 
   const typeAssistant = (text) => {
     if (!text) return Promise.resolve();
+
     setIsTyping(true);
-    const id = `a-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const id = createMessageId("a");
     setMessages((prev) => [...prev, { id, role: "assistant", text: "" }]);
 
     return new Promise((resolve) => {
       const chars = String(text).split("");
-      let i = 0;
+      let index = 0;
+
       const tick = () => {
-        const nextChar = chars[i] ?? "";
+        const nextChar = chars[index] ?? "";
         setMessages((prev) =>
-          prev.map((msg) => {
-            if (msg.id !== id) return msg;
-            const currentText = msg.text || "";
-            return { ...msg, text: currentText + nextChar };
-          })
+          prev.map((msg) =>
+            msg.id === id ? { ...msg, text: `${msg.text}${nextChar}` } : msg
+          )
         );
-        i += 1;
-        if (i < chars.length) {
-          setTimeout(tick, 18);
+
+        index += 1;
+        if (index < chars.length) {
+          setTimeout(tick, 12);
         } else {
           setIsTyping(false);
           resolve();
         }
       };
-      setTimeout(tick, 18);
+
+      setTimeout(tick, 12);
     });
   };
 
@@ -274,175 +671,383 @@ const AssistantRegister = () => {
   };
 
   const emitUser = (text) => {
-    setMessages((prev) => [...prev, { role: "user", text }]);
+    setMessages((prev) => [
+      ...prev,
+      { id: createMessageId("u"), role: "user", text: String(text) },
+    ]);
   };
 
-  const advanceTo = async (index, options = {}) => {
-    const { skipAutoAdvance = false } = options;
-    if (index >= steps.length) {
-      setReview(true);
+  const normalizeAnswers = (nextAnswers) => {
+    const normalized = {
+      ...nextAnswers,
+      investor_track: determineInvestorRoute(nextAnswers),
+    };
+
+    return normalized;
+  };
+
+  const getNextStepKey = (current, nextAnswers, choice = null) => {
+    const resolveNext = (value) => {
+      if (typeof value === "function") return value(nextAnswers);
+      return value;
+    };
+
+    if (choice?.next) return resolveNext(choice.next);
+    if (current.next) return resolveNext(current.next);
+
+    const currentIndex = steps.findIndex((s) => s.key === current.key);
+    return steps[currentIndex + 1]?.key ?? null;
+  };
+
+  const persistAnswer = (stepDef, rawValue, choice = null) => {
+    const answerKey = choice?.answerKey || stepDef.key;
+    const shouldPersist =
+      stepDef.persistValue !== false && (!stepDef.key.startsWith("__") || Boolean(choice?.answerKey));
+
+    const nextAnswers = { ...answers };
+
+    if (shouldPersist) {
+      nextAnswers[answerKey] = rawValue;
+    }
+
+    if (stepDef.faqMenu && choice?.label) {
+      nextAnswers.selected_faq_question = choice.label;
+    }
+
+    return normalizeAnswers(nextAnswers);
+  };
+
+  const advanceTo = async (targetKey, nextAnswers = answers, options = {}) => {
+    const { pushHistory = true } = options;
+
+    if (!targetKey) return;
+
+    if (
+      pushHistory &&
+      currentStepKey !== targetKey &&
+      stepMap[currentStepKey] &&
+      !stepMap[currentStepKey].autoAdvance
+    ) {
+      setHistory((prev) => [...prev, currentStepKey]);
+    }
+
+    setCurrentStepKey(targetKey);
+    setInput("");
+    setError("");
+    setSelectedFile(null);
+
+    const targetStep = stepMap[targetKey];
+    const prompt =
+      typeof targetStep.prompt === "function"
+        ? targetStep.prompt(nextAnswers)
+        : targetStep.prompt;
+
+    await enqueueAssistant(prompt);
+
+    if (targetStep.complete) {
+      window.localStorage.removeItem(SESSION_STORAGE_KEY);
+      setTimeout(() => navigate("/dashboard"), 600);
       return;
     }
-    setCurrentStep(index);
-    const nextStep = steps[index];
-    await enqueueAssistant(nextStep.prompt);
-    if (nextStep.autoAdvance && !skipAutoAdvance) {
-      await advanceTo(index + 1, options);
+
+    if (targetStep.autoAdvance) {
+      const autoNext = getNextStepKey(targetStep, nextAnswers);
+      if (autoNext) {
+        await advanceTo(autoNext, nextAnswers, { pushHistory: false });
+      }
     }
   };
 
-  const goNext = async () => {
-    await advanceTo(currentStep + 1);
-  };
-
-  const goBack = async () => {
-    if (currentStep === 0) return;
-    setCurrentStep((prev) => prev - 1);
-    setReview(false);
-    setError("");
-    setInput(answers[steps[currentStep - 1].key] ?? "");
-    await enqueueAssistant(`Let's update: ${steps[currentStep - 1].prompt}`);
-  };
-
-  const jumpToStep = async (index, reason, editOnly = false) => {
-    if (index < 0 || index >= steps.length) return;
-    setReview(false);
-    setCurrentStep(index);
-    setError("");
-    setInput(answers[steps[index].key] ?? "");
-    setEditIndex(editOnly ? index : null);
-    if (reason) {
-      await enqueueAssistant(reason);
-    }
-    await enqueueAssistant(steps[index].prompt);
-  };
-
-  const handleSubmitAnswer = () => {
+  const handleTextSubmit = async () => {
     if (!step) return;
+
     const value = input.trim();
     const finalValue = value === "" && step.optional ? step.defaultValue ?? "" : value;
-    const normalized = step.normalize ? step.normalize(finalValue, answers) : finalValue;
-    const validation = step.validate ? step.validate(normalized, answers) : true;
+    const validation = step.validate ? step.validate(finalValue, answers) : true;
+
     if (validation !== true) {
       setError(validation);
       return;
     }
+
     setError("");
-    emitUser(value || (step.optional ? "Skipped" : value));
-    setAnswers((prev) => ({ ...prev, [step.key]: normalized }));
-    setInput("");
-    if (editIndex !== null) {
-      setEditIndex(null);
-      setReview(true);
-      enqueueAssistant("Got it. I updated that field. Review your details when you're ready.");
-      return;
-    }
-    goNext();
+    emitUser(finalValue || "—");
+
+    const nextAnswers = persistAnswer(step, finalValue);
+    setAnswers(nextAnswers);
+    await advanceTo(getNextStepKey(step, nextAnswers), nextAnswers);
   };
 
   const handleChoice = async (choice) => {
     if (!step) return;
-    const rawValue = choice.value;
-    const normalized = step.normalize ? step.normalize(rawValue, answers) : rawValue;
-    const validation = step.validate ? step.validate(normalized, answers) : true;
-    if (validation !== true) {
-      setError(validation);
-      return;
-    }
+
     setError("");
     emitUser(choice.label);
-    setAnswers((prev) => ({ ...prev, [step.key]: normalized }));
 
-    if (choice.action?.type === "open" && choice.action?.target) {
-      navigate(choice.action.target);
+    if (choice.action) {
+      choice.action();
     }
 
-    if (editIndex !== null) {
-      setEditIndex(null);
-      setReview(true);
-      enqueueAssistant("Got it. I updated that field. Review your details when you're ready.");
+    if (step.faqMenu) {
+      const nextAnswers = {
+        ...answers,
+        selected_faq_question: choice.label,
+      };
+      setAnswers(nextAnswers);
+      await advanceTo("__faq_answer", nextAnswers);
       return;
     }
 
-    if (choice.next) {
-      const targetIndex = steps.findIndex((s) => s.key === choice.next);
-      if (targetIndex !== -1) {
-        await advanceTo(targetIndex);
+    if (choice.stayOnStep) {
+      if (choice.afterActionMessage) {
+        await enqueueAssistant(choice.afterActionMessage);
+      }
+      return;
+    }
+
+    const nextAnswers = persistAnswer(step, choice.value, choice);
+    setAnswers(nextAnswers);
+
+    if (step.onBeforeNext) {
+      try {
+        await step.onBeforeNext({ answers: nextAnswers });
+      } catch (err) {
+        setError(err?.response?.data?.message || "Unable to continue. Please review your details and try again.");
         return;
       }
     }
 
-    goNext();
+    if (choice.afterActionMessage) {
+      await enqueueAssistant(choice.afterActionMessage);
+    }
+
+    await advanceTo(getNextStepKey(step, nextAnswers, choice), nextAnswers);
   };
 
-  const handleReviewSubmit = async () => {
-    setSubmitting(true);
-    setServerErrors(null);
-    const parsedAddress = parseFullAddress(answers.address_full);
-    const payload = {
-      ...answers,
-      full_name: [answers.first_name, answers.last_name].filter(Boolean).join(" ").trim(),
-      capital_contribution_amount: Number(answers.capital_contribution_amount || 0),
-      investor_track: answers.investor_track,
-      country: answers.country || "USA",
-      address_line1: parsedAddress?.address_line1,
-      city: parsedAddress?.city,
-      state: parsedAddress?.state,
-      postal_code: parsedAddress?.postal_code
-    };
-    try {
-      await api.register(payload);
-      await enqueueAssistant("All set. Your account is created.");
-      navigate("/welcome");
-    } catch (err) {
-      const errors = err?.response?.data?.errors || { general: err?.response?.data?.message || "Registration failed." };
-      setServerErrors(errors);
-      if (errors && typeof errors === "object") {
-        const fieldKey = Object.keys(errors).find((key) => key !== "general");
-        if (fieldKey) {
-          const index = steps.findIndex((s) => s.key === fieldKey);
-          const message = Array.isArray(errors[fieldKey]) ? errors[fieldKey].join(", ") : String(errors[fieldKey]);
-          await jumpToStep(
-            index,
-            `There's an issue with ${fieldKey.replace(/_/g, " ")}: ${message}. Please re-enter it.`,
-            true
-          );
-        }
-      }
-    } finally {
-      setSubmitting(false);
+  const handleUploadContinue = async () => {
+    if (!step?.upload) return;
+
+    const { answerKey, next, optional } = step.upload;
+
+    if (!selectedFile && !optional) {
+      setError("Please choose a file before continuing.");
+      return;
     }
+
+    setError("");
+    setUploading(true);
+
+    const fileName = selectedFile?.name || "";
+    emitUser(selectedFile ? `${step.upload.buttonLabel}: ${fileName}` : "Skip for now");
+
+    const nextAnswers = normalizeAnswers({
+      ...answers,
+      [answerKey]: fileName,
+    });
+
+    setAnswers(nextAnswers);
+    setUploading(false);
+    await advanceTo(next, nextAnswers);
   };
+
+  const goBack = async () => {
+    if (!history.length) return;
+
+    const previous = [...history];
+    let previousKey = previous.pop();
+
+    while (previousKey && !stepMap[previousKey]) {
+      previousKey = previous.pop();
+    }
+
+    if (!previousKey) {
+      setHistory([]);
+      setError("");
+      return;
+    }
+
+    setHistory(previous);
+    setCurrentStepKey(previousKey);
+    setError("");
+    setInput(answers[previousKey] ?? "");
+    setSelectedFile(null);
+
+    const previousStep = stepMap[previousKey];
+    const prompt =
+      typeof previousStep.prompt === "function"
+        ? previousStep.prompt(answers)
+        : previousStep.prompt;
+
+    await enqueueAssistant(`Let’s go back.\n\n${prompt}`);
+  };
+
+  const handleSaveSession = () => {
+    window.localStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({
+        currentStepKey,
+        messages,
+        answers,
+        input,
+        history,
+      })
+    );
+    setSaveMessage("Progress saved on this device.");
+  };
+
+  const reviewFields = useMemo(() => {
+    const order = [
+      "first_name",
+      "last_name",
+      "email",
+      "phone",
+      "newsletter_opt_in",
+      "has_invested_before",
+      "planned_amount_bucket",
+      "sec_accredited",
+      "investor_preference",
+      "investor_track",
+      "selected_fund",
+    ];
+
+    return order
+      .filter((key) => answers[key] !== undefined && answers[key] !== null && answers[key] !== "")
+      .map((key) => ({
+        key,
+        label: reviewLabels[key],
+        value: formatValue(key, answers[key]),
+      }));
+  }, [answers]);
+
+  const stageMeta = useMemo(
+    () => getStageMeta(currentStepKey, answers),
+    [currentStepKey, answers]
+  );
+
+  const progressKeys = useMemo(() => {
+    return [
+      "first_name",
+      "last_name",
+      "email",
+      "phone",
+      "newsletter_opt_in",
+      "has_invested_before",
+      "planned_amount_bucket",
+      "sec_accredited",
+      "investor_preference",
+      "selected_fund",
+      "password",
+      "password_confirmation",
+    ];
+  }, []);
+
+  const progressIndex = useMemo(() => {
+    const idx = progressKeys.indexOf(currentStepKey);
+    if (idx >= 0) return idx + 1;
+    return Math.min(progressKeys.length, history.length + 1);
+  }, [currentStepKey, progressKeys, history.length]);
+
+  const progressPercent = useMemo(
+    () =>
+      Math.max(
+        8,
+        Math.min(100, Math.round((progressIndex / Math.max(progressKeys.length, 1)) * 100))
+      ),
+    [progressIndex, progressKeys.length]
+  );
 
   useEffect(() => {
-    const run = async () => {
-      await enqueueAssistant(introMessage);
-      await advanceTo(0);
-    };
-    if (messages.length === 0) {
-      run();
+    if (initRef.current) return;
+    initRef.current = true;
+
+    const saved = window.localStorage.getItem(SESSION_STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setCurrentStepKey(sanitizeStepKey(parsed.currentStepKey));
+        setMessages(Array.isArray(parsed.messages) ? parsed.messages : []);
+        setAnswers(parsed.answers || {});
+        setInput(parsed.input || "");
+        setHistory(sanitizeHistory(parsed.history));
+        setSaveMessage("Progress restored on this device.");
+        return;
+      } catch {
+        window.localStorage.removeItem(SESSION_STORAGE_KEY);
+      }
     }
+
+    advanceTo("__ready", {}, { pushHistory: false });
   }, []);
+
+  useEffect(() => {
+    if (!initRef.current) return;
+    window.localStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({
+        currentStepKey,
+        messages,
+        answers,
+        input,
+        history,
+      })
+    );
+  }, [currentStepKey, messages, answers, input, history]);
+
+  useEffect(() => {
+    if (!saveMessage) return;
+    const timeout = setTimeout(() => setSaveMessage(""), 2200);
+    return () => clearTimeout(timeout);
+  }, [saveMessage]);
 
   useEffect(() => {
     if (messageEndRef.current) {
       messageEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [messages, review]);
+  }, [messages, currentStepKey]);
 
   return (
-    <Shell hideHeader>
-      <div className="p-6">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="flex h-full flex-col rounded-2xl border border-border bg-white shadow-card">
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-4">
-                {messages.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
-                      msg.role === "user" ? "bg-ink text-white" : "bg-pearl text-ink"
-                    }`}>
-                      {msg.text}
+    <Shell hideHeader fullScreen>
+      <div className="relative flex h-full w-full overflow-hidden bg-white p-0">
+        <div className="relative z-10 grid h-full min-h-0 w-full gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="relative flex min-h-0 h-full flex-col overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_20px_60px_rgba(24,24,27,0.08)]">
+            <div className="border-b border-stone-200 bg-white px-6 py-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-stone-500">
+                    Access Properties
+                  </p>
+                  <h2 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.02em] text-stone-900">
+                    {stageMeta.label}
+                  </h2>
+                </div>
+                <div className="hidden items-center rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-700 sm:inline-flex">
+                  Step {progressIndex} of {progressKeys.length}
+                </div>
+              </div>
+
+              <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-stone-100">
+                <div
+                  className="h-full rounded-full bg-black transition-all duration-300"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-40 sm:p-6">
+              <div className="mx-auto max-w-3xl space-y-4">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[85%] whitespace-pre-line rounded-[22px] px-4 py-3 text-sm leading-6 ${
+                        message.role === "user"
+                          ? "bg-black text-white"
+                          : "border border-stone-200 bg-stone-50 text-stone-800"
+                      }`}
+                    >
+                      {message.text}
                     </div>
                   </div>
                 ))}
@@ -450,128 +1055,159 @@ const AssistantRegister = () => {
               </div>
             </div>
 
-            <div className="border-t border-border p-6">
-              {review ? (
-                <div className="rounded-xl border border-border p-4">
-                  <h3 className="text-sm font-semibold">Review & Submit</h3>
-                  <div className="mt-3 grid gap-2 text-sm">
-                    {steps.map((s, index) => (
-                      <div key={s.key} className="flex items-center justify-between gap-4">
-                        <div>
-                          <span className="text-slate">{s.key.replace(/_/g, " ")}</span>
-                          <span className="ml-3">
-                            {s.choices ? (getChoiceLabel(s.key, answers[s.key]) || "-") : (answers[s.key] ?? "-")}
-                          </span>
-                        </div>
-                        {s.key.startsWith("__") ? null : (
-                          <button
-                            className="rounded-full border border-ink px-3 py-1 text-[10px] uppercase tracking-widest"
-                            onClick={() => jumpToStep(index, null, true)}
-                          >
-                            Edit
-                          </button>
-                        )}
-                      </div>
+            <div className="sticky bottom-0 border-t border-stone-200 bg-white p-4 sm:p-6">
+              <div className="mx-auto max-w-4xl">
+                {error ? <div className="mb-3 text-sm text-red-600">{error}</div> : null}
+                {saveMessage ? <div className="mb-3 text-sm text-stone-600">{saveMessage}</div> : null}
+
+                {step?.faqMenu ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {FAQ_ITEMS.map((item) => (
+                      <button
+                        key={item}
+                        className="group flex min-h-[84px] flex-col items-start justify-center rounded-[22px] border border-stone-200 bg-white px-5 py-4 text-left shadow-sm transition duration-200 hover:border-black hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => handleChoice({ label: item })}
+                        disabled={isTyping}
+                      >
+                        <span className="text-sm font-semibold text-stone-900">{item}</span>
+                        <span className="mt-3 text-xs font-medium uppercase tracking-[0.2em] text-stone-500 opacity-0 transition group-hover:opacity-100">
+                          Open
+                        </span>
+                      </button>
                     ))}
-                    <div className="flex justify-between gap-4">
-                      <span className="text-slate">investor_track</span>
-                      <span>{answers.investor_track || "-"}</span>
-                    </div>
                   </div>
-                  {serverErrors ? (
-                    <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                      {serverErrors.general || "Please fix the highlighted fields."}
-                      {serverErrors && typeof serverErrors === "object" ? (
-                        <ul className="mt-2 list-disc pl-5">
-                          {Object.entries(serverErrors).map(([field, messages]) => {
-                            if (field === "general") return null;
-                            const text = Array.isArray(messages) ? messages.join(", ") : String(messages);
-                            return (
-                              <li key={field}>
-                                <strong>{field}:</strong> {text}
-                              </li>
-                            );
-                          })}
-                        </ul>
+                ) : step?.choices ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {step.choices.map((choice) => (
+                      <button
+                        key={`${step.key}-${choice.label}`}
+                        className="group flex min-h-[96px] flex-col items-start justify-center rounded-[22px] border border-stone-200 bg-white px-5 py-4 text-left shadow-sm transition duration-200 hover:border-black hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => handleChoice(choice)}
+                        disabled={isTyping || uploading}
+                      >
+                        <span className="text-sm font-semibold text-stone-900">{choice.label}</span>
+                        <span className="mt-3 text-xs font-medium uppercase tracking-[0.2em] text-stone-500 opacity-0 transition group-hover:opacity-100">
+                          Continue
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : step?.upload ? (
+                  <div className="space-y-3">
+                    <input
+                      type="file"
+                      accept={step.upload.accept}
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      className="block w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 file:mr-4 file:rounded-full file:border-0 file:bg-black file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+                      disabled={isTyping || uploading}
+                    />
+
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <button
+                        className="rounded-full bg-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={handleUploadContinue}
+                        disabled={isTyping || uploading}
+                      >
+                        {uploading
+                          ? "Uploading..."
+                          : step.upload.buttonLabel || "Continue"}
+                      </button>
+
+                      {step.upload.optional ? (
+                        <button
+                          className="rounded-full border border-stone-300 bg-white px-5 py-3 text-sm font-semibold text-stone-700 transition hover:border-black hover:text-black"
+                          onClick={handleUploadContinue}
+                          disabled={isTyping || uploading}
+                        >
+                          {step.upload.optionalLabel || "Skip"}
+                        </button>
                       ) : null}
                     </div>
-                  ) : null}
-                  <div className="mt-4 flex items-center gap-3">
-                    <button
-                      className="rounded-full border border-ink px-4 py-2 text-xs uppercase tracking-widest"
-                      onClick={goBack}
-                    >
-                      Back
-                    </button>
-                    <button
-                      className="rounded-full bg-ink px-4 py-2 text-xs uppercase tracking-widest text-white"
-                      disabled={submitting}
-                      onClick={handleReviewSubmit}
-                    >
-                      {submitting ? "Submitting..." : "Submit"}
-                    </button>
                   </div>
-                </div>
-              ) : (
-                <div>
-                  {error ? <div className="mb-3 text-sm text-red-600">{error}</div> : null}
-                  {step?.choices ? (
-                    <div className="flex flex-wrap gap-3">
-                      {step.choices.map((choice) => (
-                        <button
-                          key={choice.label}
-                          className="rounded-full border border-ink px-4 py-2 text-xs uppercase tracking-widest"
-                          onClick={() => handleChoice(choice)}
-                          disabled={isTyping}
-                        >
-                          {choice.label}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
+                ) : (
+                  <div>
+                    <div className={`flex flex-col gap-3 sm:flex-row sm:items-center ${isTyping ? "opacity-70" : ""}`}>
                       <input
-                        className="flex-1 rounded-full border border-border px-4 py-3 text-sm"
+                        className="flex-1 rounded-full border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 transition placeholder:text-stone-400 focus:border-black focus:outline-none focus:ring-4 focus:ring-stone-200 disabled:bg-stone-100"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Type your answer..."
-                        disabled={isTyping}
-                        onKeyDown={(e) => (e.key === "Enter" ? handleSubmitAnswer() : null)}
+                        disabled={isTyping || uploading}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleTextSubmit();
+                        }}
                       />
                       <button
-                        className="rounded-full bg-ink px-4 py-3 text-xs uppercase tracking-widest text-white"
-                        onClick={handleSubmitAnswer}
-                        disabled={isTyping}
+                        className="rounded-full bg-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={handleTextSubmit}
+                        disabled={isTyping || uploading}
                       >
-                        Send
+                        {isTyping ? "Assistant typing..." : "Send"}
                       </button>
                     </div>
-                  )}
-                  <div className="mt-4 flex items-center gap-3">
+                  </div>
+                )}
+
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
                     <button
-                      className="rounded-full border border-ink px-4 py-2 text-xs uppercase tracking-widest"
+                      className="rounded-full border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:border-black hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
                       onClick={goBack}
-                      disabled={currentStep === 0}
+                      disabled={!history.length}
                     >
                       Back
                     </button>
-                    <div className="text-xs text-slate">Step {currentStep + 1} of {steps.length}</div>
+                    <button
+                      className="rounded-full border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:border-black hover:text-black"
+                      onClick={handleSaveSession}
+                      type="button"
+                    >
+                      Save for later
+                    </button>
+                  </div>
+
+                  <div className="text-sm font-medium text-stone-500">
+                    {stageMeta.next}
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
-          <aside className="h-full rounded-2xl border border-border bg-pearl p-6">
-            <h3 className="text-xs uppercase tracking-[0.3em] text-slate">Summary</h3>
-            <div className="mt-4 space-y-2 text-sm">
-              <div><strong>Investor Track:</strong> {answers.investor_track || "—"}</div>
-              <div><strong>Planned Amount:</strong> {plannedAmountLabel || "—"}</div>
-              <div><strong>Contribution:</strong> {answers.capital_contribution_amount || "—"}</div>
-              <div><strong>Email:</strong> {answers.email || "—"}</div>
+          <aside className="hidden h-full overflow-y-auto rounded-[28px] border border-stone-200 bg-white p-6 shadow-[0_20px_60px_rgba(24,24,27,0.06)] lg:block">
+            <h3 className="text-[11px] uppercase tracking-[0.3em] text-stone-500">
+              Onboarding Snapshot
+            </h3>
+
+            <div className="mt-4 rounded-[22px] border border-stone-200 bg-stone-50 p-4">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                Important note
+              </div>
+              <div className="mt-2 leading-6 text-stone-800">{stageMeta.note}</div>
             </div>
-            <p className="mt-6 text-xs text-slate">
-              Not financial advice.
+
+            <div className="mt-5 rounded-[22px] border border-stone-200 bg-stone-50 p-4">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
+                Live summary
+              </div>
+              <div className="mt-3 space-y-3 text-sm">
+                {reviewFields.length ? (
+                  reviewFields.map((field) => (
+                    <div key={field.key} className="flex items-start justify-between gap-4">
+                      <span className="text-stone-500">{field.label}</span>
+                      <span className="text-right font-medium text-stone-900">
+                        {field.value}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-stone-500">Your answers will appear here as you continue.</div>
+                )}
+              </div>
+            </div>
+
+            <p className="mt-6 text-xs leading-5 text-stone-500">
+              Progress is automatically saved on this device. Not financial advice.
             </p>
           </aside>
         </div>

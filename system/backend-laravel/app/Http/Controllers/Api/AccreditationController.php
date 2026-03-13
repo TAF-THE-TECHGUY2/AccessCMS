@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DocumentSubmission;
+use App\Models\DocumentType;
 use App\Models\InvestorOnboarding;
-use App\Models\OnboardingDocument;
 use Illuminate\Http\Request;
 
 class AccreditationController extends Controller
@@ -36,13 +37,23 @@ class AccreditationController extends Controller
             if (!$request->hasFile('file')) {
                 return response()->json(['message' => 'Verification letter is required.'], 422);
             }
+            $documentType = DocumentType::where('code', 'accreditation_evidence')->first();
+            if (! $documentType) {
+                return response()->json(['message' => 'Accreditation document type is not configured.'], 500);
+            }
             $disk = config('filesystems.default', 'public');
             $path = $request->file('file')->store('uploads/onboarding', $disk);
-            OnboardingDocument::create([
-                'onboarding_id' => $onboarding->id,
-                'type' => 'accreditation',
+            DocumentSubmission::updateOrCreate([
+                'user_id' => $request->user()->id,
+                'document_type_id' => $documentType->id,
+            ], [
                 'file_path' => $path,
                 'disk' => $disk,
+                'version' => $documentType->version,
+                'status' => 'pending',
+                'rejection_reason' => null,
+                'reviewed_by' => null,
+                'reviewed_at' => null,
             ]);
         }
 
@@ -57,13 +68,23 @@ class AccreditationController extends Controller
             return;
         }
         $hasProfile = $onboarding->profile()->exists();
-        $hasIdDoc = $onboarding->documents()->whereIn('type', ['id', 'passport'])->exists();
+        $identityType = DocumentType::where('code', 'government_id')->first();
+        $hasIdDoc = $identityType
+            ? DocumentSubmission::where('user_id', $onboarding->user_id)
+                ->where('document_type_id', $identityType->id)
+                ->exists()
+            : false;
         $hasSec = !empty($onboarding->sec_answers);
         if (!$hasProfile || !$hasIdDoc || !$hasSec || !$onboarding->pathway) {
             return;
         }
         $method = $onboarding->sec_answers['accreditation_method'] ?? null;
-        $hasAccredDoc = $onboarding->documents()->where('type', 'accreditation')->exists();
+        $accreditationType = DocumentType::where('code', 'accreditation_evidence')->first();
+        $hasAccredDoc = $accreditationType
+            ? DocumentSubmission::where('user_id', $onboarding->user_id)
+                ->where('document_type_id', $accreditationType->id)
+                ->exists()
+            : false;
         if (!$method && !$hasAccredDoc) {
             return;
         }

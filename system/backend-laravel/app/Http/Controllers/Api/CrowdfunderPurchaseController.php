@@ -8,13 +8,14 @@ use App\Models\DocumentType;
 use App\Models\ExternalPurchase;
 use App\Models\Offering;
 use App\Services\InvestorEligibility;
+use App\Services\PlatformConfigService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class CrowdfunderPurchaseController extends Controller
 {
-    public function store(Request $request)
+    public function store(Request $request, PlatformConfigService $platformConfig)
     {
         InvestorEligibility::assertKycApproved($request->user());
 
@@ -33,10 +34,28 @@ class CrowdfunderPurchaseController extends Controller
             'units_expected' => ['nullable', 'numeric', 'min:0.0001'],
         ]);
 
+        $openPurchase = ExternalPurchase::query()
+            ->where('user_id', $request->user()->id)
+            ->whereIn('status', [
+                ExternalPurchase::STATUS_AWAITING_PROOF,
+                ExternalPurchase::STATUS_PENDING_REVIEW,
+            ])
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($openPurchase) {
+            return response()->json([
+                'message' => 'You already have an external purchase in progress.',
+                'purchase_id' => $openPurchase->id,
+                'status' => $openPurchase->status,
+                'reference' => $openPurchase->reference,
+            ], 409);
+        }
+
         $offering = Offering::findOrFail($data['offering_id']);
 
         $reference = 'CF-' . Str::upper(Str::ulid()->toBase32());
-        $redirectUrl = config('services.wefunder.campaign_url');
+        $redirectUrl = $platformConfig->wefunderCampaignUrl();
         if (! $redirectUrl) {
             return response()->json(['message' => 'Wefunder campaign URL not configured'], 500);
         }
@@ -44,7 +63,7 @@ class CrowdfunderPurchaseController extends Controller
         $purchase = ExternalPurchase::create([
             'user_id' => $request->user()->id,
             'offering_id' => $offering->id,
-            'provider' => config('services.wefunder.provider_name', 'wefunder'),
+            'provider' => $platformConfig->wefunderProviderName(),
             'reference' => $reference,
             'redirect_url' => $redirectUrl,
             'status' => ExternalPurchase::STATUS_AWAITING_PROOF,
@@ -71,6 +90,12 @@ class CrowdfunderPurchaseController extends Controller
 
         if ($purchase->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized purchase'], 403);
+        }
+
+        if ($purchase->status !== ExternalPurchase::STATUS_AWAITING_PROOF) {
+            return response()->json([
+                'message' => 'Proof can only be uploaded while the purchase is awaiting proof.',
+            ], 409);
         }
 
         $data = $request->validate([

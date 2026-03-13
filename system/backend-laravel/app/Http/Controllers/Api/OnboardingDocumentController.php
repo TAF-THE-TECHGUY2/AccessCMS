@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DocumentSubmission;
+use App\Models\DocumentType;
 use App\Models\InvestorOnboarding;
-use App\Models\OnboardingDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -27,6 +28,16 @@ class OnboardingDocumentController extends Controller
             return response()->json(['message' => 'Complete pathway selection first.'], 409);
         }
 
+        $typeCode = match ($data['type']) {
+            'id', 'passport' => 'government_id',
+            'accreditation' => 'accreditation_evidence',
+        };
+
+        $documentType = DocumentType::where('code', $typeCode)->first();
+        if (! $documentType) {
+            return response()->json(['message' => 'Document type is not configured.'], 500);
+        }
+
         $disk = config('filesystems.default', 'public');
         $path = $request->file('file')->store('uploads/onboarding', $disk);
         if (!$path) {
@@ -34,11 +45,17 @@ class OnboardingDocumentController extends Controller
             return response()->json(['message' => 'Upload failed'], 500);
         }
 
-        $doc = OnboardingDocument::create([
-            'onboarding_id' => $onboarding->id,
-            'type' => $data['type'],
+        $doc = DocumentSubmission::updateOrCreate([
+            'user_id' => $request->user()->id,
+            'document_type_id' => $documentType->id,
+        ], [
             'file_path' => $path,
             'disk' => $disk,
+            'version' => $documentType->version,
+            'status' => 'pending',
+            'rejection_reason' => null,
+            'reviewed_by' => null,
+            'reviewed_at' => null,
         ]);
 
         $this->markSubmittedIfReady($onboarding);
@@ -52,7 +69,12 @@ class OnboardingDocumentController extends Controller
             return;
         }
         $hasProfile = $onboarding->profile()->exists();
-        $hasIdDoc = $onboarding->documents()->whereIn('type', ['id', 'passport'])->exists();
+        $identityType = DocumentType::where('code', 'government_id')->first();
+        $hasIdDoc = $identityType
+            ? DocumentSubmission::where('user_id', $onboarding->user_id)
+                ->where('document_type_id', $identityType->id)
+                ->exists()
+            : false;
         $hasSec = !empty($onboarding->sec_answers);
         if (!$hasProfile || !$hasIdDoc || !$hasSec || !$onboarding->pathway) {
             return;
@@ -60,7 +82,12 @@ class OnboardingDocumentController extends Controller
 
         if ($onboarding->pathway === 'accredited') {
             $method = $onboarding->sec_answers['accreditation_method'] ?? null;
-            $hasAccredDoc = $onboarding->documents()->where('type', 'accreditation')->exists();
+            $accreditationType = DocumentType::where('code', 'accreditation_evidence')->first();
+            $hasAccredDoc = $accreditationType
+                ? DocumentSubmission::where('user_id', $onboarding->user_id)
+                    ->where('document_type_id', $accreditationType->id)
+                    ->exists()
+                : false;
             if (!$method && !$hasAccredDoc) {
                 return;
             }

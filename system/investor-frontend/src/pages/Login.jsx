@@ -14,7 +14,7 @@ const Login = () => {
     setError("");
     try {
       await login(form);
-      navigate("/onboarding");
+      navigate("/dashboard");
     } catch (err) {
       setError(err?.response?.data?.message || "Login failed.");
     }

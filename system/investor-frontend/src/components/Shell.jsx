@@ -38,7 +38,7 @@ const Shell = ({ children, hideHeader = false, fullScreen = false }) => {
       <main
         className={
           fullScreen
-            ? "mx-auto h-screen max-w-6xl overflow-hidden px-0 py-0"
+            ? "h-screen w-screen overflow-hidden"
             : `mx-auto max-w-6xl px-6 ${hideHeader ? "py-6" : "py-10"}`
         }
       >

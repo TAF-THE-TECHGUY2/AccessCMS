@@ -2,16 +2,23 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\InvestorProfileResource\RelationManagers\DocumentSubmissionsRelationManager;
 use App\Filament\Resources\InvestorProfileResource\Pages;
-use App\Filament\Resources\InvestorProfileResource\RelationManagers\DocumentsRelationManager;
 use App\Filament\Resources\InvestorProfileResource\RelationManagers\InvestmentsRelationManager;
 use App\Filament\Resources\InvestorProfileResource\RelationManagers\PaymentsRelationManager;
+use App\Filament\Resources\InvestorProfileResource\RelationManagers\PortfolioAllocationsRelationManager;
 use App\Filament\Resources\InvestorProfileResource\RelationManagers\WorkflowEventsRelationManager;
+use App\Models\DocumentSubmission;
 use App\Models\InvestorProfile;
 use App\Models\WorkflowEvent;
 use App\Services\AdminAuditService;
+use App\Services\InvestorKycApprovalService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists\Components\Grid;
+use Filament\Infolists\Components\Section as InfolistSection;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -68,6 +75,11 @@ class InvestorProfileResource extends Resource
                                 InvestorProfile::STATUS_REJECTED => 'Rejected',
                             ])
                             ->required(),
+                        Forms\Components\Select::make('track_status')
+                            ->options([
+                                InvestorProfile::TRACK_STATUS_ACCREDITED_APPROVED => 'Accredited Approved',
+                                InvestorProfile::TRACK_STATUS_CROWDFUNDER_ACTIVE => 'Crowdfunder Active',
+                            ]),
                         Forms\Components\Select::make('partner_status')
                             ->options([
                                 'not_required' => 'Not Required',
@@ -88,6 +100,132 @@ class InvestorProfileResource extends Resource
             ]);
     }
 
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                InfolistSection::make('Investor Summary')
+                    ->schema([
+                        Grid::make(4)
+                            ->schema([
+                                TextEntry::make('full_name')
+                                    ->label('Full name')
+                                    ->weight('bold'),
+                                TextEntry::make('investor_type')
+                                    ->label('Pathway')
+                                    ->badge(),
+                                TextEntry::make('status')
+                                    ->badge(),
+                                TextEntry::make('track_status')
+                                    ->label('Track status')
+                                    ->badge()
+                                    ->placeholder('—'),
+                            ]),
+                        Grid::make(3)
+                            ->schema([
+                                TextEntry::make('email'),
+                                TextEntry::make('phone'),
+                                TextEntry::make('country')->placeholder('—'),
+                            ]),
+                    ]),
+                InfolistSection::make('Address')
+                    ->schema([
+                        Grid::make(3)
+                            ->schema([
+                                TextEntry::make('address_line1')->label('Address line 1')->placeholder('—'),
+                                TextEntry::make('address_line2')->label('Address line 2')->placeholder('—'),
+                                TextEntry::make('city')->placeholder('—'),
+                                TextEntry::make('state')->placeholder('—'),
+                                TextEntry::make('postal_code')->label('Postal code')->placeholder('—'),
+                                TextEntry::make('country')->placeholder('—'),
+                            ]),
+                    ]),
+                InfolistSection::make('Document Status')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                TextEntry::make('identity_document_status')
+                                    ->label('Identity document')
+                                    ->state(function (InvestorProfile $record): string {
+                                        return static::documentStatusFor($record, ['government_id']);
+                                    })
+                                    ->badge(),
+                                TextEntry::make('partner_proof_status')
+                                    ->label('Partner proof')
+                                    ->state(function (InvestorProfile $record): string {
+                                        if (! $record->partner_required) {
+                                            return 'not_required';
+                                        }
+
+                                        return static::documentStatusFor($record, ['partner_profile_screenshot']);
+                                    })
+                                    ->badge(),
+                                TextEntry::make('accreditation_status')
+                                    ->label('Accreditation')
+                                    ->state(function (InvestorProfile $record): string {
+                                        if ($record->investor_type !== InvestorProfile::INVESTOR_TYPE_ACCREDITED) {
+                                            return 'not_required';
+                                        }
+
+                                        return static::documentStatusFor($record, ['accreditation_evidence']);
+                                    })
+                                    ->badge(),
+                                TextEntry::make('shares_confirmation_status')
+                                    ->label('Shares confirmation')
+                                    ->state(function (InvestorProfile $record): string {
+                                        if ($record->investor_type !== InvestorProfile::INVESTOR_TYPE_CROWDFUNDER) {
+                                            return 'not_required';
+                                        }
+
+                                        return static::documentStatusFor($record, ['shares_confirmation']);
+                                    })
+                                    ->badge(),
+                            ]),
+                        TextEntry::make('document_rejections')
+                            ->label('Latest document issues')
+                            ->state(function (InvestorProfile $record): string {
+                                $issues = $record->documentSubmissions()
+                                    ->with('documentType')
+                                    ->where('status', 'rejected')
+                                    ->latest('reviewed_at')
+                                    ->limit(3)
+                                    ->get()
+                                    ->map(function (DocumentSubmission $submission): string {
+                                        $label = $submission->documentType?->name ?: 'Document';
+                                        $reason = $submission->rejection_reason ?: 'Rejected';
+
+                                        return "{$label}: {$reason}";
+                                    });
+
+                                return $issues->isNotEmpty() ? $issues->implode("\n") : 'No document issues.';
+                            })
+                            ->columnSpanFull()
+                            ->placeholder('No document issues.')
+                            ->prose(),
+                    ]),
+                InfolistSection::make('Holdings Summary')
+                    ->schema([
+                        Grid::make(4)
+                            ->schema([
+                                TextEntry::make('direct_investment_count')
+                                    ->label('Direct investments')
+                                    ->state(fn (InvestorProfile $record): int => $record->investments()->count()),
+                                TextEntry::make('crowdfunder_holding_count')
+                                    ->label('Crowdfunder holdings')
+                                    ->state(fn (InvestorProfile $record): int => $record->portfolioAllocations()->count()),
+                                TextEntry::make('direct_investment_total')
+                                    ->label('Direct committed')
+                                    ->state(fn (InvestorProfile $record): float => (float) $record->investments()->sum('amount'))
+                                    ->money('USD'),
+                                TextEntry::make('crowdfunder_total')
+                                    ->label('Crowdfunder committed')
+                                    ->state(fn (InvestorProfile $record): float => (float) $record->portfolioAllocations()->sum('amount'))
+                                    ->money('USD'),
+                            ]),
+                    ]),
+            ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -98,6 +236,7 @@ class InvestorProfileResource extends Resource
                 Tables\Columns\TextColumn::make('phone')->searchable(),
                 Tables\Columns\TextColumn::make('investor_type')->badge()->sortable(),
                 Tables\Columns\TextColumn::make('status')->badge()->sortable(),
+                Tables\Columns\TextColumn::make('track_status')->badge()->toggleable(),
                 Tables\Columns\TextColumn::make('partner_status')->badge()->toggleable(),
                 Tables\Columns\TextColumn::make('submitted_at')->dateTime()->sortable()->toggleable(),
                 Tables\Columns\TextColumn::make('approved_at')->dateTime()->sortable()->toggleable(),
@@ -121,55 +260,27 @@ class InvestorProfileResource extends Resource
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('approve')
-                    ->label('Approve')
+                    ->label('Approve KYC')
                     ->color('success')
                     ->requiresConfirmation()
                     ->action(function (InvestorProfile $record): void {
-                        $fromStatus = $record->status;
+                        $result = app(InvestorKycApprovalService::class)->approve($record, Auth::id());
 
-                        if (! $record->canApproveCrowdfunder()) {
-                            $record->update([
-                                'status' => InvestorProfile::STATUS_NEEDS_PARTNER_PROOF,
-                            ]);
-
-                        WorkflowEvent::create([
-                            'investor_profile_id' => $record->id,
-                            'from_status' => $fromStatus,
-                            'to_status' => InvestorProfile::STATUS_NEEDS_PARTNER_PROOF,
-                            'by_admin_user_id' => Auth::id(),
-                            'notes' => 'Crowdfunder requires approved partner proof before approval.',
-                        ]);
-
-                        app(AdminAuditService::class)->log('investor.needs_partner_proof', $record, [
-                            'from_status' => $fromStatus,
-                        ]);
-
+                        if (! $result['approved']) {
                             Notification::make()
-                                ->title('Partner proof required')
+                                ->title('Investor cannot be approved yet')
                                 ->warning()
-                                ->body('Approve the partner proof document first.')
+                                ->body(implode(' ', $result['blockers']))
                                 ->send();
 
                             return;
                         }
 
-                        $record->update([
-                            'status' => InvestorProfile::STATUS_APPROVED,
-                            'approved_at' => now(),
-                            'rejected_at' => null,
-                        ]);
-
-                        WorkflowEvent::create([
-                            'investor_profile_id' => $record->id,
-                            'from_status' => $fromStatus,
-                            'to_status' => InvestorProfile::STATUS_APPROVED,
-                            'by_admin_user_id' => Auth::id(),
-                            'notes' => 'Investor approved.',
-                        ]);
-
-                        app(AdminAuditService::class)->log('investor.approved', $record, [
-                            'from_status' => $fromStatus,
-                        ]);
+                        Notification::make()
+                            ->title('KYC approved')
+                            ->success()
+                            ->body("Status set to Approved and track status set to {$result['track_status']}.")
+                            ->send();
                     }),
                 Tables\Actions\Action::make('reject')
                     ->label('Reject')
@@ -184,6 +295,7 @@ class InvestorProfileResource extends Resource
 
                         $record->update([
                             'status' => InvestorProfile::STATUS_REJECTED,
+                            'track_status' => null,
                             'rejected_at' => now(),
                             'approved_at' => null,
                         ]);
@@ -200,6 +312,11 @@ class InvestorProfileResource extends Resource
                             'from_status' => $fromStatus,
                             'reason' => $data['reason'],
                         ]);
+
+                        Notification::make()
+                            ->title('KYC rejected')
+                            ->danger()
+                            ->send();
                     }),
                 Tables\Actions\Action::make('request_more_docs')
                     ->label('Request More Docs')
@@ -212,6 +329,7 @@ class InvestorProfileResource extends Resource
 
                         $record->update([
                             'status' => InvestorProfile::STATUS_NEEDS_MORE_DOCS,
+                            'track_status' => null,
                         ]);
 
                         WorkflowEvent::create([
@@ -226,6 +344,11 @@ class InvestorProfileResource extends Resource
                             'from_status' => $fromStatus,
                             'notes' => $data['notes'],
                         ]);
+
+                        Notification::make()
+                            ->title('Requested more documents')
+                            ->warning()
+                            ->send();
                     }),
             ])
             ->defaultSort('submitted_at', 'desc');
@@ -234,8 +357,9 @@ class InvestorProfileResource extends Resource
     public static function getRelations(): array
     {
         return [
-            DocumentsRelationManager::class,
+            DocumentSubmissionsRelationManager::class,
             InvestmentsRelationManager::class,
+            PortfolioAllocationsRelationManager::class,
             PaymentsRelationManager::class,
             WorkflowEventsRelationManager::class,
         ];
@@ -248,5 +372,17 @@ class InvestorProfileResource extends Resource
             'view' => Pages\ViewInvestorProfile::route('/{record}'),
             'edit' => Pages\EditInvestorProfile::route('/{record}/edit'),
         ];
+    }
+
+    protected static function documentStatusFor(InvestorProfile $record, array $codes): string
+    {
+        $submission = $record->documentSubmissions()
+            ->whereHas('documentType', function ($query) use ($codes) {
+                $query->whereIn('code', $codes);
+            })
+            ->latest('created_at')
+            ->first();
+
+        return $submission?->status ?? 'missing';
     }
 }

@@ -4,12 +4,14 @@ import Shell from "../../components/Shell";
 import { useOnboarding } from "../../lib/onboarding";
 
 const AccreditedVerification = () => {
-  const { saveAccreditation } = useOnboarding();
+  const { saveAccreditation, state } = useOnboarding();
   const navigate = useNavigate();
   const [method, setMethod] = useState("external");
   const [verificationCode, setVerificationCode] = useState("");
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
+  const providerName = state.verificationProvider?.name || state.accreditation?.provider_name || "Verify.com";
+  const verificationUrl = state.verificationProvider?.url || state.accreditation?.verification_url || "";
 
   const submit = async (event) => {
     event.preventDefault();
@@ -37,7 +39,7 @@ const AccreditedVerification = () => {
               className={`rounded-xl border px-4 py-4 text-left ${method === "external" ? "border-ink bg-ink text-white" : "border-border"}`}
               onClick={() => setMethod("external")}
             >
-              External verification (mock Verify.com)
+              External verification ({providerName})
             </button>
             <button
               type="button"
@@ -48,13 +50,32 @@ const AccreditedVerification = () => {
             </button>
           </div>
           {method === "external" ? (
-            <div>
-              <label className="text-xs uppercase tracking-widest text-slate">Verification Code</label>
-              <input
-                className="mt-2 w-full rounded-lg border border-border px-4 py-3"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-              />
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border bg-pearl p-4 text-sm text-slate">
+                Complete your accredited investor verification with {providerName}. Once you receive your verification code or confirmation, return here and continue.
+              </div>
+              {verificationUrl ? (
+                <button
+                  type="button"
+                  className="rounded-full border border-ink px-6 py-3 text-xs uppercase tracking-widest"
+                  onClick={() => window.open(verificationUrl, "_blank", "noopener,noreferrer")}
+                >
+                  Open {providerName}
+                </button>
+              ) : (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  Verification link has not been configured yet. Ask an admin to set it in Platform Settings.
+                </div>
+              )}
+              <div>
+                <label className="text-xs uppercase tracking-widest text-slate">Verification Code</label>
+                <input
+                  className="mt-2 w-full rounded-lg border border-border px-4 py-3"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  placeholder={`Enter your ${providerName} confirmation code`}
+                />
+              </div>
             </div>
           ) : (
             <div>

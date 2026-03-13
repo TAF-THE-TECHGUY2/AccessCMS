@@ -40,4 +40,9 @@ return [
         'provider_name' => env('WEFUNDER_PROVIDER_NAME', 'wefunder'),
     ],
 
+    'verify' => [
+        'verification_url' => env('VERIFY_VERIFICATION_URL'),
+        'provider_name' => env('VERIFY_PROVIDER_NAME', 'Verify.com'),
+    ],
+
 ];

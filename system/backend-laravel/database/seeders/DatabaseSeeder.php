@@ -16,6 +16,8 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             DocumentTypeSeeder::class,
             FundingInstructionSeeder::class,
+            OfferingSeeder::class,
+            DemoInvestorSeeder::class,
         ]);
     }
 }

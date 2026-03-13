@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/onboarding/documents', [OnboardingDocumentController::class, 'upload']);
     Route::post('/onboarding/accreditation', [AccreditationController::class, 'store']);
     Route::get('/onboarding/state', [OnboardingController::class, 'state']);
+    Route::get('/onboarding/overview', [OnboardingController::class, 'overview']);
     Route::get('/onboarding/status', [OnboardingController::class, 'status']);
     Route::get('/onboarding/funding', [OnboardingController::class, 'funding']);
 });

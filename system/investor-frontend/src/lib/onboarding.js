@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "./api";
 
 const OnboardingContext = createContext(null);
@@ -11,23 +11,27 @@ export const OnboardingProvider = ({ children }) => {
     pathway: null,
     profile: null,
     documents: [],
-    accreditation: null
+    accreditation: null,
+    verificationProvider: null
   });
 
+  const refreshState = useCallback(async () => {
+    const data = await api.onboardingState();
+    setState({
+      basic: data.basic || null,
+      experience: data.experience || null,
+      sec: data.sec || null,
+      pathway: data.pathway || null,
+      profile: data.profile || null,
+      documents: data.documents || [],
+      accreditation: data.accreditation || null,
+      verificationProvider: data.verification_provider || null,
+    });
+    return data;
+  }, []);
+
   useEffect(() => {
-    api.onboardingState()
-      .then((data) => {
-        setState((prev) => ({
-          ...prev,
-          basic: data.basic || prev.basic,
-          experience: data.experience || prev.experience,
-          sec: data.sec || prev.sec,
-          pathway: data.pathway || prev.pathway,
-          profile: data.profile || prev.profile,
-          documents: data.documents || prev.documents,
-        }));
-      })
-      .catch(() => {});
+    refreshState().catch(() => {});
   }, []);
 
   const value = useMemo(
@@ -62,9 +66,10 @@ export const OnboardingProvider = ({ children }) => {
         setState((prev) => ({ ...prev, accreditation: payload }));
       },
       fetchStatus: async () => api.onboardingStatus(),
-      fetchFunding: async () => api.onboardingFunding()
+      fetchFunding: async () => api.onboardingFunding(),
+      refreshState,
     }),
-    [state]
+    [refreshState, state]
   );
 
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;

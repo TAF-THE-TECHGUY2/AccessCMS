@@ -84,9 +84,24 @@ class InvestorProfile extends Model
         return $this->hasMany(Document::class);
     }
 
+    public function documentSubmissions()
+    {
+        return $this->hasMany(DocumentSubmission::class, 'user_id', 'user_id');
+    }
+
     public function investments()
     {
         return $this->hasMany(Investment::class);
+    }
+
+    public function externalPurchases()
+    {
+        return $this->hasMany(ExternalPurchase::class, 'user_id', 'user_id');
+    }
+
+    public function portfolioAllocations()
+    {
+        return $this->hasMany(PortfolioAllocation::class, 'user_id', 'user_id');
     }
 
     public function payments()
@@ -114,9 +129,18 @@ class InvestorProfile extends Model
             return false;
         }
 
-        return $this->documents()
+        $hasLegacyPartnerProof = $this->documents()
             ->where('type', Document::TYPE_PARTNER_PROFILE_SCREENSHOT)
             ->where('status', Document::STATUS_APPROVED)
             ->exists();
+
+        $hasSubmissionPartnerProof = DocumentSubmission::where('user_id', $this->user_id)
+            ->where('status', 'approved')
+            ->whereHas('documentType', function ($query) {
+                $query->where('code', Document::TYPE_PARTNER_PROFILE_SCREENSHOT);
+            })
+            ->exists();
+
+        return $hasLegacyPartnerProof || $hasSubmissionPartnerProof;
     }
 }

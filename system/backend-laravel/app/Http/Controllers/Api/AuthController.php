@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -20,13 +21,13 @@ class AuthController extends Controller
             'title' => ['nullable', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::min(8)],
-            'address_line1' => ['required', 'string', 'max:255'],
+            'password' => ['nullable', 'confirmed', Password::min(8)],
+            'address_line1' => ['nullable', 'string', 'max:255'],
             'address_line2' => ['nullable', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:255'],
-            'state' => ['required', 'string', 'max:255'],
-            'postal_code' => ['required', 'string', 'max:50'],
-            'country' => ['required', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'state' => ['nullable', 'string', 'max:255'],
+            'postal_code' => ['nullable', 'string', 'max:50'],
+            'country' => ['nullable', 'string', 'max:255'],
             'capital_contribution_amount' => ['sometimes', 'numeric', 'min:0'],
             'units_purchased' => ['nullable', 'integer', 'min:0'],
             'equity_percent' => ['nullable', 'numeric', 'min:0'],
@@ -34,10 +35,18 @@ class AuthController extends Controller
         ]);
 
         $validator->after(function ($validator) use ($request) {
+            $track = $request->input('investor_track');
+
+            if ($track === 'ACCREDITED') {
+                if (! $request->filled('password')) {
+                    $validator->errors()->add('password', 'Password is required for accredited onboarding.');
+                }
+            }
+
             if (!$request->filled('capital_contribution_amount')) {
                 return;
             }
-            $track = $request->input('investor_track');
+
             $amount = (float) $request->input('capital_contribution_amount', 0);
             if ($track === 'ACCREDITED' && $amount < 10000) {
                 $validator->errors()->add('capital_contribution_amount', 'Accredited minimum is $10,000.');
@@ -48,28 +57,39 @@ class AuthController extends Controller
         });
 
         $data = $validator->validate();
+        $isCrowdfunder = $data['investor_track'] === 'CROWDFUNDER';
+
+        $password = $data['password'] ?? Str::random(32);
+        $addressLine1 = $data['address_line1'] ?? 'Pending profile completion';
+        $city = $data['city'] ?? 'Pending';
+        $state = $data['state'] ?? 'Pending';
+        $postalCode = $data['postal_code'] ?? 'Pending';
+        $country = $data['country'] ?? 'USA';
 
         $user = User::create([
             'name' => $data['full_name'],
             'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'password' => Hash::make($password),
             'role' => 'investor',
         ]);
 
-        $partnerRequired = $data['investor_track'] === 'CROWDFUNDER';
+        $partnerRequired = $isCrowdfunder;
 
         InvestorProfile::create([
             'user_id' => $user->id,
+            'investor_type' => $isCrowdfunder
+                ? InvestorProfile::INVESTOR_TYPE_CROWDFUNDER
+                : InvestorProfile::INVESTOR_TYPE_ACCREDITED,
             'full_name' => $data['full_name'],
             'title' => $data['title'] ?? null,
             'phone' => $data['phone'],
             'email' => $data['email'],
-            'address_line1' => $data['address_line1'],
+            'address_line1' => $addressLine1,
             'address_line2' => $data['address_line2'] ?? null,
-            'city' => $data['city'],
-            'state' => $data['state'],
-            'postal_code' => $data['postal_code'],
-            'country' => $data['country'],
+            'city' => $city,
+            'state' => $state,
+            'postal_code' => $postalCode,
+            'country' => $country,
             'capital_contribution_amount' => $data['capital_contribution_amount'] ?? 0,
             'units_purchased' => $data['units_purchased'] ?? 0,
             'equity_percent' => $data['equity_percent'] ?? 0,

@@ -7,7 +7,6 @@ const steps = [
   { key: "basic", label: "Basic Profile" },
   { key: "experience", label: "Experience & Intent" },
   { key: "sec", label: "SEC Screening" },
-  { key: "pathway", label: "Pathway" },
   { key: "profile", label: "Full Profile" },
   { key: "documents", label: "Documents" },
   { key: "accreditation", label: "Accreditation", conditional: "accredited" },
@@ -22,12 +21,12 @@ const OnboardingWizardFlow = () => {
     saveBasic,
     saveExperience,
     saveSec,
-    savePathway,
     saveProfile,
     uploadDocument,
     saveAccreditation,
     fetchStatus,
-    fetchFunding
+    fetchFunding,
+    refreshState
   } = useOnboarding();
 
   const [current, setCurrent] = useState(0);
@@ -72,6 +71,10 @@ const OnboardingWizardFlow = () => {
       setSuccess("");
     }, 2500);
   };
+
+  useEffect(() => {
+    refreshState().catch(() => {});
+  }, [refreshState]);
 
   useEffect(() => {
     if (step?.key === "status") {
@@ -184,23 +187,6 @@ const OnboardingWizardFlow = () => {
                 setSuccess("");
                 try {
                   await saveSec(payload);
-                  flashSuccess("Saved successfully.");
-                  goNext();
-                } catch (err) {
-                  setError(err?.response?.data?.message || "Unable to save.");
-                }
-              }}
-            />
-          )}
-
-          {step.key === "pathway" && (
-            <PathwayStep
-              initial={state.pathway}
-              onSubmit={async (payload) => {
-                setError("");
-                setSuccess("");
-                try {
-                  await savePathway(payload);
                   flashSuccess("Saved successfully.");
                   goNext();
                 } catch (err) {
@@ -450,34 +436,6 @@ const SecStep = ({ initial, onSubmit }) => {
   );
 };
 
-const PathwayStep = ({ initial, onSubmit }) => {
-  const [pathway, setPathway] = useState(initial?.pathway ?? "crowdfunding");
-  return (
-    <div>
-      <h2 className="text-2xl font-semibold">Select Your Pathway</h2>
-      <div className="mt-4 grid gap-3">
-        <button
-          type="button"
-          className={`rounded-xl border px-4 py-4 text-left ${pathway === "crowdfunding" ? "border-ink bg-ink text-white" : "border-border"}`}
-          onClick={() => setPathway("crowdfunding")}
-        >
-          Crowdfunding
-        </button>
-        <button
-          type="button"
-          className={`rounded-xl border px-4 py-4 text-left ${pathway === "accredited" ? "border-ink bg-ink text-white" : "border-border"}`}
-          onClick={() => setPathway("accredited")}
-        >
-          Accredited Investor
-        </button>
-        <button className="rounded-full bg-ink px-6 py-3 text-xs uppercase tracking-widest text-white" onClick={() => onSubmit({ pathway })}>
-          Save & Continue
-        </button>
-      </div>
-    </div>
-  );
-};
-
 const ProfileStep = ({ initial, onSubmit }) => {
   const [form, setForm] = useState(initial || { address: "", city: "", country: "USA", postal_code: "", date_of_birth: "" });
   return (
@@ -550,7 +508,7 @@ const AccreditationStep = ({ onSubmit }) => {
           className={`rounded-xl border px-4 py-4 text-left ${method === "external" ? "border-ink bg-ink text-white" : "border-border"}`}
           onClick={() => setMethod("external")}
         >
-          External verification (mock Verify.com)
+          External verification
         </button>
         <button
           type="button"
@@ -1000,4 +958,3 @@ const DashboardStep = ({ state, dashboard }) => (
 );
 
 export default OnboardingWizardFlow;
-

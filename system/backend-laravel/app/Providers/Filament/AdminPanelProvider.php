@@ -7,14 +7,16 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\PlatformSettings;
 use App\Filament\Resources\AdminAuditLogResource;
 use App\Filament\Resources\DocumentResource;
+use App\Filament\Resources\DocumentSubmissionResource;
+use App\Filament\Resources\ExternalPurchaseResource;
 use App\Filament\Resources\FundingInstructionResource;
 use App\Filament\Resources\InvestmentPerformanceUpdateResource;
 use App\Filament\Resources\InvestmentResource;
 use App\Filament\Resources\InvestorOnboardingResource;
 use App\Filament\Resources\InvestorProfileResource;
-use App\Filament\Resources\OnboardingDocumentResource;
 use App\Filament\Resources\OfferingPerformanceUpdateResource;
 use App\Filament\Resources\OfferingResource;
 use App\Filament\Resources\PaymentResource;
@@ -39,9 +41,10 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->resources([
                 InvestorOnboardingResource::class,
-                OnboardingDocumentResource::class,
                 InvestorProfileResource::class,
                 DocumentResource::class,
+                DocumentSubmissionResource::class,
+                ExternalPurchaseResource::class,
                 OfferingResource::class,
                 FundingInstructionResource::class,
                 InvestmentResource::class,
@@ -52,6 +55,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->pages([
                 Dashboard::class,
+                PlatformSettings::class,
             ])
             ->widgets([])
             ->globalSearch(false)

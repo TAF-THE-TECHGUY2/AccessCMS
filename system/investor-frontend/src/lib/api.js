@@ -62,6 +62,7 @@ export const api = {
   onboardingDocuments: (payload) => client.post("/api/onboarding/documents", payload).then((r) => r.data),
   onboardingAccreditation: (payload) => client.post("/api/onboarding/accreditation", payload).then((r) => r.data),
   onboardingState: () => client.get("/api/onboarding/state").then((r) => r.data),
+  onboardingOverview: () => client.get("/api/onboarding/overview").then((r) => r.data),
   onboardingStatus: () => client.get("/api/onboarding/status").then((r) => r.data),
   onboardingFunding: () => client.get("/api/onboarding/funding").then((r) => r.data)
 };

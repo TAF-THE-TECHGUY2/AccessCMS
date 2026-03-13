@@ -18,8 +18,11 @@ class InvestorEligibility
             return false;
         }
 
-        return $profile->status === 'APPROVED'
-            && in_array($profile->track_status, self::ACTIVE_TRACK_STATUSES, true);
+        $status = strtoupper((string) $profile->status);
+        $trackStatus = strtoupper((string) $profile->track_status);
+
+        return $status === 'APPROVED'
+            && in_array($trackStatus, self::ACTIVE_TRACK_STATUSES, true);
     }
 
     public static function assertKycApproved(User $user): void

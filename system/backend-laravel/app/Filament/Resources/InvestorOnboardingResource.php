@@ -4,9 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InvestorOnboardingResource\Pages;
 use App\Models\InvestorOnboarding;
-use App\Notifications\OnboardingApproved;
-use App\Notifications\OnboardingRejected;
-use App\Services\AdminAuditService;
+use App\Services\InvestorOnboardingReviewService;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -55,20 +53,7 @@ class InvestorOnboardingResource extends Resource
                     ->color('success')
                     ->requiresConfirmation()
                     ->action(function (InvestorOnboarding $record) {
-                        $record->update([
-                            'review_status' => 'approved',
-                            'approved_at' => now(),
-                            'rejected_at' => null,
-                            'rejection_reason' => null,
-                        ]);
-                        if ($record->user) {
-                            $record->user->update(['status' => 'approved']);
-                            $record->user->notify(new OnboardingApproved());
-                        }
-
-                        app(AdminAuditService::class)->log('onboarding.approved', $record, [
-                            'user_id' => $record->user_id,
-                        ]);
+                        app(InvestorOnboardingReviewService::class)->approve($record);
                     }),
                 Action::make('reject')
                     ->label('Reject')
@@ -79,21 +64,7 @@ class InvestorOnboardingResource extends Resource
                             ->required(),
                     ])
                     ->action(function (InvestorOnboarding $record, array $data) {
-                        $record->update([
-                            'review_status' => 'rejected',
-                            'rejected_at' => now(),
-                            'approved_at' => null,
-                            'rejection_reason' => $data['reason'],
-                        ]);
-                        if ($record->user) {
-                            $record->user->update(['status' => 'rejected']);
-                            $record->user->notify(new OnboardingRejected($data['reason']));
-                        }
-
-                        app(AdminAuditService::class)->log('onboarding.rejected', $record, [
-                            'user_id' => $record->user_id,
-                            'reason' => $data['reason'],
-                        ]);
+                        app(InvestorOnboardingReviewService::class)->reject($record, $data['reason']);
                     }),
             ])
             ->defaultSort('created_at', 'desc');

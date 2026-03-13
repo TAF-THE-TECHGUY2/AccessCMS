@@ -124,7 +124,7 @@ const App = () => (
             path="/onboarding"
             element={
               <ProtectedRoute redirectIfActiveTo="/investor">
-                <OnboardingWizardFlow />
+                <Navigate to="/dashboard" replace />
               </ProtectedRoute>
             }
           />
