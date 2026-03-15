@@ -7,6 +7,8 @@ const FUND_NAME =
   "Access Properties Real Estate Diversified Income Fund I (Greater Boston Fund)";
 const PORTFOLIOS_URL = "https://ap.boston/portfolios";
 const FAQ_URL = "https://ap.boston/faq";
+const NEWSLETTER_URL =
+  "https://mailchi.mp/052b0234689c/access-properties";
 const SESSION_STORAGE_KEY =
   "access-properties-assistant-register-script-exact-v3";
 
@@ -65,6 +67,10 @@ const createMessageId = (prefix = "m") =>
 
 const openPortfolios = () => {
   window.open(PORTFOLIOS_URL, "_blank", "noopener,noreferrer");
+};
+
+const openNewsletterSignup = () => {
+  window.open(NEWSLETTER_URL, "_blank", "noopener,noreferrer");
 };
 
 const slugifyFaq = (value) =>
@@ -374,7 +380,14 @@ const steps = [
     key: "newsletter_opt_in",
     prompt: "☐ Sign me up for the Access Properties newsletter",
     choices: [
-      { label: "Yes, let’s start", value: true, next: "__profile_started" },
+      {
+        label: "Yes, sign me up",
+        value: true,
+        next: "__profile_started",
+        action: openNewsletterSignup,
+        afterActionMessage:
+          "I opened the Access Properties newsletter signup in a new tab. We’ll continue here.",
+      },
       {
         label: "No, continue without newsletter",
         value: false,
