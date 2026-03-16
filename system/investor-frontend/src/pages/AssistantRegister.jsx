@@ -847,6 +847,8 @@ const AssistantRegister = () => {
     setInput("");
     setError("");
     setSaveMessage("");
+    setIsTyping(false);
+    typingQueue.current = Promise.resolve();
   };
 
   const resetAssistant = async (startStep = "__ready") => {
@@ -876,6 +878,11 @@ const AssistantRegister = () => {
 
     if (!targetKey) return;
 
+    if (targetKey === "__restart") {
+      await resetAssistant("__ready");
+      return;
+    }
+
     if (
       pushHistory &&
       currentStepKey !== targetKey &&
@@ -893,11 +900,6 @@ const AssistantRegister = () => {
     const prompt = getStepPrompt(targetStep, nextAnswers);
 
     await enqueueAssistant(prompt);
-
-    if (targetKey === "__restart") {
-      await resetAssistant("__ready");
-      return;
-    }
 
     if (targetStep.complete) {
       window.localStorage.removeItem(SESSION_STORAGE_KEY);
@@ -939,9 +941,27 @@ const AssistantRegister = () => {
       try {
         await step.onBeforeNext({ answers: nextAnswers });
       } catch (err) {
-        setError(
+        const emailError = err?.response?.data?.errors?.email?.[0];
+        const fallbackMessage =
           err?.response?.data?.message ||
-            "Unable to continue. Please review your details and try again."
+          "Unable to continue. Please review your details and try again.";
+
+        if (step.key === "__create_account" && emailError) {
+          const assistantMessage =
+            "That email already has an account with Access Properties.\n\n" +
+            "Please use a different email to create a new registration, or sign in with the existing account.\n\n" +
+            "Let's update the email and try again.";
+
+          setError(assistantMessage);
+          await enqueueAssistant(assistantMessage);
+          await advanceTo("email", nextAnswers, { pushHistory: false });
+          setInput(nextAnswers.email ?? "");
+          return;
+        }
+
+        setError(fallbackMessage);
+        await enqueueAssistant(
+          `${fallbackMessage}\n\nPlease review your details and try again.`
         );
         return;
       }
@@ -1000,9 +1020,27 @@ const AssistantRegister = () => {
       try {
         await step.onBeforeNext({ answers: nextAnswers });
       } catch (err) {
-        setError(
+        const emailError = err?.response?.data?.errors?.email?.[0];
+        const fallbackMessage =
           err?.response?.data?.message ||
-            "Unable to continue. Please review your details and try again."
+          "Unable to continue. Please review your details and try again.";
+
+        if (step.key === "__create_account" && emailError) {
+          const assistantMessage =
+            "That email already has an account with Access Properties.\n\n" +
+            "Please use a different email to create a new registration, or sign in with the existing account.\n\n" +
+            "Let's update the email and try again.";
+
+          setError(assistantMessage);
+          await enqueueAssistant(assistantMessage);
+          await advanceTo("email", nextAnswers, { pushHistory: false });
+          setInput(nextAnswers.email ?? "");
+          return;
+        }
+
+        setError(fallbackMessage);
+        await enqueueAssistant(
+          `${fallbackMessage}\n\nPlease review your details and try again.`
         );
         return;
       }
