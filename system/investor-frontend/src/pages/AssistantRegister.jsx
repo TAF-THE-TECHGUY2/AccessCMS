@@ -6,9 +6,10 @@ import { api } from "../lib/api";
 const FUND_NAME =
   "Access Properties Real Estate Diversified Income Fund I (Greater Boston Fund)";
 const PORTFOLIOS_URL = "https://ap.boston/portfolios";
-const FAQ_URL = "https://ap.boston/faq";
 const NEWSLETTER_URL =
   "https://mailchi.mp/052b0234689c/access-properties";
+const SEC_ACCREDITED_INVESTOR_URL =
+  "https://www.sec.gov/resources-small-businesses/capital-raising-building-blocks/accredited-investors";
 const SESSION_STORAGE_KEY =
   "access-properties-assistant-register-script-exact-v3";
 
@@ -48,18 +49,89 @@ const FAQ_ITEMS = [
   "Full Disclosure",
 ];
 
-const reviewLabels = {
-  first_name: "First name",
-  last_name: "Last name",
-  email: "Email",
-  phone: "Mobile phone number",
-  newsletter_opt_in: "Newsletter signup",
-  has_invested_before: "Investment experience",
-  planned_amount_bucket: "Planned amount",
-  sec_accredited: "SEC accredited status",
-  investor_preference: "Investor preference",
-  investor_track: "Investor track",
-  selected_fund: "Selected fund",
+const READY_FOOTNOTES_MESSAGE = {
+  messageKey: "ready_footnotes",
+  text:
+    "*1 Access Properties follows SEC rules regarding investor eligibility. Certain private investment opportunities are only available to Accredited Investors as defined by the U.S. Securities and Exchange Commission (SEC). We ask eligibility questions to ensure we only present investment pathways you are legally permitted to access.\n\n" +
+    "*2 Account becomes Active once funds clear",
+  links: [
+    {
+      href: SEC_ACCREDITED_INVESTOR_URL,
+      label: "Read the SEC guidance on Accredited Investors",
+    },
+  ],
+};
+
+const FAQ_FALLBACK_MESSAGE =
+  "We're still preparing that answer. You can continue onboarding now, or contact support for more detail.";
+
+const FAQ_ANSWER_COPY = {
+  "What is Access Properties?":
+    "Access Properties is a private real estate investment platform that gives investors access to professionally managed, diversified real estate portfolios with low minimums. The platform focuses on acquiring, renovating, and managing properties in the Greater Boston area.",
+  "Who can invest with Access Properties?":
+    "Both accredited investors and non-accredited investors can participate, subject to the rules of the offering. Accredited investors typically access higher-minimum direct opportunities, while crowdfunders can start from $100.",
+  "Who owns the properties?":
+    "Each property is owned by Access Properties LLC. When you invest, you receive an indirect fractional ownership interest in a managed real estate portfolio rather than direct title to an individual property.",
+  "What legal structure does Access Properties use?":
+    "Access Properties operates as a Limited Liability Company (LLC). Investors become members of the LLC and receive membership interests proportional to their investment, which supports liability protection and pass-through tax treatment.",
+  "Are investments guaranteed?":
+    "No. Real estate investments involve risk, including the possible loss of principal. Market conditions, property performance, financing conditions, and broader economic factors can all affect returns.",
+  "Can I sell my investment?":
+    "These investments are generally illiquid and designed for long-term holding. Transfers may be possible in limited situations and with company approval, but there is no established secondary market.",
+  "How does Access Properties support a fund-family model?":
+    "Access Properties pools investor capital to build diversified real estate portfolios and can structure multiple funds across geographies and strategies. That model supports broader participation while giving the platform flexibility to launch new offerings over time.",
+  "Can non-U.S. investors participate?":
+    "In some cases, yes. Eligibility depends on the specific offering, securities laws, AML/KYC requirements, and any additional documentation needed for international investors.",
+  "Do I need a U.S. bank account to invest?":
+    "Not always, but your funding and distribution options may depend on the offering and your banking setup. If you do not have a U.S. bank account, Access Properties may request additional payment or compliance details before you invest.",
+  "How does Access Properties select investments?":
+    "The team looks for undervalued properties in strong Greater Boston submarkets with appreciation potential. Key factors include location quality, renovation upside, rental demand, and fit with the strategy being used.",
+  "What investment strategies does Access Properties employ?":
+    "Access Properties uses three primary strategies:\n- Buy & Hold for long-term rental income\n- BRRR (Buy, Renovate, Rent, Refinance) to create value and refinance stabilized properties\n- Fix & Flip for shorter-term renovation and resale opportunities",
+  "Who manages the properties?":
+    "Properties are professionally managed by the Access Properties team. That includes tenant screening, rent collection, maintenance coordination, renovations, and regulatory compliance.",
+  "How often will I receive updates on my investment?":
+    "Investors receive quarterly performance updates covering property operations, occupancy, financial performance, and major developments. Important events such as refinancings, renovations, or property sales are also communicated as they happen.",
+  "What happens if a property needs major repairs?":
+    "Access Properties maintains reserves for capital expenditures and unexpected repairs, and major repairs are factored into underwriting whenever possible. If extraordinary costs exceed reserves, distributions may be deferred and, in rare cases, a capital call may be considered.",
+  "How does Access Properties handle tenant issues?":
+    "The property management team handles tenant matters including lease enforcement, maintenance requests, conflict resolution, and, when necessary, eviction proceedings. The goal is to preserve occupancy and respond quickly to operational issues.",
+  "Can I visit the properties I’ve invested in?":
+    "Usually not for occupied units, because tenant privacy and operations come first. Instead, investors receive photo updates, virtual tours, and progress reporting through the platform.",
+  "What tax documents will I receive?":
+    "As an LLC member, you typically receive a Schedule K-1 each year. The K-1 reports your share of income, losses, deductions, and credits so you can complete your tax return.",
+  "How is rental income taxed?":
+    "Rental income generally flows through to you as passive income on your K-1. It is often offset by expenses such as depreciation, mortgage interest, taxes, insurance, maintenance, and management fees.",
+  "What is depreciation and how does it benefit me?":
+    "Depreciation is a non-cash tax deduction that can reduce taxable income from the investment. Even if the property is appreciating in market value, depreciation may help lower the income reported for tax purposes.",
+  "Can I deduct losses from my investment?":
+    "Passive losses usually offset passive income first, and unused passive losses may carry forward. Depending on your status and tax profile, different rules may apply, so it is best to confirm with a tax advisor.",
+  "What happens tax-wise when a property is sold?":
+    "A sale can create capital gains or losses that flow through on your K-1. Long-term gains may receive favorable tax treatment, while depreciation recapture can also apply.",
+  "Are distributions taxable?":
+    "Distributions themselves are not always the same thing as taxable income. In many cases you are taxed on your share of LLC income whether or not cash is distributed, and distributions may reduce your basis in the investment.",
+  "Do I need to file taxes in Massachusetts?":
+    "If you are not a Massachusetts resident but invest in Massachusetts real estate, you may need to file a Massachusetts non-resident return for your share of in-state income. A tax professional can tell you how that applies to your situation.",
+  "Can I use a self-directed IRA or 401(k) to invest?":
+    "Yes, self-directed retirement accounts can invest in Access Properties. However, debt-financed real estate can create special tax considerations such as UBTI, so it is important to coordinate with your custodian and tax advisor.",
+  "Are there special tax considerations for non-U.S. investors?":
+    "Yes. Non-U.S. investors may face additional withholding, reporting, treaty, and filing considerations depending on how the investment is structured. Access Properties can identify the documentation required, but you should review the tax implications with your own advisor.",
+  "What is the minimum investment?":
+    "Minimums depend on the offering and investor type. Crowdfunding opportunities can start at $100, while accredited-direct opportunities typically start around $10,000.",
+  "How are returns generated?":
+    "Returns generally come from rental income, property appreciation, and value created through renovations or operational improvements. The exact mix depends on the fund strategy.",
+  "How often are distributions paid?":
+    "Distribution timing depends on the strategy and property performance. Some buy-and-hold assets may pay quarterly or annually once stabilized, while value-add or shorter-term strategies may distribute closer to refinancing or sale events.",
+  "What fees does Access Properties charge?":
+    "Fee structures vary by offering, but may include acquisition, asset management, property management, disposition, and performance fees. The exact fees are disclosed in the relevant offering documents.",
+  "How is property valuation determined?":
+    "Valuations typically begin with purchase price and comparable sales, then use income and market-based approaches over time. Formal appraisals are usually obtained around refinancing or sale events.",
+  "What is the typical hold period?":
+    "Hold periods vary by strategy. Buy-and-hold properties may be held for 5 to 10 years or longer, BRRR projects often run 3 to 5 years, and fix-and-flip opportunities can be much shorter.",
+  "What risks should I be aware of?":
+    "Key risks include market risk, liquidity risk, operational risk, financing risk, geographic concentration risk, and regulatory risk. You should review the full risk disclosures in the offering documents before investing.",
+  "Full Disclosure":
+    "This platform is for informational purposes only and does not itself constitute an offer to sell securities. Real estate investing involves meaningful risks, including market, liquidity, leverage, and regulatory risk. Past performance does not guarantee future results, and every prospective investor should review the full offering documents and consult independent legal, tax, and financial advisors before investing.",
 };
 
 const createMessageId = (prefix = "m") =>
@@ -73,84 +145,17 @@ const openNewsletterSignup = () => {
   window.open(NEWSLETTER_URL, "_blank", "noopener,noreferrer");
 };
 
-const slugifyFaq = (value) =>
-  String(value || "")
-    .toLowerCase()
-    .replace(/['’]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-
-const FAQ_LINKS = FAQ_ITEMS.map((question) => ({
-  question,
-  slug: slugifyFaq(question),
-  url: `${FAQ_URL}#${slugifyFaq(question)}`,
-}));
-
-const openFaqAnswer = (question) => {
-  const item = FAQ_LINKS.find((entry) => entry.question === question);
-  window.open(item?.url || FAQ_URL, "_blank", "noopener,noreferrer");
-};
-
 const getFaqAnswerMessage = (question) => {
   if (!question) {
     return (
-      "I couldn’t find that FAQ item.\n\n" +
-      "You can still open the full FAQ page and browse all answers there."
+      "I couldn't find that FAQ item.\n\n" +
+      FAQ_FALLBACK_MESSAGE
     );
   }
 
-  return (
-    `I’ve opened the FAQ page for:\n“${question}”\n\n` +
-    "If the FAQ page supports direct anchor links, it should jump to that answer automatically.\n" +
-    "If not, it will still open the FAQ page where you can view the full answer.\n\n" +
-    "What would you like to do next?"
-  );
-};
+  const answer = FAQ_ANSWER_COPY[question] || FAQ_FALLBACK_MESSAGE;
 
-const formatValue = (key, value) => {
-  if (value === null || value === undefined || value === "") return "—";
-
-  const mappedValues = {
-    newsletter_opt_in: {
-      true: "Yes",
-      false: "No",
-    },
-    has_invested_before: {
-      true: "Yes, I have invested before",
-      false: "No, I am new to investing",
-    },
-    planned_amount_bucket: {
-      LT_10K: "Less than $10,000",
-      GTE_10K: "$10,000 or more",
-      NOT_SURE: "Not sure yet",
-    },
-    sec_accredited: {
-      YES: "Yes",
-      NO: "No",
-      NOT_SURE: "Not sure",
-    },
-    investor_preference: {
-      CROWDFUNDING:
-        "I want to invest smaller amounts with other investors (crowdfunding)",
-      ACCREDITED_DIRECT:
-        "I want to invest directly as an accredited investor",
-    },
-    investor_track: {
-      CROWDFUNDER: "Crowdfunding",
-      ACCREDITED: "Accredited Investor",
-    },
-  };
-
-  if (
-    mappedValues[key] &&
-    Object.prototype.hasOwnProperty.call(mappedValues[key], String(value))
-  ) {
-    return mappedValues[key][String(value)];
-  }
-
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-
-  return String(value);
+  return `Here is the answer for:\n"${question}"\n\n${answer}\n\nWhat would you like to do next?`;
 };
 
 const determineInvestorRoute = (answers) => {
@@ -307,8 +312,6 @@ const steps = [
       "5. Receive funding instructions\n" +
       "6. Transfer funds*2\n" +
       "7. Access your Investor Dashboard\n\n" +
-      "*1 Access Properties follows SEC rules regarding investor eligibility. Certain private investment opportunities are only available to Accredited Investors as defined by the U.S. Securities and Exchange Commission (SEC). We ask eligibility questions to ensure we only present investment pathways you are legally permitted to access.\n" +
-      "*2 Account becomes Active once funds clear\n\n" +
       "Ready to begin?",
     choices: [
       { label: "Yes, let’s start", value: "start", next: "__profile_intro" },
@@ -316,6 +319,12 @@ const steps = [
         label: "I want to learn more first",
         value: "learn_more",
         next: "__learn_more",
+      },
+      {
+        label: "See footnotes",
+        value: "see_footnotes",
+        stayOnStep: true,
+        afterActionMessage: READY_FOOTNOTES_MESSAGE,
       },
     ],
     persistValue: false,
@@ -716,18 +725,42 @@ const AssistantRegister = () => {
   const typingQueue = useRef(Promise.resolve());
   const initRef = useRef(false);
   const messageEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   const step = stepMap[currentStepKey];
 
-  const typeAssistant = (text) => {
-    if (!text) return Promise.resolve();
+  const getStepPrompt = (stepDef, nextAnswers = answers) =>
+    typeof stepDef?.prompt === "function"
+      ? stepDef.prompt(nextAnswers)
+      : stepDef?.prompt || "";
+
+  const typeAssistant = (payload) => {
+    const message =
+      typeof payload === "string"
+        ? { text: payload, links: [], messageKey: null }
+        : {
+            text: String(payload?.text || ""),
+            links: Array.isArray(payload?.links) ? payload.links : [],
+            messageKey: payload?.messageKey || null,
+          };
+
+    if (!message.text) return Promise.resolve();
 
     setIsTyping(true);
     const id = createMessageId("a");
-    setMessages((prev) => [...prev, { id, role: "assistant", text: "" }]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id,
+        role: "assistant",
+        text: "",
+        links: message.links,
+        messageKey: message.messageKey,
+      },
+    ]);
 
     return new Promise((resolve) => {
-      const chars = String(text).split("");
+      const chars = message.text.split("");
       let index = 0;
 
       const tick = () => {
@@ -821,10 +854,7 @@ const AssistantRegister = () => {
     setCurrentStepKey(startStep);
 
     const targetStep = stepMap[startStep];
-    const prompt =
-      typeof targetStep.prompt === "function"
-        ? targetStep.prompt({})
-        : targetStep.prompt;
+    const prompt = getStepPrompt(targetStep, {});
 
     await enqueueAssistant(prompt);
 
@@ -835,10 +865,7 @@ const AssistantRegister = () => {
       if (autoNext) {
         setCurrentStepKey(autoNext);
         const nextStep = stepMap[autoNext];
-        const nextPrompt =
-          typeof nextStep.prompt === "function"
-            ? nextStep.prompt({})
-            : nextStep.prompt;
+        const nextPrompt = getStepPrompt(nextStep, {});
         await enqueueAssistant(nextPrompt);
       }
     }
@@ -863,10 +890,7 @@ const AssistantRegister = () => {
     setError("");
 
     const targetStep = stepMap[targetKey];
-    const prompt =
-      typeof targetStep.prompt === "function"
-        ? targetStep.prompt(nextAnswers)
-        : targetStep.prompt;
+    const prompt = getStepPrompt(targetStep, nextAnswers);
 
     await enqueueAssistant(prompt);
 
@@ -899,6 +923,9 @@ const AssistantRegister = () => {
 
     if (validation !== true) {
       setError(validation);
+      await enqueueAssistant(
+        `${validation}\n\nLet's try that again.\n\n${getStepPrompt(step, answers)}`
+      );
       return;
     }
 
@@ -940,7 +967,6 @@ const AssistantRegister = () => {
       });
 
       setAnswers(nextAnswers);
-      openFaqAnswer(choice.label);
 
       const returnStep =
         currentStepKey === "__learn_more_after_completion"
@@ -953,6 +979,15 @@ const AssistantRegister = () => {
 
     if (choice.stayOnStep) {
       if (choice.afterActionMessage) {
+        const messageKey =
+          typeof choice.afterActionMessage === "object"
+            ? choice.afterActionMessage.messageKey
+            : null;
+
+        if (messageKey && messages.some((item) => item.messageKey === messageKey)) {
+          return;
+        }
+
         await enqueueAssistant(choice.afterActionMessage);
       }
       return;
@@ -1002,10 +1037,7 @@ const AssistantRegister = () => {
     setInput(answers[previousKey] ?? "");
 
     const previousStep = stepMap[previousKey];
-    const prompt =
-      typeof previousStep.prompt === "function"
-        ? previousStep.prompt(answers)
-        : previousStep.prompt;
+    const prompt = getStepPrompt(previousStep, answers);
 
     await enqueueAssistant(`Let’s go back.\n\n${prompt}`);
   };
@@ -1023,35 +1055,6 @@ const AssistantRegister = () => {
     );
     setSaveMessage("Progress saved on this device.");
   };
-
-  const reviewFields = useMemo(() => {
-    const order = [
-      "first_name",
-      "last_name",
-      "email",
-      "phone",
-      "newsletter_opt_in",
-      "has_invested_before",
-      "planned_amount_bucket",
-      "sec_accredited",
-      "investor_preference",
-      "investor_track",
-      "selected_fund",
-    ];
-
-    return order
-      .filter(
-        (key) =>
-          answers[key] !== undefined &&
-          answers[key] !== null &&
-          answers[key] !== ""
-      )
-      .map((key) => ({
-        key,
-        label: reviewLabels[key],
-        value: formatValue(key, answers[key]),
-      }));
-  }, [answers]);
 
   const stageMeta = useMemo(
     () => getStageMeta(currentStepKey, answers),
@@ -1148,23 +1151,33 @@ const AssistantRegister = () => {
     }
   }, [messages, currentStepKey]);
 
+  useEffect(() => {
+    if (!step || step.faqMenu || step.choices || isTyping) return;
+
+    const timeout = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+
+    return () => clearTimeout(timeout);
+  }, [currentStepKey, isTyping, step]);
+
   return (
     <Shell hideHeader fullScreen>
       <div className="relative flex h-full w-full overflow-hidden bg-white p-0">
-        <div className="relative z-10 grid h-full min-h-0 w-full gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="relative flex min-h-0 h-full flex-col overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_20px_60px_rgba(24,24,27,0.08)]">
+        <div className="relative z-10 flex h-full min-h-0 w-full">
+          <div className="relative flex min-h-0 h-full w-full flex-col overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_20px_60px_rgba(24,24,27,0.08)]">
             <div className="border-b border-stone-200 bg-white px-6 py-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-stone-500">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">
                     Access Properties
                   </p>
-                  <h2 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.02em] text-stone-900">
+                  <h2 className="mt-2 text-[1.55rem] font-semibold tracking-[-0.02em] text-stone-900">
                     {stageMeta.label}
                   </h2>
                 </div>
 
-                <div className="hidden items-center rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-700 sm:inline-flex">
+                <div className="hidden items-center rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-sm font-medium text-stone-700 sm:inline-flex">
                   Step {progressIndex} of {progressKeys.length}
                 </div>
               </div>
@@ -1178,7 +1191,7 @@ const AssistantRegister = () => {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-40 sm:p-6">
-              <div className="mx-auto max-w-3xl space-y-4">
+              <div className="mx-auto w-full max-w-[1180px] space-y-4">
                 {messages.map((message) => (
                   <div
                     key={message.id}
@@ -1189,13 +1202,31 @@ const AssistantRegister = () => {
                     }`}
                   >
                     <div
-                      className={`max-w-[85%] whitespace-pre-line rounded-[22px] px-4 py-3 text-sm leading-6 ${
+                      className={`max-w-[85%] whitespace-pre-line rounded-[22px] px-4 py-3 text-base leading-7 ${
                         message.role === "user"
                           ? "bg-black text-white"
                           : "border border-stone-200 bg-stone-50 text-stone-800"
                       }`}
                     >
                       {message.text}
+
+                      {message.role === "assistant" &&
+                      Array.isArray(message.links) &&
+                      message.links.length ? (
+                        <div className="mt-3 flex flex-col gap-2 whitespace-normal">
+                          {message.links.map((link) => (
+                            <a
+                              key={`${message.id}-${link.href}`}
+                              href={link.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex w-fit text-base font-medium text-black underline underline-offset-4"
+                            >
+                              {link.label || link.href}
+                            </a>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -1204,13 +1235,13 @@ const AssistantRegister = () => {
             </div>
 
             <div className="sticky bottom-0 border-t border-stone-200 bg-white p-4 sm:p-6">
-              <div className="mx-auto max-w-4xl">
+              <div className="mx-auto w-full max-w-[1180px]">
                 {error ? (
-                  <div className="mb-3 text-sm text-red-600">{error}</div>
+                  <div className="mb-3 text-base text-red-600">{error}</div>
                 ) : null}
 
                 {saveMessage ? (
-                  <div className="mb-3 text-sm text-stone-600">{saveMessage}</div>
+                  <div className="mb-3 text-base text-stone-600">{saveMessage}</div>
                 ) : null}
 
                 {step?.faqMenu ? (
@@ -1223,10 +1254,10 @@ const AssistantRegister = () => {
                           onClick={() => handleChoice({ label: item })}
                           disabled={isTyping}
                         >
-                          <span className="text-sm font-semibold text-stone-900">
+                          <span className="text-base font-semibold text-stone-900">
                             {item}
                           </span>
-                          <span className="mt-3 text-xs font-medium uppercase tracking-[0.2em] text-stone-500 opacity-0 transition group-hover:opacity-100">
+                          <span className="mt-3 text-sm font-medium uppercase tracking-[0.2em] text-stone-500 opacity-0 transition group-hover:opacity-100">
                             Open
                           </span>
                         </button>
@@ -1234,7 +1265,11 @@ const AssistantRegister = () => {
                     </div>
                   </div>
                 ) : step?.choices ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div
+                    className={`grid gap-3 ${
+                      step.key === "__ready" ? "sm:grid-cols-3" : "sm:grid-cols-2"
+                    }`}
+                  >
                     {step.choices.map((choice) => (
                       <button
                         key={`${step.key}-${choice.label}`}
@@ -1242,10 +1277,10 @@ const AssistantRegister = () => {
                         onClick={() => handleChoice(choice)}
                         disabled={isTyping}
                       >
-                        <span className="text-sm font-semibold text-stone-900">
+                        <span className="text-base font-semibold text-stone-900">
                           {choice.label}
                         </span>
-                        <span className="mt-3 text-xs font-medium uppercase tracking-[0.2em] text-stone-500 opacity-0 transition group-hover:opacity-100">
+                        <span className="mt-3 text-sm font-medium uppercase tracking-[0.2em] text-stone-500 opacity-0 transition group-hover:opacity-100">
                           Continue
                         </span>
                       </button>
@@ -1258,7 +1293,8 @@ const AssistantRegister = () => {
                     }`}
                   >
                     <input
-                      className="flex-1 rounded-full border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 transition placeholder:text-stone-400 focus:border-black focus:outline-none focus:ring-4 focus:ring-stone-200 disabled:bg-stone-100"
+                      ref={inputRef}
+                      className="flex-1 rounded-full border border-stone-300 bg-white px-4 py-3 text-base text-stone-900 transition placeholder:text-stone-400 focus:border-black focus:outline-none focus:ring-4 focus:ring-stone-200 disabled:bg-stone-100"
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder="Type your answer..."
@@ -1268,7 +1304,7 @@ const AssistantRegister = () => {
                       }}
                     />
                     <button
-                      className="rounded-full bg-black px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-full bg-black px-5 py-3 text-base font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
                       onClick={handleTextSubmit}
                       disabled={isTyping}
                     >
@@ -1280,7 +1316,7 @@ const AssistantRegister = () => {
                 <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
                     <button
-                      className="rounded-full border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:border-black hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-full border border-stone-300 bg-white px-4 py-2.5 text-base font-medium text-stone-700 transition hover:border-black hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
                       onClick={goBack}
                       disabled={!history.length}
                     >
@@ -1288,7 +1324,7 @@ const AssistantRegister = () => {
                     </button>
 
                     <button
-                      className="rounded-full border border-stone-300 bg-stone-50 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:border-black hover:text-black"
+                      className="rounded-full border border-stone-300 bg-stone-50 px-4 py-2.5 text-base font-medium text-stone-600 transition hover:border-black hover:text-black"
                       onClick={handleSaveSession}
                       type="button"
                     >
@@ -1296,55 +1332,13 @@ const AssistantRegister = () => {
                     </button>
                   </div>
 
-                  <div className="text-sm font-medium text-stone-500">
+                  <div className="text-base font-medium text-stone-500">
                     {stageMeta.next}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <aside className="hidden h-full overflow-y-auto rounded-[28px] border border-stone-200 bg-white p-6 shadow-[0_20px_60px_rgba(24,24,27,0.06)] lg:block">
-            <h3 className="text-[11px] uppercase tracking-[0.3em] text-stone-500">
-              Onboarding Snapshot
-            </h3>
-
-            <div className="mt-4 rounded-[22px] border border-stone-200 bg-stone-50 p-4">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                Important note
-              </div>
-              <div className="mt-2 leading-6 text-stone-800">{stageMeta.note}</div>
-            </div>
-
-            <div className="mt-5 rounded-[22px] border border-stone-200 bg-stone-50 p-4">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-stone-500">
-                Live summary
-              </div>
-              <div className="mt-3 space-y-3 text-sm">
-                {reviewFields.length ? (
-                  reviewFields.map((field) => (
-                    <div
-                      key={field.key}
-                      className="flex items-start justify-between gap-4"
-                    >
-                      <span className="text-stone-500">{field.label}</span>
-                      <span className="text-right font-medium text-stone-900">
-                        {field.value}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-stone-500">
-                    Your answers will appear here as you continue.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <p className="mt-6 text-xs leading-5 text-stone-500">
-              Progress is automatically saved on this device. Not financial advice.
-            </p>
-          </aside>
         </div>
       </div>
     </Shell>
