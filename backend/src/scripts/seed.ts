@@ -860,6 +860,7 @@ const seedSettings = async () => {
       { label: "Home", href: "/" },
       { label: "About", href: "/about" },
       { label: "Portfolios", href: "/portfolios" },
+      { label: "Invest Now", href: "https://investor.ap.boston/assistant-register" },
       { label: "FAQ", href: "/faq" },
       { label: "Contact", href: "/contact" },
     ],
@@ -873,7 +874,7 @@ const seedSettings = async () => {
         { label: "Instagram", url: "https://www.instagram.com/access_properties_2022/" },
       ],
       quickLinks: [
-        { label: "Invest Now", href: "/greater-boston" },
+        { label: "Invest Now", href: "https://investor.ap.boston/assistant-register" },
         { label: "FAQ", href: "/faq" },
         { label: "Contact Us", href: "/contact" },
         { label: "Privacy Policy", href: "/privacy-policy" },

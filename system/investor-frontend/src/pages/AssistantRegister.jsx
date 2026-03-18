@@ -159,22 +159,26 @@ const getFaqAnswerMessage = (question) => {
 };
 
 const determineInvestorRoute = (answers) => {
-  if (answers.planned_amount_bucket === "LT_10K") return "CROWDFUNDER";
-  if (answers.sec_accredited === "NO") return "CROWDFUNDER";
+  if (answers.sec_accredited === "YES") {
+    return "ACCREDITED";
+  }
+
+  if (answers.sec_accredited === "NO") {
+    return "CROWDFUNDER";
+  }
+
+  if (
+    answers.sec_accredited === "NOT_SURE" &&
+    answers.investor_preference === "ACCREDITED_DIRECT"
+  ) {
+    return "ACCREDITED";
+  }
 
   if (
     answers.sec_accredited === "NOT_SURE" &&
     answers.investor_preference === "CROWDFUNDING"
   ) {
     return "CROWDFUNDER";
-  }
-
-  if (
-    answers.sec_accredited === "YES" &&
-    (answers.planned_amount_bucket === "GTE_10K" ||
-      answers.investor_preference === "ACCREDITED_DIRECT")
-  ) {
-    return "ACCREDITED";
   }
 
   return "CROWDFUNDER";
@@ -243,7 +247,7 @@ const getStageMeta = (stepKey, answers) => {
   ) {
     return {
       label: "Investor Profile",
-      note: "First, let’s set up your investor profile so we can personalize your experience and save your progress.",
+      note: "First, let’s set up your investor profile so I can personalize your experience and save your progress.",
       next: "Confirm eligibility",
     };
   }
@@ -454,8 +458,8 @@ const steps = [
       "· Annual income over $200,000 (or $300,000 with spouse), OR\n" +
       "· Net worth over $1 million (excluding primary home)",
     choices: [
-      { label: "Yes", value: "YES", next: "investor_preference" },
-      { label: "No", value: "NO", next: "investor_preference" },
+      { label: "Yes", value: "YES", next: "__fund_clarification" },
+      { label: "No", value: "NO", next: "__crowdfunding_intro" },
       { label: "Not sure", value: "NOT_SURE", next: "investor_preference" },
     ],
   },
@@ -501,7 +505,7 @@ const steps = [
             : "__crowdfunding_intro",
       },
       {
-        label: "View Portfolios",
+        label: "View Portfolio",
         value: "view_portfolios",
         stayOnStep: true,
         action: openPortfolios,
@@ -520,17 +524,17 @@ const steps = [
       "· Investors starting with smaller amounts",
     choices: [
       {
-        label: "Continue to Crowdfunding",
+        label: "Continue",
         value: "continue_crowdfunding",
         next: "selected_fund",
       },
       {
-        label: "Review Portfolios First",
+        label: "View Portfolio",
         value: "review_portfolios",
         stayOnStep: true,
         action: openPortfolios,
         afterActionMessage:
-          "I opened the Portfolios page in a new tab. When you’re ready, select Continue to Crowdfunding here.",
+          "I opened the Portfolios page in a new tab. When you’re ready, continue here.",
       },
     ],
     persistValue: false,
@@ -539,21 +543,20 @@ const steps = [
     key: "__accredited_intro",
     prompt:
       "Great — based on your answers, you may qualify as an Accredited Investor, which means you can invest directly into:\n" +
-      `${FUND_NAME}\n\n` +
-      "We’ll handle profile completion, identity documents, accreditation verification, review, and funding in your onboarding dashboard after account creation.",
+      `${FUND_NAME}`,
     choices: [
       {
-        label: "Continue with Accredited Onboarding",
+        label: "Continue",
         value: "continue_accredited",
         next: "selected_fund",
       },
       {
-        label: "Review Portfolios First",
+        label: "View Portfolio",
         value: "review_portfolios",
         stayOnStep: true,
         action: openPortfolios,
         afterActionMessage:
-          "I opened the Portfolios page in a new tab. When you’re ready, continue with accredited onboarding here.",
+          "I opened the Portfolios page in a new tab. When you’re ready, continue here.",
       },
     ],
     persistValue: false,
@@ -710,6 +713,41 @@ const sanitizeStepKey = (value) => (value && stepMap[value] ? value : "__ready")
 const sanitizeHistory = (value) =>
   Array.isArray(value) ? value.filter((key) => Boolean(stepMap[key])) : [];
 
+const hasProgressValue = (value) => {
+  if (typeof value === "boolean" || typeof value === "number") return true;
+  if (Array.isArray(value)) return value.length > 0;
+  return String(value ?? "").trim() !== "";
+};
+
+const sanitizeSavedSession = (value) => ({
+  currentStepKey: sanitizeStepKey(value?.currentStepKey),
+  messages: Array.isArray(value?.messages) ? value.messages : [],
+  answers: value?.answers || {},
+  input: value?.input || "",
+  history: sanitizeHistory(value?.history),
+});
+
+const hasMeaningfulSessionProgress = (value) => {
+  const session = sanitizeSavedSession(value);
+  const hasMeaningfulAnswers = Object.entries(session.answers).some(
+    ([key, answer]) => key !== "selected_faq_question" && hasProgressValue(answer)
+  );
+  const hasTypedInput = hasProgressValue(session.input);
+  const hasUserMessages = session.messages.some(
+    (message) => message?.role === "user" && hasProgressValue(message?.text)
+  );
+  const hasHistoryItems = session.history.length > 0;
+  const movedPastReady = session.currentStepKey !== "__ready";
+
+  return (
+    hasMeaningfulAnswers ||
+    hasTypedInput ||
+    hasUserMessages ||
+    hasHistoryItems ||
+    movedPastReady
+  );
+};
+
 const AssistantRegister = () => {
   const navigate = useNavigate();
 
@@ -721,6 +759,8 @@ const AssistantRegister = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [history, setHistory] = useState([]);
+  const [pendingRestore, setPendingRestore] = useState(null);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
 
   const typingQueue = useRef(Promise.resolve());
   const initRef = useRef(false);
@@ -1099,6 +1139,14 @@ const AssistantRegister = () => {
     [currentStepKey, answers]
   );
 
+  const restoreStageMeta = useMemo(
+    () =>
+      pendingRestore
+        ? getStageMeta(pendingRestore.currentStepKey, pendingRestore.answers || {})
+        : null,
+    [pendingRestore]
+  );
+
   const progressKeys = useMemo(
     () => [
       "first_name",
@@ -1135,6 +1183,18 @@ const AssistantRegister = () => {
     [progressIndex, progressKeys.length]
   );
 
+  const hasMeaningfulProgress = useMemo(
+    () =>
+      hasMeaningfulSessionProgress({
+        currentStepKey,
+        messages,
+        answers,
+        input,
+        history,
+      }),
+    [currentStepKey, messages, answers, input, history]
+  );
+
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
@@ -1144,13 +1204,13 @@ const AssistantRegister = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setCurrentStepKey(sanitizeStepKey(parsed.currentStepKey));
-        setMessages(Array.isArray(parsed.messages) ? parsed.messages : []);
-        setAnswers(parsed.answers || {});
-        setInput(parsed.input || "");
-        setHistory(sanitizeHistory(parsed.history));
-        setSaveMessage("Progress restored on this device.");
-        return;
+        if (hasMeaningfulSessionProgress(parsed)) {
+          setPendingRestore(sanitizeSavedSession(parsed));
+          setShowRestorePrompt(true);
+          return;
+        }
+
+        window.localStorage.removeItem(SESSION_STORAGE_KEY);
       } catch {
         window.localStorage.removeItem(SESSION_STORAGE_KEY);
       }
@@ -1160,7 +1220,7 @@ const AssistantRegister = () => {
   }, []);
 
   useEffect(() => {
-    if (!initRef.current) return;
+    if (!initRef.current || showRestorePrompt) return;
 
     window.localStorage.setItem(
       SESSION_STORAGE_KEY,
@@ -1172,7 +1232,7 @@ const AssistantRegister = () => {
         history,
       })
     );
-  }, [currentStepKey, messages, answers, input, history]);
+  }, [currentStepKey, messages, answers, input, history, showRestorePrompt]);
 
   useEffect(() => {
     if (!saveMessage) return;
@@ -1199,18 +1259,107 @@ const AssistantRegister = () => {
     return () => clearTimeout(timeout);
   }, [currentStepKey, isTyping, step]);
 
+  useEffect(() => {
+    if (!hasMeaningfulProgress || showRestorePrompt) return undefined;
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasMeaningfulProgress, showRestorePrompt]);
+
+  const handleResumeSavedProgress = () => {
+    if (!pendingRestore) return;
+
+    setCurrentStepKey(pendingRestore.currentStepKey);
+    setMessages(pendingRestore.messages);
+    setAnswers(pendingRestore.answers || {});
+    setInput(pendingRestore.input || "");
+    setHistory(pendingRestore.history || []);
+    setSaveMessage("Progress restored on this device.");
+    setPendingRestore(null);
+    setShowRestorePrompt(false);
+  };
+
+  const handleStartOverFromSaved = async () => {
+    setPendingRestore(null);
+    setShowRestorePrompt(false);
+    await resetAssistant("__ready");
+  };
+
   return (
     <Shell hideHeader fullScreen>
-      <div className="relative flex h-full w-full overflow-hidden bg-white p-0">
-        <div className="relative z-10 flex h-full min-h-0 w-full">
-          <div className="relative flex min-h-0 h-full w-full flex-col overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_20px_60px_rgba(24,24,27,0.08)]">
-            <div className="border-b border-stone-200 bg-white px-6 py-5">
+      <div className="relative flex h-full w-full overflow-x-hidden overflow-y-hidden bg-white p-0">
+        {showRestorePrompt ? (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-stone-950/35 p-4">
+            <div className="w-full max-w-lg rounded-[28px] border border-stone-200 bg-white p-6 shadow-[0_24px_80px_rgba(24,24,27,0.18)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-500">
+                Saved on this device
+              </p>
+              <h3 className="mt-3 text-[1.7rem] font-semibold tracking-[-0.02em] text-stone-900">
+                Resume your application?
+              </h3>
+              <p className="mt-3 text-base leading-7 text-stone-600">
+                We found saved progress for your investor application on this
+                device.
+              </p>
+
+              <div className="mt-5 rounded-[22px] border border-stone-200 bg-stone-50 p-4 text-sm leading-6 text-stone-700">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-medium text-stone-500">Stage</span>
+                  <span className="text-right font-semibold text-stone-900">
+                    {restoreStageMeta?.label || "Access Properties"}
+                  </span>
+                </div>
+
+                {pendingRestore?.answers?.first_name ||
+                pendingRestore?.answers?.email ? (
+                  <div className="mt-3 flex items-center justify-between gap-4">
+                    <span className="font-medium text-stone-500">Saved for</span>
+                    <span className="text-right font-semibold text-stone-900">
+                      {[
+                        pendingRestore?.answers?.first_name,
+                        pendingRestore?.answers?.last_name,
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || pendingRestore?.answers?.email}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  className="rounded-full border border-stone-300 bg-white px-5 py-3 text-base font-medium text-stone-700 transition hover:border-black hover:text-black"
+                  onClick={handleStartOverFromSaved}
+                >
+                  Start over
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full bg-black px-5 py-3 text-base font-semibold text-white transition hover:opacity-95"
+                  onClick={handleResumeSavedProgress}
+                >
+                  Resume saved progress
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="relative z-10 flex h-full min-h-0 w-full min-w-0">
+          <div className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_20px_60px_rgba(24,24,27,0.08)]">
+            <div className="border-b border-stone-200 bg-white px-4 py-4 sm:px-6 sm:py-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">
                     Access Properties
                   </p>
-                  <h2 className="mt-2 text-[1.55rem] font-semibold tracking-[-0.02em] text-stone-900">
+                  <h2 className="mt-2 text-[1.3rem] sm:text-[1.55rem] font-semibold tracking-[-0.02em] text-stone-900 break-words">
                     {stageMeta.label}
                   </h2>
                 </div>
@@ -1228,23 +1377,24 @@ const AssistantRegister = () => {
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-40 sm:p-6">
-              <div className="mx-auto w-full max-w-[1180px] space-y-4">
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-3 pb-36 sm:p-6 sm:pb-40">
+              <div className="mx-auto w-full min-w-0 max-w-[1180px] space-y-4">
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${
+                    className={`flex min-w-0 ${
                       message.role === "user"
                         ? "justify-end"
                         : "justify-start"
                     }`}
                   >
                     <div
-                      className={`max-w-[85%] whitespace-pre-line rounded-[22px] px-4 py-3 text-base leading-7 ${
+                      className={`w-full min-w-0 max-w-full sm:max-w-[85%] whitespace-pre-line break-words rounded-[22px] px-4 py-3 text-[15px] leading-7 sm:text-base ${
                         message.role === "user"
                           ? "bg-black text-white"
                           : "border border-stone-200 bg-stone-50 text-stone-800"
                       }`}
+                      style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
                     >
                       {message.text}
 
@@ -1258,7 +1408,8 @@ const AssistantRegister = () => {
                               href={link.href}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex w-fit text-base font-medium text-black underline underline-offset-4"
+                              className="inline-flex w-fit max-w-full break-words text-[15px] sm:text-base font-medium text-black underline underline-offset-4"
+                              style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
                             >
                               {link.label || link.href}
                             </a>
@@ -1272,30 +1423,30 @@ const AssistantRegister = () => {
               </div>
             </div>
 
-            <div className="sticky bottom-0 border-t border-stone-200 bg-white p-4 sm:p-6">
-              <div className="mx-auto w-full max-w-[1180px]">
+            <div className="sticky bottom-0 border-t border-stone-200 bg-white p-3 pb-4 sm:p-6">
+              <div className="mx-auto w-full min-w-0 max-w-[1180px]">
                 {error ? (
-                  <div className="mb-3 text-base text-red-600">{error}</div>
+                  <div className="mb-3 text-sm sm:text-base text-red-600">{error}</div>
                 ) : null}
 
                 {saveMessage ? (
-                  <div className="mb-3 text-base text-stone-600">{saveMessage}</div>
+                  <div className="mb-3 text-sm sm:text-base text-stone-600">{saveMessage}</div>
                 ) : null}
 
                 {step?.faqMenu ? (
                   <div className="max-h-[420px] overflow-y-auto pr-2">
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       {FAQ_ITEMS.map((item) => (
                         <button
                           key={item}
-                          className="group flex min-h-[84px] flex-col items-start justify-center rounded-[22px] border border-stone-200 bg-white px-5 py-4 text-left shadow-sm transition duration-200 hover:border-black hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="group flex min-h-[74px] sm:min-h-[84px] flex-col items-start justify-center rounded-[22px] border border-stone-200 bg-white px-4 py-4 sm:px-5 text-left shadow-sm transition duration-200 hover:border-black hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
                           onClick={() => handleChoice({ label: item })}
                           disabled={isTyping}
                         >
-                          <span className="text-base font-semibold text-stone-900">
+                          <span className="text-[15px] sm:text-base font-semibold text-stone-900">
                             {item}
                           </span>
-                          <span className="mt-3 text-sm font-medium uppercase tracking-[0.2em] text-stone-500 opacity-0 transition group-hover:opacity-100">
+                          <span className="mt-3 text-xs sm:text-sm font-medium uppercase tracking-[0.2em] text-stone-500 opacity-0 transition group-hover:opacity-100">
                             Open
                           </span>
                         </button>
@@ -1304,21 +1455,21 @@ const AssistantRegister = () => {
                   </div>
                 ) : step?.choices ? (
                   <div
-                    className={`grid gap-3 ${
+                    className={`grid grid-cols-1 gap-3 ${
                       step.key === "__ready" ? "sm:grid-cols-3" : "sm:grid-cols-2"
                     }`}
                   >
                     {step.choices.map((choice) => (
                       <button
                         key={`${step.key}-${choice.label}`}
-                        className="group flex min-h-[96px] flex-col items-start justify-center rounded-[22px] border border-stone-200 bg-white px-5 py-4 text-left shadow-sm transition duration-200 hover:border-black hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="group flex min-h-[78px] sm:min-h-[96px] flex-col items-start justify-center rounded-[22px] border border-stone-200 bg-white px-4 py-4 sm:px-5 text-left shadow-sm transition duration-200 hover:border-black hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
                         onClick={() => handleChoice(choice)}
                         disabled={isTyping}
                       >
-                        <span className="text-base font-semibold text-stone-900">
+                        <span className="text-[15px] sm:text-base font-semibold text-stone-900">
                           {choice.label}
                         </span>
-                        <span className="mt-3 text-sm font-medium uppercase tracking-[0.2em] text-stone-500 opacity-0 transition group-hover:opacity-100">
+                        <span className="mt-3 text-xs sm:text-sm font-medium uppercase tracking-[0.2em] text-stone-500 opacity-0 transition group-hover:opacity-100">
                           Continue
                         </span>
                       </button>
@@ -1332,7 +1483,7 @@ const AssistantRegister = () => {
                   >
                     <input
                       ref={inputRef}
-                      className="flex-1 rounded-full border border-stone-300 bg-white px-4 py-3 text-base text-stone-900 transition placeholder:text-stone-400 focus:border-black focus:outline-none focus:ring-4 focus:ring-stone-200 disabled:bg-stone-100"
+                      className="flex-1 min-w-0 rounded-full border border-stone-300 bg-white px-4 py-3 text-[15px] sm:text-base text-stone-900 transition placeholder:text-stone-400 focus:border-black focus:outline-none focus:ring-4 focus:ring-stone-200 disabled:bg-stone-100"
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder="Type your answer..."
@@ -1342,7 +1493,7 @@ const AssistantRegister = () => {
                       }}
                     />
                     <button
-                      className="rounded-full bg-black px-5 py-3 text-base font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-full bg-black px-5 py-3 text-[15px] sm:text-base font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
                       onClick={handleTextSubmit}
                       disabled={isTyping}
                     >
@@ -1352,9 +1503,9 @@ const AssistantRegister = () => {
                 )}
 
                 <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <button
-                      className="rounded-full border border-stone-300 bg-white px-4 py-2.5 text-base font-medium text-stone-700 transition hover:border-black hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-full border border-stone-300 bg-white px-4 py-2.5 text-[15px] sm:text-base font-medium text-stone-700 transition hover:border-black hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
                       onClick={goBack}
                       disabled={!history.length}
                     >
@@ -1362,7 +1513,7 @@ const AssistantRegister = () => {
                     </button>
 
                     <button
-                      className="rounded-full border border-stone-300 bg-stone-50 px-4 py-2.5 text-base font-medium text-stone-600 transition hover:border-black hover:text-black"
+                      className="rounded-full border border-stone-300 bg-stone-50 px-4 py-2.5 text-[15px] sm:text-base font-medium text-stone-600 transition hover:border-black hover:text-black"
                       onClick={handleSaveSession}
                       type="button"
                     >
@@ -1370,7 +1521,7 @@ const AssistantRegister = () => {
                     </button>
                   </div>
 
-                  <div className="text-base font-medium text-stone-500">
+                  <div className="text-sm sm:text-base font-medium text-stone-500">
                     {stageMeta.next}
                   </div>
                 </div>

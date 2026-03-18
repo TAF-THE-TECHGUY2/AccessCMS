@@ -3,12 +3,16 @@ import { Link, useLocation } from "react-router-dom";
 import { api, API_BASE_URL } from "../api.js";
 import logoFallback from "../assets/Logo.png";
 
+const INVEST_NOW_URL = "/invest-now";
+
 const resolveUrl = (url) => {
   if (!url) return "";
   if (url.startsWith("http")) return url;
   if (url.startsWith("/uploads")) return `${API_BASE_URL}${url}`;
   return url;
 };
+
+const isExternalHref = (href = "") => /^https?:\/\//i.test(href);
 
 export default function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -60,14 +64,35 @@ export default function NavBar() {
   const faqLink = findLink("FAQ", { label: "FAQ", href: "/faq" });
   const contactLink = findLink("Contact", { label: "Contact", href: "/contact" });
   const greaterBostonLink = findLink("Greater Boston", { label: "Greater Boston", href: "/greater-boston" });
-  // Opportunities removed from Invest Now dropdown
+  const investNowLink = {
+    ...findLink("Invest Now", { label: "Invest Now", href: INVEST_NOW_URL }),
+    href: INVEST_NOW_URL,
+  };
 
   const NavLink = ({ to, active, onClick, children }) => (
-    <Link to={to} className={desktopLinkClass(active)} onClick={onClick}>
-      {children}
-      {active ? <span className="absolute left-0 right-0 -bottom-1 h-0.5 bg-black animate-expandWidth" /> : null}
-    </Link>
+    isExternalHref(to) ? (
+      <a href={to} className={desktopLinkClass(active)} onClick={onClick}>
+        {children}
+        {active ? <span className="absolute left-0 right-0 -bottom-1 h-0.5 bg-black animate-expandWidth" /> : null}
+      </a>
+    ) : (
+      <Link to={to} className={desktopLinkClass(active)} onClick={onClick}>
+        {children}
+        {active ? <span className="absolute left-0 right-0 -bottom-1 h-0.5 bg-black animate-expandWidth" /> : null}
+      </Link>
+    )
   );
+
+  const MobileLink = ({ to, onClick, children }) =>
+    isExternalHref(to) ? (
+      <a href={to} onClick={onClick} className={mobileLinkClass("")}>
+        {children}
+      </a>
+    ) : (
+      <Link to={to} onClick={onClick} className={mobileLinkClass(to)}>
+        {children}
+      </Link>
+    );
 
   return (
     <>
@@ -169,6 +194,11 @@ export default function NavBar() {
                   </ul>
                 </li>
                 <li>
+                  <NavLink to={investNowLink.href} active={false} onClick={closeDesktopDropdowns}>
+                    {investNowLink.label}
+                  </NavLink>
+                </li>
+                <li>
                   <NavLink to={faqLink.href} active={isActive(faqLink.href)} onClick={closeDesktopDropdowns}>
                     {faqLink.label}
                   </NavLink>
@@ -255,6 +285,9 @@ export default function NavBar() {
                     </div>
                   ) : null}
                 </div>
+                <MobileLink to={investNowLink.href} onClick={closeMobile}>
+                  {investNowLink.label}
+                </MobileLink>
                 <Link to={faqLink.href} onClick={closeMobile} className={mobileLinkClass(faqLink.href)}>
                   {faqLink.label}
                 </Link>

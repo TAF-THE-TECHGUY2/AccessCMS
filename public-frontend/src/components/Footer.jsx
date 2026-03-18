@@ -3,6 +3,9 @@ import { Link } from "react-router-dom";
 import { Facebook, Linkedin, Instagram } from "lucide-react";
 import { api } from "../api.js";
 
+const INVEST_NOW_URL = "/invest-now";
+const isExternalHref = (href = "") => /^https?:\/\//i.test(href);
+
 export default function Footer() {
   const [settings, setSettings] = useState(null);
 
@@ -12,13 +15,13 @@ export default function Footer() {
 
   const footer = settings?.footer || {};
   const quickLinks = (footer.quickLinks || [
-    { label: "Invest Now", href: "/portfolios" },
+    { label: "Invest Now", href: INVEST_NOW_URL },
     { label: "FAQ", href: "/faq" },
     { label: "Contact Us", href: "/contact" },
     { label: "Privacy Policy", href: "/privacy-policy" },
   ]).map((link) =>
     String(link?.label || "").trim().toLowerCase() === "invest now"
-      ? { ...link, href: "/portfolios" }
+      ? { ...link, href: INVEST_NOW_URL }
       : link
   );
 
@@ -40,13 +43,23 @@ export default function Footer() {
           <p className="mt-3 text-gray-400 text-base">It's easier than you think.</p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             {quickLinks.map((link) => (
-              <Link
-                key={link.href}
-                to={link.href}
-                className="border border-gray-500 text-white px-7 py-3 rounded-md text-sm font-semibold hover:border-white transition"
-              >
-                {link.label}
-              </Link>
+              isExternalHref(link.href) ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="border border-gray-500 text-white px-7 py-3 rounded-md text-sm font-semibold hover:border-white transition"
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className="border border-gray-500 text-white px-7 py-3 rounded-md text-sm font-semibold hover:border-white transition"
+                >
+                  {link.label}
+                </Link>
+              )
             ))}
           </div>
         </div>
