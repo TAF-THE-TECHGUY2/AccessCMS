@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { API_BASE_URL } from "../../api.js";
 
 const resolveUrl = (url) => {
@@ -17,6 +17,210 @@ const SectionTitle = ({ title, sub }) => (
     </div>
   </div>
 );
+
+const toSeconds = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+};
+
+const formatTime = (seconds) => {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const minutes = Math.floor(seconds / 60);
+  const remainder = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, "0");
+  return `${minutes}:${remainder}`;
+};
+
+const normalizeCopy = (value) => (value || "").trim().replace(/\s+/g, " ").toLowerCase();
+
+const InterviewSnippetCard = ({ card }) => {
+  const snippets = useMemo(
+    () => {
+      const configuredSnippets = (card.interviewSnippets || []).map((snippet, index) => {
+        const startTime = toSeconds(snippet.startTime, 0);
+        const endTime = toSeconds(snippet.endTime, 0);
+        return {
+          label: snippet.label || `Snippet ${index + 1}`,
+          description: snippet.description || "",
+          audioSrc: snippet.audioSrc || "",
+          startTime,
+          endTime: endTime > startTime ? endTime : 0,
+          buttonLabel: snippet.buttonLabel || "",
+        };
+      });
+
+      if (configuredSnippets.length > 0) {
+        return configuredSnippets;
+      }
+
+      if (!card.embeddedAudioSrc) {
+        return [];
+      }
+
+      return [
+        {
+          label: "Full Interview",
+          description:
+            card.interviewSubtitle ||
+            "Select the founder interview from the dropdown and press play to listen.",
+          audioSrc: "",
+          startTime: 0,
+          endTime: 0,
+          buttonLabel: "Play full interview",
+        },
+      ];
+    },
+    [card.embeddedAudioSrc, card.interviewSnippets, card.interviewSubtitle]
+  );
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const audioRef = useRef(null);
+  const pendingAutoplayRef = useRef(false);
+
+  useEffect(() => {
+    setSelectedIndex((current) => {
+      if (snippets.length === 0) return 0;
+      return Math.min(current, snippets.length - 1);
+    });
+  }, [snippets.length]);
+
+  const activeSnippet = snippets[selectedIndex] || null;
+  const resolvedAudioUrl = resolveUrl(activeSnippet?.audioSrc || card.embeddedAudioSrc || "");
+  const hasMultipleSnippets = snippets.length > 1;
+  const snippetId = `founder-card-snippet-${card.name?.replace(/\s+/g, "-").toLowerCase() || "snippet"}`;
+  const normalizedLabel = normalizeCopy(activeSnippet?.label);
+  const normalizedDescription = normalizeCopy(activeSnippet?.description);
+  const normalizedSubtitle = normalizeCopy(card.interviewSubtitle);
+  const showDescription =
+    Boolean(activeSnippet?.description) &&
+    normalizedDescription !== normalizedLabel &&
+    normalizedDescription !== normalizedSubtitle &&
+    normalizedDescription.length >= 16;
+  const showSnippetMeta = hasMultipleSnippets || showDescription || Boolean(activeSnippet?.endTime);
+
+  const seekToStart = () => {
+    const audio = audioRef.current;
+    if (!audio || !activeSnippet) return;
+    const duration = Number.isFinite(audio.duration) ? audio.duration : activeSnippet.startTime;
+    const nextTime = Math.min(activeSnippet.startTime, duration || activeSnippet.startTime);
+    try {
+      audio.currentTime = nextTime;
+    } catch {
+      // ignore early seek errors
+    }
+  };
+
+  const getSnippetEnd = () => {
+    const audio = audioRef.current;
+    if (!audio || !activeSnippet?.endTime) return null;
+    const duration = Number.isFinite(audio.duration) ? audio.duration : activeSnippet.endTime;
+    return Math.min(activeSnippet.endTime, duration || activeSnippet.endTime);
+  };
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !activeSnippet || !resolvedAudioUrl) return;
+    pendingAutoplayRef.current = false;
+    audio.pause();
+    audio.load();
+  }, [activeSnippet, resolvedAudioUrl]);
+
+  const handleLoadedMetadata = () => {
+    seekToStart();
+    if (pendingAutoplayRef.current && audioRef.current) {
+      pendingAutoplayRef.current = false;
+      audioRef.current.play().catch(() => {
+        pendingAutoplayRef.current = false;
+      });
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    const audio = audioRef.current;
+    const snippetEnd = getSnippetEnd();
+    if (!audio || !snippetEnd) return;
+    if (audio.currentTime >= snippetEnd) {
+      audio.pause();
+      audio.currentTime = snippetEnd;
+      pendingAutoplayRef.current = false;
+    }
+  };
+
+  const handlePlay = () => {
+    if (!activeSnippet || !audioRef.current) return;
+    const snippetEnd = getSnippetEnd();
+    if (
+      audioRef.current.currentTime < activeSnippet.startTime ||
+      (snippetEnd && audioRef.current.currentTime >= snippetEnd)
+    ) {
+      seekToStart();
+    }
+  };
+
+  if (!resolvedAudioUrl) return null;
+
+  return (
+    <div className="mt-7 rounded-[20px] border border-black/7 bg-[#f7f7f5] p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] md:mt-8 md:p-5">
+      <div className="max-w-3xl">
+        <p className="font-semibold text-gray-900 text-[15px] md:text-base">
+          {card.interviewTitle || "Hear the Founder's Story"}
+        </p>
+        {card.interviewSubtitle ? (
+          <p className="mt-1.5 text-[14px] leading-relaxed text-gray-600 md:text-[15px]">{card.interviewSubtitle}</p>
+        ) : null}
+      </div>
+      {hasMultipleSnippets ? (
+        <div className="mt-4">
+          <label htmlFor={snippetId} className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+            Interview Segment
+          </label>
+          <select
+            id={snippetId}
+            className="mt-2 w-full rounded-[16px] border border-black/8 bg-white px-4 py-3 text-[15px] text-gray-900 shadow-[0_4px_14px_rgba(15,23,42,0.05)] outline-none transition focus:border-black/25"
+            value={selectedIndex}
+            onChange={(event) => setSelectedIndex(Number(event.target.value))}
+          >
+            {snippets.map((snippet, index) => (
+              <option key={`${snippet.label}-${index}`} value={index}>
+                {snippet.label}
+                {snippet.endTime ? ` (${formatTime(snippet.startTime)} - ${formatTime(snippet.endTime)})` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+      {activeSnippet && showSnippetMeta ? (
+        <div className="mt-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {hasMultipleSnippets ? (
+              <h4 className="text-[14px] font-semibold text-gray-900 md:text-[15px]">{activeSnippet.label}</h4>
+            ) : null}
+            {activeSnippet?.endTime ? (
+              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                {formatTime(activeSnippet.startTime)} - {formatTime(activeSnippet.endTime)}
+              </span>
+            ) : null}
+          </div>
+          {showDescription ? (
+            <p className="mt-1.5 text-[14px] leading-relaxed text-gray-600 md:text-[15px]">{activeSnippet.description}</p>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="mt-3 rounded-[18px] border border-black/5 bg-white px-3 py-2.5 shadow-[0_4px_14px_rgba(15,23,42,0.04)] md:px-4">
+        <audio
+          ref={audioRef}
+          src={resolvedAudioUrl}
+          className="w-full"
+          controls
+          preload="metadata"
+          onLoadedMetadata={handleLoadedMetadata}
+          onTimeUpdate={handleTimeUpdate}
+          onPlay={handlePlay}
+        />
+      </div>
+    </div>
+  );
+};
 
 const ProfileCard = ({ card }) => (
   <div className="max-w-6xl mx-auto px-5 md:px-4">
@@ -41,16 +245,7 @@ const ProfileCard = ({ card }) => (
               </p>
             ))}
           </div>
-          {card.embeddedAudioSrc ? (
-            <div className="mt-8 p-4 md:p-6 bg-gray-50 rounded-2xl border border-gray-100">
-              <p className="font-semibold text-gray-900 text-base mb-3 flex items-center gap-2">
-                Hear the Founder's Story
-              </p>
-              <audio className="w-full" controls preload="none">
-                <source src={resolveUrl(card.embeddedAudioSrc)} type="audio/mpeg" />
-              </audio>
-            </div>
-          ) : null}
+          {card.embeddedAudioSrc || (card.interviewSnippets || []).length ? <InterviewSnippetCard card={card} /> : null}
         </div>
       </div>
     </div>

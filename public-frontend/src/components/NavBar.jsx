@@ -134,14 +134,14 @@ export default function NavBar() {
         .animate-slideDown { animation: slideDown 0.3s ease-out; }
       `}</style>
       <header className="w-full bg-white border-b-4 border-black sticky top-0 z-50">
-        <div className="mx-auto w-full max-w-6xl px-4 md:px-6 py-6 grid grid-cols-[auto_1fr_auto] items-center gap-6 animate-fadeInUp">
-          <div className="flex items-center">
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-[1fr_auto] items-center gap-4 px-4 py-5 md:grid-cols-[1fr_auto_1fr] md:gap-8 md:px-6 md:py-6 animate-fadeInUp">
+          <div className="flex items-center justify-self-start">
             <Link to="/" className="flex items-center" onClick={closeDesktopDropdowns}>
               <img src={resolveUrl(settings?.logo) || logoFallback} alt="Access Properties" className="h-14 w-auto" />
             </Link>
           </div>
 
-          <div className="hidden md:flex justify-center">
+          <div className="hidden md:flex justify-self-center">
             <nav>
               <ul className="flex items-center gap-12">
                 <li>
@@ -212,7 +212,7 @@ export default function NavBar() {
             </nav>
           </div>
 
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-end gap-3 justify-self-end">
             <button
               className="md:hidden bg-black text-white p-2 hover:bg-gray-800 transition-colors"
               onClick={() => setIsOpen(true)}

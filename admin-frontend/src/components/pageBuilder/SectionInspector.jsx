@@ -12,9 +12,11 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import ArrayEditor from "./ArrayEditor.jsx";
 import ImagePicker from "./ImagePicker.jsx";
+import AudioPicker from "./AudioPicker.jsx";
 import { setValueAtPath } from "./utils.js";
 
 const rowGap = 2;
+const createPropertyColumnId = () => `property-column-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 export default function SectionInspector({ section, onChange, onRemove }) {
   if (!section) {
@@ -37,31 +39,136 @@ export default function SectionInspector({ section, onChange, onRemove }) {
   const updateArray = (key, nextItems) => {
     onChange({ ...section, data: { ...data, [key]: nextItems } });
   };
-
-  const mappingItems = Object.entries(data.mapping || {}).map(([column, entry]) => ({
-    column,
-    slug: typeof entry === "string" ? entry : entry?.slug,
-    image: typeof entry === "object" ? entry?.image : "",
-  }));
-
-  const updateMappingItems = (items) =>
-    update(
-      "mapping",
-      items.reduce((acc, item) => {
-        if (!item.column) return acc;
-        acc[item.column] = item.image ? { slug: item.slug, image: item.image } : item.slug;
-        return acc;
-      }, {})
+  const interviewSnippets = data.snippets || [];
+  const updateInterviewSnippet = (index, patch) =>
+    updateArray(
+      "snippets",
+      interviewSnippets.map((snippet, idx) => (idx === index ? { ...snippet, ...patch } : snippet))
+    );
+  const addInterviewSnippet = () =>
+    updateArray("snippets", [
+      ...interviewSnippets,
+      {
+        label: "",
+        description: "",
+        audioSrc: "",
+        startTime: "",
+        endTime: "",
+        buttonLabel: "",
+      },
+    ]);
+  const removeInterviewSnippet = (index) =>
+    updateArray(
+      "snippets",
+      interviewSnippets.filter((_, idx) => idx !== index)
+    );
+  const profileCards = data.cards || [];
+  const updateProfileCard = (index, patch) =>
+    updateArray(
+      "cards",
+      profileCards.map((card, idx) => (idx === index ? { ...card, ...patch } : card))
+    );
+  const addProfileCard = () =>
+    updateArray("cards", [
+      ...profileCards,
+      {
+        name: "",
+        roleLine: "",
+        imageSrc: "",
+        embeddedAudioSrc: "",
+        interviewTitle: "Hear the Founder's Story",
+        interviewSubtitle: "",
+        paragraphs: [],
+        interviewSnippets: [],
+      },
+    ]);
+  const removeProfileCard = (index) =>
+    updateArray(
+      "cards",
+      profileCards.filter((_, idx) => idx !== index)
+    );
+  const updateProfileCardSnippets = (cardIndex, nextSnippets) =>
+    updateProfileCard(cardIndex, { interviewSnippets: nextSnippets });
+  const updateProfileCardSnippet = (cardIndex, snippetIndex, patch) =>
+    updateProfileCardSnippets(
+      cardIndex,
+      (profileCards[cardIndex]?.interviewSnippets || []).map((snippet, idx) =>
+        idx === snippetIndex ? { ...snippet, ...patch } : snippet
+      )
+    );
+  const addProfileCardSnippet = (cardIndex) =>
+    updateProfileCardSnippets(cardIndex, [
+      ...(profileCards[cardIndex]?.interviewSnippets || []),
+      {
+        label: "",
+        description: "",
+        audioSrc: "",
+        startTime: "",
+        endTime: "",
+        buttonLabel: "",
+      },
+    ]);
+  const removeProfileCardSnippet = (cardIndex, snippetIndex) =>
+    updateProfileCardSnippets(
+      cardIndex,
+      (profileCards[cardIndex]?.interviewSnippets || []).filter((_, idx) => idx !== snippetIndex)
     );
 
-  const setMappingItem = (index, patch) => {
-    const next = mappingItems.map((item, idx) => (idx === index ? { ...item, ...patch } : item));
-    updateMappingItems(next);
+  const legacyPropertyMappings = Object.entries(data.mapping || {});
+  const propertyColumnItems =
+    Array.isArray(data.items) && data.items.length
+      ? data.items.map((item, index) => ({
+          id: item?.id || `property-column-${index + 1}`,
+          label: item?.label || "",
+          slug: item?.slug || "",
+          image: item?.image || "",
+        }))
+      : (data.columns || []).map((column, index) => {
+          const entry = (data.mapping || {})[column] ?? legacyPropertyMappings[index]?.[1];
+          return {
+            id: `property-column-${index + 1}`,
+            label: column || "",
+            slug: typeof entry === "string" ? entry : entry?.slug || "",
+            image: typeof entry === "object" ? entry?.image || "" : "",
+          };
+        });
+
+  const updatePropertyColumnItems = (items) => {
+    const normalizedItems = items.map((item, index) => ({
+      id: item?.id || `property-column-${index + 1}`,
+      label: item?.label || "",
+      slug: item?.slug || "",
+      image: item?.image || "",
+    }));
+    onChange({
+      ...section,
+      data: {
+        ...data,
+        items: normalizedItems,
+        columns: normalizedItems.map((item) => item.label).filter(Boolean),
+        mapping: normalizedItems.reduce((acc, item) => {
+          if (!item.label) return acc;
+          acc[item.label] = item.image ? { slug: item.slug, image: item.image } : item.slug;
+          return acc;
+        }, {}),
+      },
+    });
   };
 
-  const removeMappingItem = (index) => {
-    const next = mappingItems.filter((_, idx) => idx !== index);
-    updateMappingItems(next);
+  const setPropertyColumnItem = (index, patch) => {
+    const next = propertyColumnItems.map((item, idx) => (idx === index ? { ...item, ...patch } : item));
+    updatePropertyColumnItems(next);
+  };
+
+  const addPropertyColumnItem = () =>
+    updatePropertyColumnItems([
+      ...propertyColumnItems,
+      { id: createPropertyColumnId(), label: "", slug: "", image: "" },
+    ]);
+
+  const removePropertyColumnItem = (index) => {
+    const next = propertyColumnItems.filter((_, idx) => idx !== index);
+    updatePropertyColumnItems(next);
   };
 
   return (
@@ -467,49 +574,39 @@ export default function SectionInspector({ section, onChange, onRemove }) {
         <Stack spacing={rowGap}>
           <TextField label="Title" value={data.title || ""} onChange={(e) => update("title", e.target.value)} />
           <TextField label="Subtitle" value={data.subtitle || ""} onChange={(e) => update("subtitle", e.target.value)} />
-          <ArrayEditor
-            label="Column"
-            items={(data.columns || []).map((label) => ({ label }))}
-            fields={[{ name: "label", label: "Label" }]}
-            onChange={(items) => update("columns", items.map((item) => item.label).filter(Boolean))}
-            onAdd={() => update("columns", [...(data.columns || []), ""])}
-          />
           <Stack spacing={2}>
-            <Typography variant="subtitle2">Mapping</Typography>
+            <Typography variant="subtitle2">Property Cards</Typography>
             <Stack spacing={2}>
-              {mappingItems.map((item, index) => (
-                <Box key={`mapping-${index}`} sx={{ p: 2, border: "1px solid #e0e0e0", borderRadius: 2 }}>
+              {propertyColumnItems.map((item, index) => (
+                <Box key={item.id || `property-column-${index}`} sx={{ p: 2, border: "1px solid #e0e0e0", borderRadius: 2 }}>
                   <Stack spacing={1}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="subtitle2">Item {index + 1}</Typography>
-                      <Button color="error" size="small" onClick={() => removeMappingItem(index)}>
+                      <Typography variant="subtitle2">Property Card {index + 1}</Typography>
+                      <Button color="error" size="small" onClick={() => removePropertyColumnItem(index)}>
                         Remove
                       </Button>
                     </Stack>
                     <TextField
-                      label="Column"
-                      value={item.column || ""}
-                      onChange={(e) => setMappingItem(index, { column: e.target.value })}
+                      label="Card Title"
+                      value={item.label || ""}
+                      onChange={(e) => setPropertyColumnItem(index, { label: e.target.value })}
                     />
                     <TextField
                       label="Property Slug"
                       value={item.slug || ""}
-                      onChange={(e) => setMappingItem(index, { slug: e.target.value })}
+                      onChange={(e) => setPropertyColumnItem(index, { slug: e.target.value })}
                     />
                     <ImagePicker
                       label="Image Override"
                       value={item.image || ""}
-                      onChange={(val) => setMappingItem(index, { image: val })}
+                      onChange={(val) => setPropertyColumnItem(index, { image: val })}
                     />
                   </Stack>
                 </Box>
               ))}
             </Stack>
-            <Button
-              variant="outlined"
-              onClick={() => updateMappingItems([...mappingItems, { column: "", slug: "", image: "" }])}
-            >
-              Add Mapping
+            <Button variant="outlined" onClick={addPropertyColumnItem}>
+              Add Property Card
             </Button>
           </Stack>
         </Stack>
@@ -519,38 +616,217 @@ export default function SectionInspector({ section, onChange, onRemove }) {
         <Stack spacing={rowGap}>
           <TextField label="Title" value={data.title || ""} onChange={(e) => update("title", e.target.value)} />
           <TextField label="Subtitle" value={data.subtitle || ""} onChange={(e) => update("subtitle", e.target.value)} />
-          <ArrayEditor
-            label="Profile"
-            items={(data.cards || []).map((card) => ({
-              ...card,
-              paragraphsText: (card.paragraphs || []).join("\n"),
-            }))}
-            fields={[
-              { name: "name", label: "Name" },
-              { name: "roleLine", label: "Role Line" },
-              { name: "imageSrc", label: "Image URL" },
-              { name: "embeddedAudioSrc", label: "Audio URL" },
-              { name: "paragraphsText", label: "Paragraphs (one per line)", multiline: true },
-            ]}
-            onChange={(items) =>
-              updateArray(
-                "cards",
-                items.map((item) => ({
-                  ...item,
-                  paragraphs: (item.paragraphsText || "")
-                    .split("\n")
-                    .map((line) => line.trim())
-                    .filter(Boolean),
-                }))
-              )
-            }
-            onAdd={() =>
-              updateArray("cards", [
-                ...(data.cards || []),
-                { name: "", roleLine: "", imageSrc: "", embeddedAudioSrc: "", paragraphs: [] },
-              ])
-            }
+          <Stack spacing={2}>
+            <Typography variant="subtitle2">Profiles</Typography>
+            {profileCards.map((card, index) => (
+              <Box key={`profile-card-${index}`} sx={{ p: 2, border: "1px solid #e0e0e0", borderRadius: 2 }}>
+                <Stack spacing={1.5}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="subtitle2">Profile {index + 1}</Typography>
+                    <Button color="error" size="small" onClick={() => removeProfileCard(index)}>
+                      Remove
+                    </Button>
+                  </Stack>
+                  <TextField
+                    label="Name"
+                    value={card.name || ""}
+                    onChange={(e) => updateProfileCard(index, { name: e.target.value })}
+                  />
+                  <TextField
+                    label="Role Line"
+                    value={card.roleLine || ""}
+                    onChange={(e) => updateProfileCard(index, { roleLine: e.target.value })}
+                  />
+                  <ImagePicker
+                    label="Image URL"
+                    value={card.imageSrc || ""}
+                    onChange={(val) => updateProfileCard(index, { imageSrc: val })}
+                  />
+                  <TextField
+                    label="Paragraphs (one per line)"
+                    value={(card.paragraphs || []).join("\n")}
+                    onChange={(e) =>
+                      updateProfileCard(index, {
+                        paragraphs: e.target.value
+                          .split("\n")
+                          .map((line) => line.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                    multiline
+                    minRows={4}
+                  />
+                  <AudioPicker
+                    label="Default Interview Audio"
+                    value={card.embeddedAudioSrc || ""}
+                    onChange={(val) => updateProfileCard(index, { embeddedAudioSrc: val })}
+                    buttonLabel="Upload Interview Audio"
+                  />
+                  <TextField
+                    label="Interview Title"
+                    value={card.interviewTitle || ""}
+                    onChange={(e) => updateProfileCard(index, { interviewTitle: e.target.value })}
+                  />
+                  <TextField
+                    label="Interview Subtitle"
+                    value={card.interviewSubtitle || ""}
+                    onChange={(e) => updateProfileCard(index, { interviewSubtitle: e.target.value })}
+                    multiline
+                    minRows={2}
+                  />
+                  <Stack spacing={1.5}>
+                    <Typography variant="subtitle2">Interview Snippets</Typography>
+                    {(card.interviewSnippets || []).map((snippet, snippetIndex) => (
+                      <Box
+                        key={`profile-card-${index}-snippet-${snippetIndex}`}
+                        sx={{ p: 2, border: "1px solid #ededed", borderRadius: 2, backgroundColor: "#fafafa" }}
+                      >
+                        <Stack spacing={1.5}>
+                          <Stack direction="row" justifyContent="space-between" alignItems="center">
+                            <Typography variant="subtitle2">Snippet {snippetIndex + 1}</Typography>
+                            <Button
+                              color="error"
+                              size="small"
+                              onClick={() => removeProfileCardSnippet(index, snippetIndex)}
+                            >
+                              Remove
+                            </Button>
+                          </Stack>
+                          <TextField
+                            label="Label / Title"
+                            value={snippet.label || ""}
+                            onChange={(e) =>
+                              updateProfileCardSnippet(index, snippetIndex, { label: e.target.value })
+                            }
+                          />
+                          <TextField
+                            label="Short Description"
+                            value={snippet.description || ""}
+                            onChange={(e) =>
+                              updateProfileCardSnippet(index, snippetIndex, { description: e.target.value })
+                            }
+                            multiline
+                            minRows={3}
+                          />
+                          <AudioPicker
+                            label="Audio URL Override"
+                            value={snippet.audioSrc || ""}
+                            onChange={(val) => updateProfileCardSnippet(index, snippetIndex, { audioSrc: val })}
+                            buttonLabel="Upload Snippet Audio"
+                          />
+                          <TextField
+                            label="Start Time (seconds)"
+                            type="number"
+                            value={snippet.startTime ?? ""}
+                            onChange={(e) =>
+                              updateProfileCardSnippet(index, snippetIndex, { startTime: e.target.value })
+                            }
+                            inputProps={{ min: 0, step: "0.1" }}
+                          />
+                          <TextField
+                            label="End Time (seconds)"
+                            type="number"
+                            value={snippet.endTime ?? ""}
+                            onChange={(e) =>
+                              updateProfileCardSnippet(index, snippetIndex, { endTime: e.target.value })
+                            }
+                            inputProps={{ min: 0, step: "0.1" }}
+                          />
+                          <TextField
+                            label="Optional Button Label"
+                            value={snippet.buttonLabel || ""}
+                            onChange={(e) =>
+                              updateProfileCardSnippet(index, snippetIndex, { buttonLabel: e.target.value })
+                            }
+                          />
+                        </Stack>
+                      </Box>
+                    ))}
+                    <Button variant="outlined" onClick={() => addProfileCardSnippet(index)}>
+                      Add Snippet
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Box>
+            ))}
+            <Button variant="outlined" onClick={addProfileCard}>
+              Add Profile
+            </Button>
+          </Stack>
+        </Stack>
+      ) : null}
+
+      {section.type === "FOUNDER_INTERVIEW_DROPDOWN" ? (
+        <Stack spacing={rowGap}>
+          <TextField label="Title" value={data.title || ""} onChange={(e) => update("title", e.target.value)} />
+          <TextField
+            label="Subtitle / Helper Text"
+            value={data.subtitle || ""}
+            onChange={(e) => update("subtitle", e.target.value)}
           />
+          <TextField
+            label="Intro Text"
+            value={data.introText || ""}
+            onChange={(e) => update("introText", e.target.value)}
+            multiline
+            minRows={3}
+          />
+          <AudioPicker label="Default Audio URL" value={data.audioSrc || ""} onChange={(val) => update("audioSrc", val)} />
+          <Stack spacing={2}>
+            <Typography variant="subtitle2">Snippets</Typography>
+            {interviewSnippets.map((snippet, index) => (
+              <Box key={`founder-snippet-${index}`} sx={{ p: 2, border: "1px solid #e0e0e0", borderRadius: 2 }}>
+                <Stack spacing={1.5}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="subtitle2">Snippet {index + 1}</Typography>
+                    <Button color="error" size="small" onClick={() => removeInterviewSnippet(index)}>
+                      Remove
+                    </Button>
+                  </Stack>
+                  <TextField
+                    label="Label / Title"
+                    value={snippet.label || ""}
+                    onChange={(e) => updateInterviewSnippet(index, { label: e.target.value })}
+                  />
+                  <TextField
+                    label="Short Description"
+                    value={snippet.description || ""}
+                    onChange={(e) => updateInterviewSnippet(index, { description: e.target.value })}
+                    multiline
+                    minRows={3}
+                  />
+                  <AudioPicker
+                    label="Audio URL Override"
+                    value={snippet.audioSrc || ""}
+                    onChange={(val) => updateInterviewSnippet(index, { audioSrc: val })}
+                    buttonLabel="Upload Snippet Audio"
+                  />
+                  <TextField
+                    label="Start Time (seconds)"
+                    type="number"
+                    value={snippet.startTime ?? ""}
+                    onChange={(e) => updateInterviewSnippet(index, { startTime: e.target.value })}
+                    inputProps={{ min: 0, step: "0.1" }}
+                  />
+                  <TextField
+                    label="End Time (seconds)"
+                    type="number"
+                    value={snippet.endTime ?? ""}
+                    onChange={(e) => updateInterviewSnippet(index, { endTime: e.target.value })}
+                    inputProps={{ min: 0, step: "0.1" }}
+                  />
+                  <TextField
+                    label="Optional Button Label"
+                    value={snippet.buttonLabel || ""}
+                    onChange={(e) => updateInterviewSnippet(index, { buttonLabel: e.target.value })}
+                  />
+                </Stack>
+              </Box>
+            ))}
+            <Button variant="outlined" onClick={addInterviewSnippet}>
+              Add Snippet
+            </Button>
+          </Stack>
         </Stack>
       ) : null}
 

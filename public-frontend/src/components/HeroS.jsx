@@ -14,10 +14,10 @@ export default function HeroSection({
   videoUrl = "/videos/how-it-works.mp4",
 }) {
   const [showHowItWorksVideo, setShowHowItWorksVideo] = useState(false);
-  const closeVideo = () => setShowHowItWorksVideo(false);
+const closeVideo = () => setShowHowItWorksVideo(false);
   const isMp4 = videoUrl && videoUrl.toLowerCase().endsWith(".mp4");
 const Container = ({ children }) => (
-  <div className="max-w-6xl mx-auto px-4">
+  <div className="mx-auto w-full max-w-6xl px-4 md:px-6">
     {children}
   </div>
 );
@@ -35,9 +35,9 @@ const Container = ({ children }) => (
       >
         <div className="absolute inset-0 bg-black" style={{ opacity: overlayOpacity }} />
 
-        <div className="relative h-full flex flex-col items-center justify-center">
+        <div className="relative flex h-full flex-col justify-center">
           <Container>
-            <div className="mx-auto rounded-xl py-7 px-6 md:px-10 shadow-lg animate-slideDown bg-black/70 backdrop-blur-md border border-white/10">
+            <div className="mx-auto max-w-4xl rounded-xl border border-white/10 bg-black/70 px-6 py-7 text-center shadow-lg backdrop-blur-md animate-slideDown md:px-10">
               <h1 className="text-white text-center text-3xl md:text-5xl font-medium tracking-wide leading-tight">
                 {title}
                 {subtitle ? (
@@ -51,7 +51,7 @@ const Container = ({ children }) => (
 
             {badgeText ? (
               <div
-                className="mx-auto mt-6 rounded-md py-3 px-5 max-w-2xl animate-slideUp bg-black/55 backdrop-blur-sm border border-white/10"
+                className="mx-auto mt-6 max-w-2xl rounded-md border border-white/10 bg-black/55 px-5 py-3 text-center backdrop-blur-sm animate-slideUp"
                 style={{ animationDelay: "0.15s" }}
               >
                 <p className="text-white text-center text-sm md:text-base font-medium">{badgeText}</p>
@@ -59,7 +59,7 @@ const Container = ({ children }) => (
             ) : null}
 
             <div
-              className="mt-10 flex flex-wrap gap-6 justify-center animate-slideUp"
+              className="mt-10 flex flex-wrap justify-center gap-6 animate-slideUp"
               style={{ animationDelay: "0.3s" }}
             >
               {primaryButton?.label ? (
@@ -139,4 +139,3 @@ const Container = ({ children }) => (
     </>
   );
 }
-

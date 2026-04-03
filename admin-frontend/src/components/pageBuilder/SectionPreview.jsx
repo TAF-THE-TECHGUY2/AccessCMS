@@ -244,6 +244,37 @@ export default function SectionPreview({ section, selected, editMode, onSelect, 
     case "GREATER_BOSTON_REASONS":
     case "PROPERTY_COLUMNS":
     case "PROFILE_CARDS":
+      return (
+        <SectionShell title={section.type.replace(/_/g, " ").toLowerCase()} {...baseProps}>
+          <Stack spacing={1}>
+            <Typography variant="h6">{data.heading || data.title || "Section heading"}</Typography>
+            <Typography color="text.secondary">Edit this section in the inspector.</Typography>
+          </Stack>
+        </SectionShell>
+      );
+    case "FOUNDER_INTERVIEW_DROPDOWN":
+      return (
+        <SectionShell title="founder interview dropdown" {...baseProps}>
+          <Stack spacing={1.5}>
+            <Typography variant="h6">{data.title || "Hear the Founder's Story"}</Typography>
+            <Typography color="text.secondary">
+              {(data.snippets || []).length} snippet{(data.snippets || []).length === 1 ? "" : "s"} configured
+            </Typography>
+            <Box
+              sx={{
+                border: "1px solid #eee",
+                borderRadius: 3,
+                p: 2,
+                backgroundColor: "#f8f8f8",
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                Dropdown + single audio player render on the public site.
+              </Typography>
+            </Box>
+          </Stack>
+        </SectionShell>
+      );
     case "ADVISORY":
     case "CONTACT_FORM":
     case "FAQ_PAGE":

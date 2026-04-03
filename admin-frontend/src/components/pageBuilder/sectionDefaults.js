@@ -202,9 +202,10 @@ export const createSection = (type) => {
       return {
         ...base,
         data: {
-          heading: "Active Properties",
+          title: "Properties",
+          subtitle: "Explore the current properties in the portfolio.",
           items: [
-            { title: "340 Main Street", address: "Boston, MA", status: "Active", image: "" },
+            { id: "property-column-1", label: "Featured Property", slug: "", image: "" },
           ],
         },
       };
@@ -214,7 +215,45 @@ export const createSection = (type) => {
         data: {
           heading: "Leadership Profiles",
           cards: [
-            { name: "Name", role: "Role", bio: "Short bio", image: "" },
+            {
+              name: "Name",
+              roleLine: "Role",
+              imageSrc: "",
+              embeddedAudioSrc: "",
+              interviewTitle: "Hear the Founder's Story",
+              interviewSubtitle: "",
+              paragraphs: ["Short bio"],
+              interviewSnippets: [],
+            },
+          ],
+        },
+      };
+    case "FOUNDER_INTERVIEW_DROPDOWN":
+      return {
+        ...base,
+        data: {
+          title: "Hear the Founder's Story",
+          subtitle: "Choose an interview segment to play a focused excerpt.",
+          introText:
+            "Select a topic below to jump into a specific part of the founder interview.",
+          audioSrc: "/audio/founder-story.mp3",
+          snippets: [
+            {
+              label: "Why Access Properties Started",
+              description: "A short introduction to the mission and early vision behind the platform.",
+              audioSrc: "",
+              startTime: 0,
+              endTime: 45,
+              buttonLabel: "Play opening clip",
+            },
+            {
+              label: "How The Model Works",
+              description: "A focused explanation of how the company approaches property investing.",
+              audioSrc: "",
+              startTime: 46,
+              endTime: 110,
+              buttonLabel: "Play strategy clip",
+            },
           ],
         },
       };

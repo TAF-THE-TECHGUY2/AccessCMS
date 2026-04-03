@@ -4,5 +4,5 @@
 
 
 window.__APP_CONFIG__ = {
-  apiBaseUrl: "http://localhost:5000"
+  apiBaseUrl: "http://localhost:5050"
 };

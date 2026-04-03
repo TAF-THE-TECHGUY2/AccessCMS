@@ -19,6 +19,10 @@ import { publicRouter as siteSettingsPublicRouter, adminRouter as siteSettingsAd
 import { swaggerRouter } from "./config/swagger.js";
 
 const app = express();
+const allowedOrigins = [env.clientUrl, env.adminUrl]
+  .flatMap((value) => value.split(","))
+  .map((value) => value.trim())
+  .filter(Boolean);
 
 app.set("trust proxy", 1);
 
@@ -29,7 +33,13 @@ app.use(
 );
 app.use(
   cors({
-    origin: [env.clientUrl, env.adminUrl],
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
     credentials: true,
   })
 );

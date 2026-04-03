@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { api, API_BASE_URL } from "../../api.js";
 
 const resolveUrl = (url) => {
@@ -51,13 +51,33 @@ const PropertyCard = ({ p }) => (
 
 export default function PropertyColumnsSection({ data }) {
   const [properties, setProperties] = useState([]);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+  const trackRef = useRef(null);
 
   useEffect(() => {
     api.getProperties().then(setProperties).catch(() => setProperties([]));
   }, []);
 
-  const columns = data?.columns || [];
-  const mapping = data?.mapping || {};
+  const legacyPropertyMappings = Object.entries(data?.mapping || {});
+  const items =
+    Array.isArray(data?.items) && data.items.length
+      ? data.items.map((item, index) => ({
+          id: item?.id || `property-column-${index + 1}`,
+          label: item?.label || "",
+          slug: item?.slug || "",
+          image: item?.image || "",
+        }))
+      : (data?.columns || []).map((label, index) => {
+          const entry = data?.mapping?.[label] ?? legacyPropertyMappings[index]?.[1];
+          return {
+            id: `property-column-${index + 1}`,
+            label,
+            slug: typeof entry === "string" ? entry : entry?.slug || "",
+            image: typeof entry === "object" ? entry?.image || "" : "",
+          };
+        });
 
   const mapProperty = (entry) => {
     const slug = typeof entry === "string" ? entry : entry?.slug;
@@ -80,6 +100,37 @@ export default function PropertyColumnsSection({ data }) {
     };
   };
 
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return undefined;
+
+    const updateScrollState = () => {
+      const maxScrollLeft = track.scrollWidth - track.clientWidth;
+      const overflow = maxScrollLeft > 8;
+      setHasOverflow(overflow);
+      setCanScrollPrev(track.scrollLeft > 8);
+      setCanScrollNext(track.scrollLeft < maxScrollLeft - 8);
+    };
+
+    updateScrollState();
+    track.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+
+    return () => {
+      track.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [items.length, properties.length]);
+
+  const scrollTrack = (direction) => {
+    const track = trackRef.current;
+    if (!track) return;
+    track.scrollBy({
+      left: direction * Math.max(track.clientWidth * 0.92, 320),
+      behavior: "smooth",
+    });
+  };
+
   return (
     <section className="py-16 bg-gray-50">
       <div className="max-w-6xl mx-auto px-4">
@@ -91,13 +142,46 @@ export default function PropertyColumnsSection({ data }) {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 mt-12 pb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {columns.map((col) => {
-            const p = mapProperty(mapping[col]);
+        {hasOverflow ? (
+          <div className="mb-5 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => scrollTrack(-1)}
+              disabled={!canScrollPrev}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-900 shadow-sm transition hover:border-gray-400 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-35"
+              aria-label="Show previous properties"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollTrack(1)}
+              disabled={!canScrollNext}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-900 shadow-sm transition hover:border-gray-400 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-35"
+              aria-label="Show next properties"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        ) : null}
+
+        <div
+          ref={trackRef}
+          className="property-columns-track flex gap-8 overflow-x-auto scroll-smooth pb-4 snap-x snap-mandatory"
+        >
+          {items.map((item, index) => {
+            const p = mapProperty(item);
             return (
-              <div key={col} className="w-full">
+              <div
+                key={item.id || `${item.label || "property-column"}-${index}`}
+                className="w-[86%] min-w-[86%] flex-none snap-start md:w-[calc((100%-2rem)/2)] md:min-w-[calc((100%-2rem)/2)] xl:w-[calc((100%-4rem)/3)] xl:min-w-[calc((100%-4rem)/3)]"
+              >
                 <div className="bg-white border border-gray-200 rounded-lg py-3 px-4 text-center text-[15px] md:text-base font-semibold text-gray-900 mb-5 shadow-sm">
-                  {col}
+                  {item.label}
                 </div>
                 {p ? <PropertyCard p={p} /> : null}
               </div>
@@ -111,6 +195,13 @@ export default function PropertyColumnsSection({ data }) {
           to { opacity: 1; transform: translateY(0); }
         }
         .animate-fadeInUp { animation: fadeInUp 0.6s ease-out; }
+        .property-columns-track {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .property-columns-track::-webkit-scrollbar {
+          display: none;
+        }
       `}</style>
     </section>
   );

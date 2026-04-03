@@ -8,7 +8,7 @@ export default function NewsletterSignup() {
           Subscribe to Our Newsletter
         </h2>
         <p className="mt-3 text-gray-600 text-sm md:text-base">
-          Get the latest updates, new opportunities, and market insights.
+          Get periodic updates from Access Properties.
         </p>
         <div className="mt-6">
           <a

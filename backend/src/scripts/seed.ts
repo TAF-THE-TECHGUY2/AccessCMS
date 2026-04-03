@@ -267,6 +267,36 @@ const seedPages = async () => {
                   "An investment advisor representative and Realtor, Dionysios brings over 15 years of experience in international development finance and investment banking, with a focus. Prior to founding Access Properties, he gained extensive experience investing in and exiting from real estate projects in the US and Europe. He holds a B.S. from Boston College and graduate degrees from the Sir John Cass Business School and the Fletcher School of Law and Diplomacy.",
                 ],
                 embeddedAudioSrc: "/audio/founder-story.mp3",
+                interviewTitle: "Hear the Founder's Story",
+                interviewSubtitle:
+                  "Choose a short interview segment to jump directly to the topic that matters most.",
+                interviewSnippets: [
+                  {
+                    label: "Why Access Properties Exists",
+                    description: "An introduction to the mission behind democratizing real estate investing.",
+                    audioSrc: "",
+                    startTime: 0,
+                    endTime: 42,
+                    buttonLabel: "Play the introduction",
+                  },
+                  {
+                    label: "How The Investment Model Works",
+                    description: "A concise breakdown of how the platform approaches portfolio construction.",
+                    audioSrc: "",
+                    startTime: 43,
+                    endTime: 105,
+                    buttonLabel: "Play the strategy clip",
+                  },
+                  {
+                    label: "The Long-Term Vision",
+                    description:
+                      "A segment focused on where the company is headed and how investors fit into that future.",
+                    audioSrc: "",
+                    startTime: 106,
+                    endTime: 170,
+                    buttonLabel: "Play the vision clip",
+                  },
+                ],
               },
               {
                 imageSrc: "/profiles/Richard LeSavoy.jpg",

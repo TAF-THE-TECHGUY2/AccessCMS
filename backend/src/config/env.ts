@@ -1,14 +1,31 @@
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const envPath = path.resolve(__dirname, "../../.env");
 
-const required = (key: string, fallback?: string) => {
-  const value = process.env[key] ?? fallback;
-  if (!value) {
-    throw new Error(`Missing env var ${key}`);
-  }
-  return value;
-};
+dotenv.config({ path: envPath });
+
+const read = (key: string, fallback?: string) => process.env[key] ?? fallback;
+
+const requiredKeys = [
+  "MONGODB_URI",
+  "JWT_ACCESS_SECRET",
+  "JWT_REFRESH_SECRET",
+] as const;
+
+const missingVars = requiredKeys.filter((key) => !read(key));
+
+if (missingVars.length > 0) {
+  throw new Error(
+    `Missing env vars: ${missingVars.join(", ")}. ` +
+      `Create ${envPath} from backend/.env.example and retry.`
+  );
+}
+
+const required = (key: string, fallback?: string) => read(key, fallback)!;
 
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
