@@ -205,7 +205,7 @@ export const createSection = (type) => {
           title: "Properties",
           subtitle: "Explore the current properties in the portfolio.",
           items: [
-            { id: "property-column-1", label: "Featured Property", slug: "", image: "" },
+            { id: "property-column-1", label: "Featured Property", properties: [] },
           ],
         },
       };
@@ -220,8 +220,10 @@ export const createSection = (type) => {
               roleLine: "Role",
               imageSrc: "",
               embeddedAudioSrc: "",
+              interviewEyebrow: "Founder Interview",
               interviewTitle: "Hear the Founder's Story",
               interviewSubtitle: "",
+              interviewSelectLabel: "Choose A Segment",
               paragraphs: ["Short bio"],
               interviewSnippets: [],
             },

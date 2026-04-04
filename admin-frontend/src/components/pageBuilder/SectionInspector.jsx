@@ -17,6 +17,7 @@ import { setValueAtPath } from "./utils.js";
 
 const rowGap = 2;
 const createPropertyColumnId = () => `property-column-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const createPropertyColumnPropertyId = () => `property-link-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 export default function SectionInspector({ section, onChange, onRemove }) {
   if (!section) {
@@ -76,8 +77,10 @@ export default function SectionInspector({ section, onChange, onRemove }) {
         roleLine: "",
         imageSrc: "",
         embeddedAudioSrc: "",
+        interviewEyebrow: "Founder Interview",
         interviewTitle: "Hear the Founder's Story",
         interviewSubtitle: "",
+        interviewSelectLabel: "Choose A Segment",
         paragraphs: [],
         interviewSnippets: [],
       },
@@ -120,16 +123,38 @@ export default function SectionInspector({ section, onChange, onRemove }) {
       ? data.items.map((item, index) => ({
           id: item?.id || `property-column-${index + 1}`,
           label: item?.label || "",
-          slug: item?.slug || "",
-          image: item?.image || "",
+          properties:
+            Array.isArray(item?.properties) && item.properties.length
+              ? item.properties.map((property, propertyIndex) => ({
+                  id: property?.id || `property-link-${index + 1}-${propertyIndex + 1}`,
+                  slug: property?.slug || "",
+                  image: property?.image || "",
+                }))
+              : [
+                  {
+                    id: `property-link-${index + 1}-1`,
+                    slug: item?.slug || "",
+                    image: item?.image || "",
+                  },
+                ].filter((property) => property.slug || property.image),
         }))
       : (data.columns || []).map((column, index) => {
           const entry = (data.mapping || {})[column] ?? legacyPropertyMappings[index]?.[1];
+          const propertyEntries = Array.isArray(entry)
+            ? entry
+            : entry
+              ? [entry]
+              : [];
           return {
             id: `property-column-${index + 1}`,
             label: column || "",
-            slug: typeof entry === "string" ? entry : entry?.slug || "",
-            image: typeof entry === "object" ? entry?.image || "" : "",
+            properties: propertyEntries
+              .map((property, propertyIndex) => ({
+                id: `property-link-${index + 1}-${propertyIndex + 1}`,
+                slug: typeof property === "string" ? property : property?.slug || "",
+                image: typeof property === "object" ? property?.image || "" : "",
+              }))
+              .filter((property) => property.slug || property.image),
           };
         });
 
@@ -137,8 +162,11 @@ export default function SectionInspector({ section, onChange, onRemove }) {
     const normalizedItems = items.map((item, index) => ({
       id: item?.id || `property-column-${index + 1}`,
       label: item?.label || "",
-      slug: item?.slug || "",
-      image: item?.image || "",
+      properties: (item?.properties || []).map((property, propertyIndex) => ({
+        id: property?.id || `property-link-${index + 1}-${propertyIndex + 1}`,
+        slug: property?.slug || "",
+        image: property?.image || "",
+      })),
     }));
     onChange({
       ...section,
@@ -148,7 +176,16 @@ export default function SectionInspector({ section, onChange, onRemove }) {
         columns: normalizedItems.map((item) => item.label).filter(Boolean),
         mapping: normalizedItems.reduce((acc, item) => {
           if (!item.label) return acc;
-          acc[item.label] = item.image ? { slug: item.slug, image: item.image } : item.slug;
+          const filledProperties = item.properties.filter((property) => property.slug || property.image);
+          if (filledProperties.length > 1) {
+            acc[item.label] = filledProperties.map((property) =>
+              property.image ? { slug: property.slug, image: property.image } : property.slug
+            );
+            return acc;
+          }
+          const firstProperty = filledProperties[0];
+          if (!firstProperty) return acc;
+          acc[item.label] = firstProperty.image ? { slug: firstProperty.slug, image: firstProperty.image } : firstProperty.slug;
           return acc;
         }, {}),
       },
@@ -163,11 +200,46 @@ export default function SectionInspector({ section, onChange, onRemove }) {
   const addPropertyColumnItem = () =>
     updatePropertyColumnItems([
       ...propertyColumnItems,
-      { id: createPropertyColumnId(), label: "", slug: "", image: "" },
+      { id: createPropertyColumnId(), label: "", properties: [] },
     ]);
 
   const removePropertyColumnItem = (index) => {
     const next = propertyColumnItems.filter((_, idx) => idx !== index);
+    updatePropertyColumnItems(next);
+  };
+
+  const setPropertyColumnProperty = (itemIndex, propertyIndex, patch) => {
+    const next = propertyColumnItems.map((item, idx) => {
+      if (idx !== itemIndex) return item;
+      return {
+        ...item,
+        properties: (item.properties || []).map((property, currentPropertyIndex) =>
+          currentPropertyIndex === propertyIndex ? { ...property, ...patch } : property
+        ),
+      };
+    });
+    updatePropertyColumnItems(next);
+  };
+
+  const addPropertyColumnProperty = (itemIndex) => {
+    const next = propertyColumnItems.map((item, idx) => {
+      if (idx !== itemIndex) return item;
+      return {
+        ...item,
+        properties: [...(item.properties || []), { id: createPropertyColumnPropertyId(), slug: "", image: "" }],
+      };
+    });
+    updatePropertyColumnItems(next);
+  };
+
+  const removePropertyColumnProperty = (itemIndex, propertyIndex) => {
+    const next = propertyColumnItems.map((item, idx) => {
+      if (idx !== itemIndex) return item;
+      return {
+        ...item,
+        properties: (item.properties || []).filter((_, currentPropertyIndex) => currentPropertyIndex !== propertyIndex),
+      };
+    });
     updatePropertyColumnItems(next);
   };
 
@@ -591,16 +663,45 @@ export default function SectionInspector({ section, onChange, onRemove }) {
                       value={item.label || ""}
                       onChange={(e) => setPropertyColumnItem(index, { label: e.target.value })}
                     />
-                    <TextField
-                      label="Property Slug"
-                      value={item.slug || ""}
-                      onChange={(e) => setPropertyColumnItem(index, { slug: e.target.value })}
-                    />
-                    <ImagePicker
-                      label="Image Override"
-                      value={item.image || ""}
-                      onChange={(val) => setPropertyColumnItem(index, { image: val })}
-                    />
+                    <Stack spacing={1.5}>
+                      <Typography variant="body2" color="text.secondary">
+                        Linked Properties In This Category
+                      </Typography>
+                      {(item.properties || []).map((property, propertyIndex) => (
+                        <Box
+                          key={property.id || `property-link-${index}-${propertyIndex}`}
+                          sx={{ p: 1.5, border: "1px solid #ededed", borderRadius: 2, backgroundColor: "#fafafa" }}
+                        >
+                          <Stack spacing={1}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                              <Typography variant="subtitle2">Property {propertyIndex + 1}</Typography>
+                              <Button
+                                color="error"
+                                size="small"
+                                onClick={() => removePropertyColumnProperty(index, propertyIndex)}
+                              >
+                                Remove
+                              </Button>
+                            </Stack>
+                            <TextField
+                              label="Property Slug"
+                              value={property.slug || ""}
+                              onChange={(e) =>
+                                setPropertyColumnProperty(index, propertyIndex, { slug: e.target.value })
+                              }
+                            />
+                            <ImagePicker
+                              label="Image Override"
+                              value={property.image || ""}
+                              onChange={(val) => setPropertyColumnProperty(index, propertyIndex, { image: val })}
+                            />
+                          </Stack>
+                        </Box>
+                      ))}
+                      <Button variant="outlined" onClick={() => addPropertyColumnProperty(index)}>
+                        Add Property To Category
+                      </Button>
+                    </Stack>
                   </Stack>
                 </Box>
               ))}
@@ -663,6 +764,11 @@ export default function SectionInspector({ section, onChange, onRemove }) {
                     buttonLabel="Upload Interview Audio"
                   />
                   <TextField
+                    label="Interview Eyebrow"
+                    value={card.interviewEyebrow || ""}
+                    onChange={(e) => updateProfileCard(index, { interviewEyebrow: e.target.value })}
+                  />
+                  <TextField
                     label="Interview Title"
                     value={card.interviewTitle || ""}
                     onChange={(e) => updateProfileCard(index, { interviewTitle: e.target.value })}
@@ -673,6 +779,11 @@ export default function SectionInspector({ section, onChange, onRemove }) {
                     onChange={(e) => updateProfileCard(index, { interviewSubtitle: e.target.value })}
                     multiline
                     minRows={2}
+                  />
+                  <TextField
+                    label="Segment Picker Label"
+                    value={card.interviewSelectLabel || ""}
+                    onChange={(e) => updateProfileCard(index, { interviewSelectLabel: e.target.value })}
                   />
                   <Stack spacing={1.5}>
                     <Typography variant="subtitle2">Interview Snippets</Typography>

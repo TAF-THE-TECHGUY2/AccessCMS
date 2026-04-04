@@ -267,9 +267,11 @@ const seedPages = async () => {
                   "An investment advisor representative and Realtor, Dionysios brings over 15 years of experience in international development finance and investment banking, with a focus. Prior to founding Access Properties, he gained extensive experience investing in and exiting from real estate projects in the US and Europe. He holds a B.S. from Boston College and graduate degrees from the Sir John Cass Business School and the Fletcher School of Law and Diplomacy.",
                 ],
                 embeddedAudioSrc: "/audio/founder-story.mp3",
+                interviewEyebrow: "Founder Interview",
                 interviewTitle: "Hear the Founder's Story",
                 interviewSubtitle:
                   "Choose a short interview segment to jump directly to the topic that matters most.",
+                interviewSelectLabel: "Choose A Segment",
                 interviewSnippets: [
                   {
                     label: "Why Access Properties Exists",

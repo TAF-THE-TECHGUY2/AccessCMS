@@ -34,7 +34,7 @@ const formatTime = (seconds) => {
 
 const normalizeCopy = (value) => (value || "").trim().replace(/\s+/g, " ").toLowerCase();
 
-const InterviewSnippetCard = ({ card }) => {
+const InterviewSnippetCard = ({ card, className = "" }) => {
   const snippets = useMemo(
     () => {
       const configuredSnippets = (card.interviewSnippets || []).map((snippet, index) => {
@@ -96,7 +96,7 @@ const InterviewSnippetCard = ({ card }) => {
     normalizedDescription !== normalizedLabel &&
     normalizedDescription !== normalizedSubtitle &&
     normalizedDescription.length >= 16;
-  const showSnippetMeta = hasMultipleSnippets || showDescription || Boolean(activeSnippet?.endTime);
+  const showSnippetMeta = showDescription || Boolean(activeSnippet?.endTime);
 
   const seekToStart = () => {
     const audio = audioRef.current;
@@ -160,23 +160,29 @@ const InterviewSnippetCard = ({ card }) => {
   if (!resolvedAudioUrl) return null;
 
   return (
-    <div className="mt-7 rounded-[20px] border border-black/7 bg-[#f7f7f5] p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] md:mt-8 md:p-5">
+    <div
+      className={`mt-7 rounded-[24px] border border-black/7 bg-[#f7f5ef] p-5 shadow-[0_10px_28px_rgba(15,23,42,0.05)] md:mt-8 md:p-6 ${className}`.trim()}
+    >
+      <div className="mb-4 h-1 w-14 rounded-full bg-[#b3a17a]" />
       <div className="max-w-3xl">
-        <p className="font-semibold text-gray-900 text-[15px] md:text-base">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+          {card.interviewEyebrow || "Founder Interview"}
+        </p>
+        <p className="mt-2 font-semibold text-gray-900 text-[15px] md:text-base">
           {card.interviewTitle || "Hear the Founder's Story"}
         </p>
         {card.interviewSubtitle ? (
-          <p className="mt-1.5 text-[14px] leading-relaxed text-gray-600 md:text-[15px]">{card.interviewSubtitle}</p>
+          <p className="mt-1.5 max-w-2xl text-[14px] leading-relaxed text-gray-600 md:text-[15px]">{card.interviewSubtitle}</p>
         ) : null}
       </div>
       {hasMultipleSnippets ? (
         <div className="mt-4">
-          <label htmlFor={snippetId} className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-            Interview Segment
+          <label htmlFor={snippetId} className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500">
+            {card.interviewSelectLabel || "Choose A Segment"}
           </label>
           <select
             id={snippetId}
-            className="mt-2 w-full rounded-[16px] border border-black/8 bg-white px-4 py-3 text-[15px] text-gray-900 shadow-[0_4px_14px_rgba(15,23,42,0.05)] outline-none transition focus:border-black/25"
+            className="mt-2 w-full rounded-[14px] border border-black/8 bg-white px-4 py-2.5 text-[15px] text-gray-900 shadow-[0_4px_14px_rgba(15,23,42,0.05)] outline-none transition focus:border-black/25"
             value={selectedIndex}
             onChange={(event) => setSelectedIndex(Number(event.target.value))}
           >
@@ -192,11 +198,8 @@ const InterviewSnippetCard = ({ card }) => {
       {activeSnippet && showSnippetMeta ? (
         <div className="mt-3">
           <div className="flex flex-wrap items-center gap-2">
-            {hasMultipleSnippets ? (
-              <h4 className="text-[14px] font-semibold text-gray-900 md:text-[15px]">{activeSnippet.label}</h4>
-            ) : null}
             {activeSnippet?.endTime ? (
-              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500 shadow-sm">
                 {formatTime(activeSnippet.startTime)} - {formatTime(activeSnippet.endTime)}
               </span>
             ) : null}
@@ -206,7 +209,7 @@ const InterviewSnippetCard = ({ card }) => {
           ) : null}
         </div>
       ) : null}
-      <div className="mt-3 rounded-[18px] border border-black/5 bg-white px-3 py-2.5 shadow-[0_4px_14px_rgba(15,23,42,0.04)] md:px-4">
+      <div className="mt-4 rounded-[16px] border border-black/5 bg-white/90 px-2.5 py-2 shadow-[0_4px_12px_rgba(15,23,42,0.035)] md:px-3">
         <audio
           ref={audioRef}
           src={resolvedAudioUrl}
@@ -222,45 +225,57 @@ const InterviewSnippetCard = ({ card }) => {
   );
 };
 
-const ProfileCard = ({ card }) => (
-  <div className="max-w-6xl mx-auto px-5 md:px-4">
-    <div className="border border-black/10 bg-white rounded-3xl overflow-hidden shadow-sm">
-      <div className="flex flex-col md:flex-row">
-        <div className="w-full md:w-[280px] lg:w-[320px] bg-gray-100 flex-shrink-0">
-          <div className="aspect-square md:aspect-auto md:h-full">
-            <img src={resolveUrl(card.imageSrc)} alt={card.name} className="w-full h-full object-cover object-top" />
+const ProfileCard = ({ card }) => {
+  return (
+    <div className="max-w-6xl mx-auto px-5 md:px-4">
+      <div className="border border-black/10 bg-white rounded-3xl overflow-hidden shadow-sm md:min-h-[430px] lg:min-h-[470px]">
+        <div className="flex flex-col md:min-h-[430px] md:flex-row lg:min-h-[470px]">
+          <div className="w-full md:w-[280px] lg:w-[320px] bg-gray-100 flex-shrink-0">
+            <div className="aspect-square md:aspect-auto md:h-full">
+              <img src={resolveUrl(card.imageSrc)} alt={card.name} className="w-full h-full object-cover object-top" />
+            </div>
           </div>
-        </div>
-        <div className="flex-1 px-6 py-8 md:px-12 md:py-10">
-          {card.roleLine ? (
-            <p className="text-gray-900 font-medium text-sm md:text-base uppercase tracking-wider mb-2">
-              {card.roleLine}
-            </p>
-          ) : null}
-          <h3 className="text-2xl md:text-4xl font-semibold text-gray-900 leading-tight">{card.name}</h3>
-          <div className="mt-6 space-y-4">
-            {(card.paragraphs || []).map((p, idx) => (
-              <p key={idx} className="text-gray-700 text-[15px] md:text-lg leading-relaxed">
-                {p}
+          <div className="flex-1 px-6 py-8 md:flex md:flex-col md:justify-center md:px-12 md:py-10">
+            {card.roleLine ? (
+              <p className="text-gray-900 font-medium text-sm md:text-base uppercase tracking-wider mb-2">
+                {card.roleLine}
               </p>
-            ))}
+            ) : null}
+            <h3 className="text-2xl md:text-4xl font-semibold text-gray-900 leading-tight">{card.name}</h3>
+            <div className="mt-6 space-y-4">
+              {(card.paragraphs || []).map((p, idx) => (
+                <p key={idx} className="text-gray-700 text-[15px] md:text-lg leading-relaxed">
+                  {p}
+                </p>
+              ))}
+            </div>
           </div>
-          {card.embeddedAudioSrc || (card.interviewSnippets || []).length ? <InterviewSnippetCard card={card} /> : null}
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default function ProfileCardsSection({ data }) {
   const cards = data?.cards || [];
   return (
     <section className="py-12 md:py-24">
       {data?.title ? <SectionTitle title={data.title} sub={data.subtitle} /> : null}
-      <div className="mt-12 space-y-8 md:space-y-16">
-        {cards.map((card) => (
-          <ProfileCard key={card.name} card={card} />
-        ))}
+      <div className="mt-12 space-y-10 md:space-y-16">
+        {cards.map((card) => {
+          const hasInterview = Boolean(card.embeddedAudioSrc || (card.interviewSnippets || []).length);
+
+          return (
+            <div key={card.name} className="space-y-4 md:space-y-1">
+              <ProfileCard card={card} />
+              {hasInterview ? (
+                <div className="max-w-6xl mx-auto px-5 md:px-4 md:-mt-6 lg:-mt-7">
+                  <InterviewSnippetCard card={card} className="mt-0 md:px-6 md:py-5" />
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
     </section>
   );

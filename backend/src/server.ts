@@ -23,6 +23,7 @@ const allowedOrigins = [env.clientUrl, env.adminUrl]
   .flatMap((value) => value.split(","))
   .map((value) => value.trim())
   .filter(Boolean);
+const isLocalDevOrigin = (origin: string) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
 
 app.set("trust proxy", 1);
 
@@ -34,7 +35,7 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || isLocalDevOrigin(origin)) {
         callback(null, true);
         return;
       }

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import mongoose from "mongoose";
 import { Property } from "../models/Property.js";
 import { requireAuth, requireRole, type AuthRequest } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
@@ -71,6 +72,9 @@ adminRouter.post("/", validate(propertySchema), async (req: AuthRequest, res) =>
 });
 
 adminRouter.patch("/:id", validate(propertySchema.partial()), async (req: AuthRequest, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Invalid property id" });
+  }
   const property = await Property.findByIdAndUpdate(req.params.id, req.body, { new: true });
   if (!property) return res.status(404).json({ message: "Property not found" });
   await logAudit({ userId: req.userId, action: "update", entity: "property", entityId: property.id });
@@ -78,6 +82,9 @@ adminRouter.patch("/:id", validate(propertySchema.partial()), async (req: AuthRe
 });
 
 adminRouter.delete("/:id", async (req: AuthRequest, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: "Invalid property id" });
+  }
   const property = await Property.findByIdAndDelete(req.params.id);
   if (!property) return res.status(404).json({ message: "Property not found" });
   await logAudit({ userId: req.userId, action: "delete", entity: "property", entityId: property.id });

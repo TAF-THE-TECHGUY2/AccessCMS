@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import mongoose from "mongoose";
 import { Property } from "../models/Property.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
@@ -63,6 +64,9 @@ adminRouter.post("/", validate(propertySchema), async (req, res) => {
     res.status(201).json(property);
 });
 adminRouter.patch("/:id", validate(propertySchema.partial()), async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: "Invalid property id" });
+    }
     const property = await Property.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!property)
         return res.status(404).json({ message: "Property not found" });
@@ -70,6 +74,9 @@ adminRouter.patch("/:id", validate(propertySchema.partial()), async (req, res) =
     res.json(property);
 });
 adminRouter.delete("/:id", async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: "Invalid property id" });
+    }
     const property = await Property.findByIdAndDelete(req.params.id);
     if (!property)
         return res.status(404).json({ message: "Property not found" });
