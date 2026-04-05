@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api, API_BASE_URL } from "../../api.js";
 
+const PROPERTY_IMAGE_FALLBACK = "/properties/origin.jpg";
+
 const resolveUrl = (url) => {
   if (!url) return "";
   if (url.startsWith("http")) return url;
@@ -8,46 +10,66 @@ const resolveUrl = (url) => {
   return url;
 };
 
-const PropertyCard = ({ p }) => (
-  <div className="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm animate-fadeInUp">
-    <div className="h-[260px] w-full overflow-hidden bg-gray-100">
-      <img src={resolveUrl(p.image)} alt={p.address} className="h-full w-full object-cover" />
-    </div>
+const PropertyCard = ({ p }) => {
+  const [imageSrc, setImageSrc] = useState(() => resolveUrl(p.image || p.fallbackImage || PROPERTY_IMAGE_FALLBACK));
 
-    <div className="flex flex-1 flex-col p-5">
-      <div className="flex-1 rounded bg-gray-200 px-4 py-3 text-[13px] text-gray-900 md:min-h-[250px] md:text-sm">
-        <div className="font-semibold leading-snug">{p.address}</div>
+  useEffect(() => {
+    setImageSrc(resolveUrl(p.image || p.fallbackImage || PROPERTY_IMAGE_FALLBACK));
+  }, [p.image, p.fallbackImage]);
 
-        <div className="mt-2 grid grid-cols-1 gap-1">
-          <div>
-            <span className="font-semibold">Type:</span> {p.type}
-          </div>
-          <div>
-            <span className="font-semibold">Bedrooms:</span> {p.bedrooms}
-          </div>
-          <div>
-            <span className="font-semibold">Bathrooms:</span> {p.bathrooms}
-          </div>
-          <div>
-            <span className="font-semibold">Parking:</span> {p.parking}
-          </div>
-          <div>
-            <span className="font-semibold">Square Feet:</span> {p.squareFeet}
+  const handleImageError = (event) => {
+    const fallbackSrc = resolveUrl(p.fallbackImage || PROPERTY_IMAGE_FALLBACK);
+    if (event.currentTarget.src !== fallbackSrc) {
+      setImageSrc(fallbackSrc);
+      return;
+    }
+
+    if (fallbackSrc !== resolveUrl(PROPERTY_IMAGE_FALLBACK)) {
+      setImageSrc(resolveUrl(PROPERTY_IMAGE_FALLBACK));
+    }
+  };
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm animate-fadeInUp">
+      <div className="h-[260px] w-full overflow-hidden bg-gray-100">
+        <img src={imageSrc} alt={p.address} className="h-full w-full object-cover" onError={handleImageError} />
+      </div>
+
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex-1 rounded bg-gray-200 px-4 py-3 text-[13px] text-gray-900 md:min-h-[250px] md:text-sm">
+          <div className="font-semibold leading-snug">{p.address}</div>
+
+          <div className="mt-2 grid grid-cols-1 gap-1">
+            <div>
+              <span className="font-semibold">Type:</span> {p.type}
+            </div>
+            <div>
+              <span className="font-semibold">Bedrooms:</span> {p.bedrooms}
+            </div>
+            <div>
+              <span className="font-semibold">Bathrooms:</span> {p.bathrooms}
+            </div>
+            <div>
+              <span className="font-semibold">Parking:</span> {p.parking}
+            </div>
+            <div>
+              <span className="font-semibold">Square Feet:</span> {p.squareFeet}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="mt-5">
-        <a
-          href={`/${p.slug}`}
-          className="inline-block bg-[#b3a17a] hover:bg-[#9e8f6d] text-white px-6 py-2 text-sm rounded transition"
-        >
-          View More
-        </a>
+        <div className="mt-5">
+          <a
+            href={`/${p.slug}`}
+            className="inline-block bg-[#b3a17a] hover:bg-[#9e8f6d] text-white px-6 py-2 text-sm rounded transition"
+          >
+            View More
+          </a>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default function PropertyColumnsSection({ data }) {
   const [properties, setProperties] = useState([]);
@@ -174,9 +196,15 @@ export default function PropertyColumnsSection({ data }) {
       slug: p.slug,
       image:
         imageOverride ||
+        p.heroImage ||
         p.galleries?.afterImages?.[0]?.url ||
         p.galleries?.beforeImages?.[0]?.url ||
-        "",
+        PROPERTY_IMAGE_FALLBACK,
+      fallbackImage:
+        p.heroImage ||
+        p.galleries?.afterImages?.[0]?.url ||
+        p.galleries?.beforeImages?.[0]?.url ||
+        PROPERTY_IMAGE_FALLBACK,
       address: `${p.address}, ${p.city} ${p.state} ${p.zip}`,
       type: p.type,
       bedrooms: p.beds,
@@ -339,11 +367,11 @@ export default function PropertyColumnsSection({ data }) {
                 key={item.id || `${item.label || "property-column"}-${index}`}
                 className="flex h-full min-w-[86%] w-[86%] flex-none snap-start flex-col self-stretch md:w-[calc((100%-2rem)/2)] md:min-w-[calc((100%-2rem)/2)] xl:w-[calc((100%-4rem)/3)] xl:min-w-[calc((100%-4rem)/3)]"
               >
-                <div className="mb-5 rounded-lg border border-gray-200 bg-white px-4 py-3 text-[14px] font-semibold text-gray-900 shadow-sm md:text-[15px] xl:text-base">
+                <div className="mb-5 rounded-lg border border-gray-200 bg-white px-4 py-3 text-[13px] font-semibold text-gray-900 shadow-sm md:text-[14px] xl:text-[15px]">
                   <div className="grid min-h-[72px] grid-cols-[72px_minmax(0,1fr)_72px] items-center gap-2 md:min-h-[80px] md:grid-cols-[88px_minmax(0,1fr)_88px]">
                     <div aria-hidden="true" />
                     <span
-                      className="mx-auto max-w-[18ch] text-center leading-[1.2]"
+                      className="mx-auto max-w-[24ch] text-center leading-[1.2] md:max-w-[26ch]"
                       style={{ textWrap: "balance" }}
                     >
                       {item.label}
