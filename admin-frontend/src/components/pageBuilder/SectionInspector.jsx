@@ -574,6 +574,13 @@ export default function SectionInspector({ section, onChange, onRemove }) {
         <Stack spacing={rowGap}>
           <TextField label="Title" value={data.title || ""} onChange={(e) => update("title", e.target.value)} />
           <TextField label="Subtitle" value={data.subtitle || ""} onChange={(e) => update("subtitle", e.target.value)} />
+          <TextField
+            label="Disclosure"
+            value={data.disclosure || ""}
+            onChange={(e) => update("disclosure", e.target.value)}
+            multiline
+            minRows={4}
+          />
           <ArrayEditor
             label="Testimonial"
             items={data.items || []}
@@ -646,6 +653,18 @@ export default function SectionInspector({ section, onChange, onRemove }) {
         <Stack spacing={rowGap}>
           <TextField label="Title" value={data.title || ""} onChange={(e) => update("title", e.target.value)} />
           <TextField label="Subtitle" value={data.subtitle || ""} onChange={(e) => update("subtitle", e.target.value)} />
+          <TextField
+            label="Auto-scroll"
+            select
+            value={data.autoScroll ? "enabled" : "disabled"}
+            onChange={(e) => update("autoScroll", e.target.value === "enabled")}
+          >
+            <MenuItem value="disabled">Off</MenuItem>
+            <MenuItem value="enabled">On</MenuItem>
+          </TextField>
+          <Typography variant="body2" color="text.secondary">
+            When enabled, the carousel automatically advances every five seconds.
+          </Typography>
           <Stack spacing={2}>
             <Typography variant="subtitle2">Property Cards</Typography>
             <Stack spacing={2}>

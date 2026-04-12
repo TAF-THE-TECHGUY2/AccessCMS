@@ -1,6 +1,9 @@
 import React from "react";
 import { Quote } from "lucide-react";
 
+const DEFAULT_TESTIMONIAL_DISCLOSURE =
+  "Testimonials are provided by current investors. Investors were not compensated for these statements. These testimonials may not be representative of the experience of all investors and are not a guarantee of future performance or success. Some investors may have personal or prior business relationships with the sponsor.";
+
 const SectionTitle = ({ title, sub }) => (
   <div className="max-w-4xl mx-auto px-4">
     <div className="flex flex-col items-center text-center">
@@ -13,8 +16,9 @@ const SectionTitle = ({ title, sub }) => (
 
 export default function TestimonialsSection({ data }) {
   const items = data?.items || [];
+  const disclosure = data?.disclosure || DEFAULT_TESTIMONIAL_DISCLOSURE;
   return (
-    <div className="py-16 md:py-20">
+    <div className="bg-gray-50 py-16 md:py-20">
       {data?.title ? <SectionTitle title={data.title} sub={data.subtitle} /> : null}
       <div className="max-w-4xl mx-auto px-4 mt-10">
         <div className="grid md:grid-cols-2 gap-6">
@@ -33,6 +37,11 @@ export default function TestimonialsSection({ data }) {
             </div>
           ))}
         </div>
+        {disclosure ? (
+          <p className="mt-8 text-xs leading-relaxed text-gray-600">
+            <span className="font-semibold text-gray-700">Testimonial Disclosure:</span> {disclosure}
+          </p>
+        ) : null}
       </div>
     </div>
   );

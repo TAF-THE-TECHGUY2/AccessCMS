@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { getIcon } from "./iconMap.js";
+import { getIcon, normalizeIconName } from "./iconMap.js";
+
+const titlePreferredIconNames = {
+  strategy: "Building2",
+  approach: "Wrench",
+};
 
 const SectionTitle = ({ title, sub }) => (
   <div className="max-w-4xl mx-auto px-4">
@@ -16,6 +21,19 @@ export default function IconAccordionGridSection({ data }) {
   const [openId, setOpenId] = useState(null);
   const items = data?.items || [];
 
+  const resolveItemIcon = (item) => {
+    const explicitName = normalizeIconName(item?.iconName);
+    const preferredName = titlePreferredIconNames[(item?.title || "").trim().toLowerCase()];
+
+    if (preferredName) {
+      return getIcon(preferredName);
+    }
+
+    if (explicitName) return getIcon(explicitName);
+
+    return getIcon(preferredName);
+  };
+
   const toggle = (id) => {
     setOpenId((prev) => (prev === id ? null : id));
   };
@@ -26,7 +44,7 @@ export default function IconAccordionGridSection({ data }) {
       <div className="max-w-4xl mx-auto px-4 mt-10">
         <div className="grid md:grid-cols-2 gap-6">
           {items.map((item) => {
-            const Icon = getIcon(item.iconName);
+            const Icon = resolveItemIcon(item);
             const open = openId === item.id;
             return (
               <div

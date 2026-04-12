@@ -2,7 +2,7 @@ import React from "react";
 
 export default function NewsletterSignup() {
   return (
-    <section className="bg-gray-100 text-gray-900 py-14">
+    <section className="bg-white text-gray-900 py-14">
       <div className="max-w-5xl mx-auto px-4 text-center">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-wide">
           Subscribe to Our Newsletter

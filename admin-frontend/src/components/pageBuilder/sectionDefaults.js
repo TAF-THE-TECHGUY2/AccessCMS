@@ -162,9 +162,12 @@ export const createSection = (type) => {
       return {
         ...base,
         data: {
-          heading: "Investor Stories",
+          title: "Testimonials",
+          subtitle: "What our early supporters and investors are saying.",
+          disclosure:
+            "Testimonials are provided by current investors. Investors were not compensated for these statements. These testimonials may not be representative of the experience of all investors and are not a guarantee of future performance or success. Some investors may have personal or prior business relationships with the sponsor.",
           items: [
-            { quote: "Great experience.", name: "Investor Name", role: "Investor" },
+            { quote: "Great experience.", attribution: "Investor Name", label: "Investor Testimonial" },
           ],
         },
       };
@@ -204,6 +207,7 @@ export const createSection = (type) => {
         data: {
           title: "Properties",
           subtitle: "Explore the current properties in the portfolio.",
+          autoScroll: false,
           items: [
             { id: "property-column-1", label: "Featured Property", properties: [] },
           ],

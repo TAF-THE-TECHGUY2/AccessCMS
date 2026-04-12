@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api, API_BASE_URL } from "../../api.js";
 
 const PROPERTY_IMAGE_FALLBACK = "/properties/origin.jpg";
@@ -8,6 +8,36 @@ const resolveUrl = (url) => {
   if (url.startsWith("http")) return url;
   if (url.startsWith("/uploads")) return `${API_BASE_URL}${url}`;
   return url;
+};
+
+const getTrackCards = (track) => {
+  if (!track) return [];
+  return Array.from(track.children);
+};
+
+const getCardStep = (cards) => {
+  if (cards.length >= 2) {
+    return cards[1].offsetLeft - cards[0].offsetLeft;
+  }
+  return cards[0]?.getBoundingClientRect().width || 0;
+};
+
+const getVisibleCardCount = (cards, track) => {
+  if (!track || cards.length === 0) return 1;
+  const step = getCardStep(cards) || track.clientWidth;
+  return Math.max(1, Math.round(track.clientWidth / step));
+};
+
+const getCurrentStartIndex = (cards, track) => {
+  if (!track || cards.length === 0) return 0;
+  const tolerance = 8;
+  let currentIndex = 0;
+  for (let index = 0; index < cards.length; index += 1) {
+    if (cards[index].offsetLeft <= track.scrollLeft + tolerance) {
+      currentIndex = index;
+    }
+  }
+  return currentIndex;
 };
 
 const PropertyCard = ({ p }) => {
@@ -79,6 +109,7 @@ export default function PropertyColumnsSection({ data }) {
   const [activePropertyIndexes, setActivePropertyIndexes] = useState({});
   const trackRef = useRef(null);
   const autoplayPausedRef = useRef(false);
+  const autoScrollEnabled = data?.autoScroll === true || data?.autoScroll === "true";
 
   const normalizeColumnProperties = (entry, itemIndex) => {
     if (Array.isArray(entry?.properties) && entry.properties.length) {
@@ -102,37 +133,6 @@ export default function PropertyColumnsSection({ data }) {
     }
 
     return [];
-  };
-
-  const getTrackCards = () => {
-    const track = trackRef.current;
-    if (!track) return [];
-    return Array.from(track.children);
-  };
-
-  const getCardStep = (cards) => {
-    if (cards.length >= 2) {
-      return cards[1].offsetLeft - cards[0].offsetLeft;
-    }
-    return cards[0]?.getBoundingClientRect().width || 0;
-  };
-
-  const getVisibleCardCount = (cards, track) => {
-    if (!track || cards.length === 0) return 1;
-    const step = getCardStep(cards) || track.clientWidth;
-    return Math.max(1, Math.round(track.clientWidth / step));
-  };
-
-  const getCurrentStartIndex = (cards, track) => {
-    if (!track || cards.length === 0) return 0;
-    const tolerance = 8;
-    let currentIndex = 0;
-    for (let index = 0; index < cards.length; index += 1) {
-      if (cards[index].offsetLeft <= track.scrollLeft + tolerance) {
-        currentIndex = index;
-      }
-    }
-    return currentIndex;
   };
 
   useEffect(() => {
@@ -236,30 +236,31 @@ export default function PropertyColumnsSection({ data }) {
     };
   }, [items.length, properties.length]);
 
-  const scrollTrack = (direction, options = {}) => {
+  const scrollTrack = useCallback((direction, options = {}) => {
     const track = trackRef.current;
     if (!track) return;
-    const cards = getTrackCards();
+    const cards = getTrackCards(track);
     if (!cards.length) return;
 
     const { wrap = false } = options;
-    const currentIndex = getCurrentStartIndex(cards, track);
     const visibleCount = getVisibleCardCount(cards, track);
+    const maxStartIndex = Math.max(0, cards.length - visibleCount);
+    const currentIndex = Math.min(getCurrentStartIndex(cards, track), maxStartIndex);
     let targetIndex;
 
     if (direction > 0) {
       const nextIndex = currentIndex + visibleCount;
-      targetIndex = nextIndex < cards.length ? nextIndex : wrap ? 0 : cards.length - 1;
+      targetIndex = wrap ? (nextIndex <= maxStartIndex ? nextIndex : 0) : Math.min(nextIndex, maxStartIndex);
     } else {
       const previousIndex = currentIndex - visibleCount;
-      targetIndex = previousIndex >= 0 ? previousIndex : wrap ? Math.max(0, cards.length - visibleCount) : 0;
+      targetIndex = wrap ? (previousIndex >= 0 ? previousIndex : maxStartIndex) : Math.max(previousIndex, 0);
     }
 
     track.scrollTo({
-      left: cards[targetIndex].offsetLeft,
+      left: Math.min(cards[targetIndex].offsetLeft, Math.max(0, track.scrollWidth - track.clientWidth)),
       behavior: "smooth",
     });
-  };
+  }, []);
 
   const changeColumnProperty = (itemId, propertyCount, direction) => {
     if (propertyCount <= 1) return;
@@ -274,38 +275,17 @@ export default function PropertyColumnsSection({ data }) {
   };
 
   useEffect(() => {
-    if (!hasOverflow) return undefined;
+    if (!autoScrollEnabled || !hasOverflow) return undefined;
 
     const intervalId = window.setInterval(() => {
       if (autoplayPausedRef.current) return;
-      const track = trackRef.current;
-      if (!track) return;
-
-      const cards = Array.from(track.children);
-      if (!cards.length) return;
-
-      const step =
-        cards.length >= 2 ? cards[1].offsetLeft - cards[0].offsetLeft : cards[0]?.getBoundingClientRect().width || 0;
-      const visibleCount = Math.max(1, Math.round(track.clientWidth / (step || track.clientWidth)));
-      let currentIndex = 0;
-      for (let index = 0; index < cards.length; index += 1) {
-        if (cards[index].offsetLeft <= track.scrollLeft + 8) {
-          currentIndex = index;
-        }
-      }
-      const nextIndex = currentIndex + visibleCount;
-      const targetIndex = nextIndex < cards.length ? nextIndex : 0;
-
-      track.scrollTo({
-        left: cards[targetIndex].offsetLeft,
-        behavior: "smooth",
-      });
+      scrollTrack(1, { wrap: true });
     }, 5000);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [hasOverflow, items.length]);
+  }, [autoScrollEnabled, hasOverflow, items.length, scrollTrack]);
 
   return (
     <section className="py-16 bg-gray-50">

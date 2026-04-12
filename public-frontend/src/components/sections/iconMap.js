@@ -46,6 +46,18 @@ export const iconMap = {
   Sparkles,
 };
 
+export const normalizeIconName = (name) => {
+  const normalized = String(name || "")
+    .trim()
+    .replace(/[\s_-]+/g, "")
+    .toLowerCase();
+
+  if (!normalized) return null;
+
+  return Object.keys(iconMap).find((key) => key.toLowerCase() === normalized) || null;
+};
+
 export const getIcon = (name) => {
-  return iconMap[name] || Lightbulb;
+  const resolvedName = normalizeIconName(name);
+  return iconMap[resolvedName || "Lightbulb"] || Lightbulb;
 };
