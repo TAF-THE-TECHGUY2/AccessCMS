@@ -1,6 +1,8 @@
 const runtimeConfig =
   typeof window !== "undefined" && window.__APP_CONFIG__ ? window.__APP_CONFIG__ : {};
 
+const runtimeApiUrl = runtimeConfig.apiBaseUrl;
+
 const getViteApiUrl = () => {
   try {
     return Function(
@@ -15,8 +17,17 @@ const envApiUrl =
   (typeof process !== "undefined" && process.env && process.env.REACT_APP_API_URL) ||
   getViteApiUrl();
 
+const defaultApiUrl = "https://api.ap.boston";
+const isProductionBuild =
+  typeof process !== "undefined" &&
+  process.env &&
+  process.env.NODE_ENV === "production";
+
+// In production, prefer the deploy-time config file over any build-time local env.
 export const API_BASE_URL =
-  envApiUrl || runtimeConfig.apiBaseUrl || "https://api.ap.boston";
+  (isProductionBuild
+    ? runtimeApiUrl || envApiUrl
+    : envApiUrl || runtimeApiUrl) || defaultApiUrl;
 
 const request = async (method, path, options = {}) => {
   const { body, headers, ...rest } = options;
