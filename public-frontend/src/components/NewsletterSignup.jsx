@@ -15,7 +15,7 @@ export default function NewsletterSignup() {
             href="https://mailchi.mp/052b0234689c/access-properties"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center bg-black text-white px-6 py-3 rounded-sm text-sm font-semibold tracking-wide hover:bg-gray-800 transition-colors"
+            className="inline-flex items-center justify-center bg-gray-700 hover:bg-gray-800 text-white px-10 py-3 rounded-sm text-sm font-semibold tracking-wide transition-colors"
           >
             Subscribe
           </a>

@@ -1,171 +1,80 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { api } from "../api.js";
-import { useAuth } from "../AuthContext.jsx";
-
-const statusLabels = {
-  PENDING_DOCS: "Pending documents",
-  DOCS_REJECTED: "Documents rejected",
-  DOCS_APPROVED: "Documents approved",
-  SIGNING_REQUIRED: "Signing required",
-  SIGNED_DOCS_PENDING: "Signed docs pending",
-  APPROVED: "Approved",
-};
-
-const statusSteps = [
-  { key: "PENDING_DOCS", label: "Submit verification docs" },
-  { key: "SIGNING_REQUIRED", label: "Sign package" },
-  { key: "SIGNED_DOCS_PENDING", label: "Upload signed docs" },
-  { key: "APPROVED", label: "Approved" },
-];
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
 
 export default function InvestorDashboard() {
-  const { user, logout } = useAuth();
-  const [checklist, setChecklist] = useState([]);
-  const [status, setStatus] = useState("");
-  const [packageFiles, setPackageFiles] = useState([]);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-
-  const load = async () => {
-    const data = await api.documents();
-    setChecklist(data.items);
-    setStatus(data.status);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  useEffect(() => {
-    const loadPackage = async () => {
-      if (status === "SIGNING_REQUIRED" || status === "SIGNED_DOCS_PENDING") {
-        try {
-          const data = await api.package();
-          setPackageFiles(data.files || []);
-        } catch (err) {
-          setError(err.message);
-        }
-      }
-    };
-    loadPackage();
-  }, [status]);
-
-  const grouped = useMemo(() => {
-    return checklist.reduce(
-      (acc, item) => {
-        acc[item.stage === "signed" ? "signed" : "initial"].push(item);
-        return acc;
-      },
-      { initial: [], signed: [] }
-    );
-  }, [checklist]);
-
-  const onUpload = async (document_type_id, file) => {
-    setMessage("");
-    setError("");
-    await api.uploadDocument(document_type_id, file);
-    await load();
-  };
-
-  const activeStepRaw = statusSteps.findIndex((step) => step.key === status);
-  const activeStep = activeStepRaw === -1 ? 0 : activeStepRaw;
-
-  const renderChecklist = (items, title, helper) => (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <p className="text-sm text-white/60">{helper}</p>
-      </div>
-      {items.map((item) => (
-        <div key={item.document_type_id} className="border border-white/10 rounded-xl p-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <div className="font-semibold">{item.name}</div>
-              <div className="text-sm text-white/60 mt-1">
-                {item.required ? "Required" : "Not required"} · {item.status}
-              </div>
-              {item.rejection_reason ? (
-                <div className="text-sm text-red-400 mt-2">{item.rejection_reason}</div>
-              ) : null}
-            </div>
-            <label
-              className={`cursor-pointer px-4 py-2 rounded-lg text-sm font-semibold ${
-                item.required ? "bg-white text-black" : "bg-white/20 text-white/50 cursor-not-allowed"
-              }`}
-            >
-              {item.status === "rejected" ? "Re-upload" : "Upload"}
-              <input
-                type="file"
-                className="hidden"
-                disabled={!item.required}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) onUpload(item.document_type_id, file);
-                }}
-              />
-            </label>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  const { state } = useLocation();
+  const onboardingData = state?.onboardingData;
+  const firstName = onboardingData?.profile?.firstName || "Investor";
+  const isAccredited = onboardingData?.accreditationStatus === "accredited";
 
   return (
-    <div className="min-h-screen bg-night text-white px-4 py-10">
-      <div className="max-w-5xl mx-auto space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold">Investor Dashboard</h1>
-            <p className="text-sm text-white/60">{user?.email}</p>
-          </div>
-          <button onClick={logout} className="border border-white/20 px-4 py-2 rounded-xl">
-            Logout
-          </button>
+    <div className="min-h-screen bg-ap-cream px-4 py-8 text-ap-ink sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="rounded-[28px] bg-white p-6 shadow-calm sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.26em] text-ap-muted">Investor Dashboard</p>
+          <h1 className="mt-4 font-serif text-4xl text-ap-ink">Welcome, {firstName}</h1>
+          <p className="mt-4 max-w-3xl text-base leading-7 text-ap-muted">
+            This is a frontend-ready dashboard destination for the onboarding prototype. It’s structured so real data,
+            verification states, and document modules can be connected to Laravel later.
+          </p>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <h2 className="text-xl font-semibold">Verification checklist</h2>
-          <p className="text-sm text-white/60 mt-1">Status: {statusLabels[status] || status}</p>
-          {message ? <p className="text-sm text-emerald-400 mt-2">{message}</p> : null}
-          {error ? <p className="text-sm text-red-400 mt-2">{error}</p> : null}
-
-          <div className="mt-6 grid gap-4">
-            {statusSteps.map((step, index) => (
-              <div key={step.key} className="flex items-center gap-3">
-                <div
-                  className={`h-7 w-7 rounded-full flex items-center justify-center text-xs ${
-                    index <= activeStep ? "bg-accent text-black" : "bg-white/10 text-white/50"
-                  }`}
-                >
-                  {index + 1}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="rounded-[28px] bg-white p-6 shadow-calm sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.26em] text-ap-muted">Next Actions</p>
+            <div className="mt-5 grid gap-3">
+              {(isAccredited
+                ? [
+                    "Identity verification pending",
+                    "Funding instructions will appear here",
+                    "Investment activates once funds are received",
+                    "Documents and communications will populate here",
+                  ]
+                : [
+                    "Identity verification pending",
+                    "Crowdfunding partner link will appear after approval",
+                    "Documents and communications will populate here",
+                  ]
+              ).map((item, index) => (
+                <div key={item} className="flex items-start gap-4 rounded-2xl border border-ap-beige/60 bg-[#FCFAF7] px-4 py-4">
+                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-ap-teal text-sm font-semibold text-white">
+                    {index + 1}
+                  </span>
+                  <span className="pt-1 text-sm leading-6 text-ap-ink">{item}</span>
                 </div>
-                <div className={index <= activeStep ? "text-white" : "text-white/50"}>{step.label}</div>
-              </div>
-            ))}
-          </div>
-
-          {packageFiles.length ? (
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <h3 className="text-lg font-semibold">Signing package</h3>
-              <p className="text-sm text-white/60 mt-1">Download, sign, and upload the signed PDFs.</p>
-              <div className="mt-3 grid md:grid-cols-3 gap-3">
-                {packageFiles.map((file) => (
-                  <a
-                    key={file.key}
-                    href={file.url}
-                    className="border border-white/10 rounded-xl px-3 py-2 text-sm hover:border-white/40"
-                  >
-                    Download {file.key}
-                  </a>
-                ))}
-              </div>
+              ))}
             </div>
-          ) : null}
+          </section>
 
-          <div className="mt-8 space-y-8">
-            {renderChecklist(grouped.initial, "Initial verification", "Upload your ID, address proof, and tax form.")}
-            {renderChecklist(grouped.signed, "Signed documents", "Upload signed PDFs after the package is issued.")}
-          </div>
+          <aside className="rounded-[28px] bg-white p-6 shadow-calm sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.26em] text-ap-muted">Prototype Summary</p>
+            <dl className="mt-5 space-y-4 text-sm">
+              <div>
+                <dt className="text-ap-muted">Offering</dt>
+                <dd className="mt-1 font-medium text-ap-ink">Access Properties Real Estate Diversified Income Fund I</dd>
+              </div>
+              <div>
+                <dt className="text-ap-muted">Experience</dt>
+                <dd className="mt-1 font-medium capitalize text-ap-ink">
+                  {onboardingData?.experienceLevel || "Not provided"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-ap-muted">Amount</dt>
+                <dd className="mt-1 font-medium text-ap-ink">{onboardingData?.amountRange || "Not provided"}</dd>
+              </div>
+              <div>
+                <dt className="text-ap-muted">Investor path</dt>
+                <dd className="mt-1 font-medium text-ap-ink">{isAccredited ? "Accredited" : "Non-accredited"}</dd>
+              </div>
+            </dl>
+            <Link
+              to="/invest-now"
+              className="mt-6 inline-flex items-center justify-center rounded-xl border border-ap-beige/80 bg-[#FCFAF7] px-5 py-3 text-sm font-medium text-ap-ink transition hover:border-ap-teal/40 hover:text-ap-teal"
+            >
+              Start again
+            </Link>
+          </aside>
         </div>
       </div>
     </div>

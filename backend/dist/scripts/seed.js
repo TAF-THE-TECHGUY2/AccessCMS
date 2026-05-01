@@ -39,8 +39,8 @@ const seedPages = async () => {
                         title: "Simple Real Estate Investing",
                         subtitle: "for Anyone, Anywhere",
                         badgeText: "Starting at just $100",
-                        primaryButton: { label: "HOW IT WORKS" },
-                        secondaryButton: { label: "INVEST NOW", href: "/invest-now" },
+                        primaryButton: { label: "INVEST NOW", href: "/invest-now" },
+                        secondaryButton: { label: "HOW IT WORKS" },
                     },
                 },
                 {
@@ -166,6 +166,7 @@ const seedPages = async () => {
                     data: {
                         title: "Testimonials",
                         subtitle: "What our early supporters and investors are saying.",
+                        disclosure: "Testimonials are provided by current investors. Investors were not compensated for these statements. These testimonials may not be representative of the experience of all investors and are not a guarantee of future performance or success. Some investors may have personal or prior business relationships with the sponsor.",
                         items: [
                             {
                                 quote: "I became an early investor in Access Properties because I had worked with the founder before and knew their track record firsthand. Their integrity and work ethic made investing an easy decision well before the platform launched, and I believed strongly in where the company was headed.",
@@ -246,8 +247,10 @@ const seedPages = async () => {
                                     "An investment advisor representative and Realtor, Dionysios brings over 15 years of experience in international development finance and investment banking, with a focus. Prior to founding Access Properties, he gained extensive experience investing in and exiting from real estate projects in the US and Europe. He holds a B.S. from Boston College and graduate degrees from the Sir John Cass Business School and the Fletcher School of Law and Diplomacy.",
                                 ],
                                 embeddedAudioSrc: "/audio/founder-story.mp3",
+                                interviewEyebrow: "Founder Interview",
                                 interviewTitle: "Hear the Founder's Story",
                                 interviewSubtitle: "Choose a short interview segment to jump directly to the topic that matters most.",
+                                interviewSelectLabel: "Choose A Segment",
                                 interviewSnippets: [
                                     {
                                         label: "Why Access Properties Exists",
@@ -331,6 +334,7 @@ const seedPages = async () => {
                     data: {
                         title: "Properties",
                         subtitle: "Explore the current properties in the Greater Boston portfolio.",
+                        autoScroll: false,
                         columns: ["Buy & Hold", "Buy, Renovate, Rent, and Refinance", "Fix & Flip"],
                         mapping: {
                             "Buy & Hold": {

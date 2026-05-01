@@ -3,24 +3,74 @@ import { Link } from "react-router-dom";
 import { X } from "lucide-react";
 import buildImg from "../assets/Build.png";
 
+const HOW_IT_WORKS_LABEL = "how it works";
+const INVEST_NOW_LABEL = "invest now";
+
+const normalizeLabel = (label = "") => label.trim().toLowerCase();
+const isExternalHref = (href = "") => /^https?:\/\//i.test(href);
+
 export default function HeroSection({
   title = "Simple Real Estate Investing",
   subtitle = "for Anyone, Anywhere",
   badgeText = "Starting at just $100",
   backgroundImage = buildImg,
   overlayOpacity = 0.55,
-  primaryButton = { label: "HOW IT WORKS", href: "" },
-  secondaryButton = { label: "INVEST NOW", href: "/invest-now" },
+  primaryButton = { label: "INVEST NOW", href: "/invest-now" },
+  secondaryButton = { label: "HOW IT WORKS", href: "" },
   videoUrl = "/videos/how-it-works.mp4",
 }) {
   const [showHowItWorksVideo, setShowHowItWorksVideo] = useState(false);
-const closeVideo = () => setShowHowItWorksVideo(false);
+  const closeVideo = () => setShowHowItWorksVideo(false);
   const isMp4 = videoUrl && videoUrl.toLowerCase().endsWith(".mp4");
-const Container = ({ children }) => (
-  <div className="mx-auto w-full max-w-6xl px-4 md:px-6">
-    {children}
-  </div>
-);
+  const Container = ({ children }) => <div className="mx-auto w-full max-w-6xl px-4 md:px-6">{children}</div>;
+  const orderedButtons = [primaryButton, secondaryButton]
+    .filter((button) => button?.label)
+    .sort((left, right) => {
+      const leftLabel = normalizeLabel(left.label);
+      const rightLabel = normalizeLabel(right.label);
+      const isKnownPair =
+        [leftLabel, rightLabel].includes(INVEST_NOW_LABEL) &&
+        [leftLabel, rightLabel].includes(HOW_IT_WORKS_LABEL);
+
+      if (!isKnownPair) return 0;
+      if (leftLabel === INVEST_NOW_LABEL) return -1;
+      if (rightLabel === INVEST_NOW_LABEL) return 1;
+      return 0;
+    });
+  const renderButton = (button, key) => {
+    if (!button?.label) return null;
+
+    const buttonClass =
+      "bg-gray-700 hover:bg-gray-800 text-white px-10 py-3 rounded-sm text-sm font-semibold tracking-wide transition-colors";
+    const isHowItWorksButton = normalizeLabel(button.label) === HOW_IT_WORKS_LABEL;
+
+    if (isHowItWorksButton && videoUrl) {
+      return (
+        <button
+          key={key}
+          onClick={() => (videoUrl ? setShowHowItWorksVideo(true) : null)}
+          className={buttonClass}
+          type="button"
+        >
+          {button.label}
+        </button>
+      );
+    }
+
+    if (isExternalHref(button.href)) {
+      return (
+        <a key={key} href={button.href} className={buttonClass}>
+          {button.label}
+        </a>
+      );
+    }
+
+    return (
+      <Link key={key} to={button.href || "/contact"} className={buttonClass}>
+        {button.label}
+      </Link>
+    );
+  };
 
   return (
     <>
@@ -62,26 +112,7 @@ const Container = ({ children }) => (
               className="mt-10 flex flex-wrap justify-center gap-6 animate-slideUp"
               style={{ animationDelay: "0.3s" }}
             >
-              {primaryButton?.label ? (
-                <button
-                  onClick={() => (videoUrl ? setShowHowItWorksVideo(true) : null)}
-                  className="bg-gray-700 hover:bg-gray-800 text-white px-10 py-3 rounded-sm text-sm font-semibold tracking-wide transition-colors"
-                  type="button"
-                >
-                  {primaryButton.label}
-                </button>
-              ) : null}
-
-              {secondaryButton?.label ? (
-                <Link to={secondaryButton.href || "/contact"}>
-                  <button
-                    className="bg-gray-700 hover:bg-gray-800 text-white px-10 py-3 rounded-sm text-sm font-semibold tracking-wide transition-colors"
-                    type="button"
-                  >
-                    {secondaryButton.label}
-                  </button>
-                </Link>
-              ) : null}
+              {orderedButtons.map((button, index) => renderButton(button, `hero-cta-${index}`))}
             </div>
           </Container>
         </div>

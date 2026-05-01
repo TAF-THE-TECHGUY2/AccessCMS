@@ -35,8 +35,8 @@ export const createSection = (type) => {
           subtitle: "Support the headline with a clear value statement.",
           backgroundImage: "",
           overlayOpacity: 0.35,
-          primaryButton: { label: "Get Started", href: "/invest-now" },
-          secondaryButton: { label: "Learn More", href: "/about" },
+          primaryButton: { label: "Invest Now", href: "/invest-now" },
+          secondaryButton: { label: "How It Works", href: "" },
         },
       };
     case "RICH_TEXT":

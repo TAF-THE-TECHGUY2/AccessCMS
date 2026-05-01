@@ -1,260 +1,642 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import clsx from "clsx";
+import AdvisorCard from "../components/onboarding/AdvisorCard.jsx";
+import FAQScreen from "../components/onboarding/FAQScreen.jsx";
+import OnboardingLayout from "../components/onboarding/OnboardingLayout.jsx";
+import OptionButton from "../components/onboarding/OptionButton.jsx";
+import PrimaryButton from "../components/onboarding/PrimaryButton.jsx";
+import StepCard from "../components/onboarding/StepCard.jsx";
+import { saveOnboardingDraft } from "../services/onboardingApi.js";
 
-const steps = [
-  { id: "amount", title: "Investment Amount" },
-  { id: "accredited", title: "Accreditation" },
-  { id: "goals", title: "Goals" },
-  { id: "result", title: "Result" },
+const onboardingSteps = [
+  { id: "welcome", label: "Welcome" },
+  { id: "services", label: "Services Overview" },
+  { id: "process", label: "Process Overview" },
+  { id: "explore", label: "Explore or Continue" },
+  { id: "profile", label: "Create Profile" },
+  { id: "experience", label: "Investment Experience" },
+  { id: "amount", label: "Investment Amount" },
+  { id: "fund", label: "Fund Overview" },
+  { id: "accreditation", label: "Accreditation" },
+  { id: "next", label: "Next Steps" },
+  { id: "final", label: "Final Confirmation" },
 ];
 
-const fade = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -12 },
+const experienceHelperText = {
+  experienced:
+    "Great. We'll keep the process concise while still highlighting the key information and next actions you'll want to review.",
+  new:
+    "No problem. We'll keep the process simple and explain each step clearly before you move forward.",
 };
 
-const TypingDots = () => (
-  <div className="flex gap-1" aria-hidden="true">
-    <span className="h-2 w-2 rounded-full bg-white/60 animate-bounce" />
-    <span className="h-2 w-2 rounded-full bg-white/60 animate-bounce [animation-delay:150ms]" />
-    <span className="h-2 w-2 rounded-full bg-white/60 animate-bounce [animation-delay:300ms]" />
-  </div>
-);
-
-const Confetti = () => {
-  const pieces = Array.from({ length: 18 });
-  return (
-    <div className="pointer-events-none fixed inset-0 overflow-hidden">
-      {pieces.map((_, index) => (
-        <span
-          key={index}
-          className="absolute top-0 h-3 w-3 rounded-full opacity-70 animate-[confetti_2.6s_ease-in-out_infinite]"
-          style={{
-            left: `${(index * 5 + 10) % 90}%`,
-            animationDelay: `${index * 0.12}s`,
-            backgroundColor: index % 2 ? "#b3a17a" : "#f4efe4",
-          }}
-        />
-      ))}
-    </div>
-  );
+const initialOnboardingData = {
+  profile: {
+    firstName: "",
+    lastName: "",
+    email: "",
+    mobilePhone: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    stateProvince: "",
+    zipPostalCode: "",
+    country: "",
+    receiveUpdates: true,
+  },
+  experienceLevel: "",
+  amountRange: "",
+  accreditationStatus: null,
+  exploreFirst: false,
+  viewedFootnotes: false,
+  faqHistory: [],
 };
+
+const inputClassName =
+  "min-h-[64px] w-full rounded-[18px] border border-ap-border bg-white px-5 py-4 text-base text-ap-ink shadow-sm outline-none transition placeholder:text-[#94a0ad] focus:border-ap-teal focus:shadow-[0_0_0_3px_rgba(47,111,115,0.08)]";
+
+const findStepIndex = (stepId) => onboardingSteps.findIndex((step) => step.id === stepId);
 
 export default function InvestNowWizard() {
-  const [stepIndex, setStepIndex] = useState(0);
-  const [amount, setAmount] = useState(100);
-  const [accredited, setAccredited] = useState(null);
-  const [criteria, setCriteria] = useState({});
-  const [goals, setGoals] = useState("");
-  const [showConfetti, setShowConfetti] = useState(false);
   const navigate = useNavigate();
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [onboardingData, setOnboardingData] = useState(initialOnboardingData);
+  const [showFootnotes, setShowFootnotes] = useState(false);
+  const [showAccreditationDetails, setShowAccreditationDetails] = useState(false);
+  const [faqMode, setFaqMode] = useState(false);
+  const [selectedFaqId, setSelectedFaqId] = useState("");
+  const finalLogDone = useRef(false);
 
-  const progress = ((stepIndex + 1) / steps.length) * 100;
-
-  const result = useMemo(() => {
-    const amt = Number(amount || 0);
-    const accreditedOk = accredited === true && amt >= 10000;
-    if (accreditedOk) {
-      return { track: "ACCREDITED", min: 10000 };
-    }
-    return { track: "CROWDFUNDER", min: 100 };
-  }, [amount, accredited]);
-
-  const next = () => {
-    if (stepIndex < steps.length - 1) setStepIndex((s) => s + 1);
-    if (stepIndex === steps.length - 2) setShowConfetti(true);
-  };
-
-  const back = () => setStepIndex((s) => Math.max(0, s - 1));
-
-  const canContinue = () => {
-    if (steps[stepIndex].id === "amount") return Number(amount) >= 100;
-    if (steps[stepIndex].id === "accredited") return accredited !== null;
-    return true;
-  };
+  const currentStep = onboardingSteps[currentStepIndex];
+  const firstName = onboardingData.profile.firstName.trim();
+  const isAccredited = onboardingData.accreditationStatus === "accredited";
 
   useEffect(() => {
-    sessionStorage.setItem("invest_gate", "true");
-  }, []);
+    saveOnboardingDraft(onboardingData).catch(() => {});
+  }, [onboardingData]);
 
-  const toggleCriteria = (key) => {
-    setCriteria((prev) => ({ ...prev, [key]: !prev[key] }));
+  useEffect(() => {
+    if (currentStep?.id === "final" && !finalLogDone.current) {
+      console.log("Access Properties onboardingData", onboardingData);
+      finalLogDone.current = true;
+    }
+  }, [currentStep, onboardingData]);
+
+  const aside = useMemo(
+    () => (
+      <div className="space-y-4">
+        <div className="rounded-[30px] border border-ap-border bg-white p-7 shadow-float">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-ap-muted">Current Offering</p>
+          <h3 className="mt-4 font-serif text-[2.1rem] leading-[1.08] text-[#2f3f44]">
+            Access Properties Real Estate Diversified Income Fund I
+          </h3>
+          <p className="mt-5 text-base leading-8 text-ap-muted">
+            A guided onboarding path for investors evaluating professionally managed real estate exposure.
+          </p>
+        </div>
+        <div className="rounded-[30px] border border-ap-border bg-white p-7 shadow-float">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-ap-muted">Helpful To Have Ready</p>
+          <ul className="mt-5 space-y-4 text-base leading-8 text-ap-muted">
+            <li>Your contact details</li>
+            <li>Your mailing address</li>
+            <li>A general sense of your target investment amount</li>
+          </ul>
+        </div>
+      </div>
+    ),
+    []
+  );
+
+  const goToStep = (stepId) => {
+    const nextIndex = findStepIndex(stepId);
+    if (nextIndex >= 0) setCurrentStepIndex(nextIndex);
   };
 
-  return (
-    <div className="min-h-screen bg-night text-white flex items-center justify-center px-4 py-10">
-      <div className="max-w-3xl w-full">
-        <div className="flex items-center justify-between text-sm uppercase tracking-[0.3em] text-white/60">
-          <span>Invest Now</span>
-          <span>{steps[stepIndex].title}</span>
-        </div>
+  const handleBack = () => {
+    if (faqMode) {
+      if (selectedFaqId) {
+        setSelectedFaqId("");
+        return;
+      }
+      setFaqMode(false);
+      return;
+    }
+    setCurrentStepIndex((prev) => Math.max(0, prev - 1));
+  };
 
-        <div className="mt-4 space-y-4">
-          <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
-            <div className="h-full bg-accent" style={{ width: `${progress}%` }} />
-          </div>
-          <div className="grid grid-cols-4 gap-2 text-xs text-white/60">
-            {steps.map((step, idx) => (
-              <div key={step.id} className="flex items-center gap-2">
-                <span
-                  className={clsx(
-                    "h-5 w-5 rounded-full flex items-center justify-center text-[10px]",
-                    idx <= stepIndex ? "bg-accent text-black" : "bg-white/10 text-white/50"
-                  )}
-                >
-                  {idx + 1}
-                </span>
-                <span className={clsx(idx <= stepIndex ? "text-white" : "text-white/50")}>{step.title}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+  const handleContinue = () => {
+    if (currentStepIndex < onboardingSteps.length - 1) {
+      setCurrentStepIndex((prev) => prev + 1);
+    }
+  };
 
-        <div className="mt-8 bg-white/5 border border-white/10 rounded-3xl p-6 md:p-10 shadow-xl">
-          <div className="flex items-center gap-3 text-white/70">
-            <TypingDots />
-            <span className="text-xs uppercase tracking-widest">Assistant</span>
-          </div>
+  const updateProfile = (field, value) => {
+    setOnboardingData((prev) => ({
+      ...prev,
+      profile: {
+        ...prev.profile,
+        [field]: value,
+      },
+    }));
+  };
 
-          <AnimatePresence mode="wait">
-            {steps[stepIndex].id === "amount" ? (
-              <motion.div key="amount" {...fade} className="mt-6 space-y-6">
-                <h1 className="text-3xl md:text-4xl font-semibold">How much are you planning to invest?</h1>
-                <div className="flex flex-col gap-3">
-                  <input
-                    type="number"
-                    aria-label="Investment amount"
-                    className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-lg"
-                    value={amount}
-                    min={100}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                  <p className="text-sm text-white/60">Minimum for Crowdfunders is $100.</p>
+  const setAnswer = (field, value) => {
+    setOnboardingData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const isProfileComplete = () => {
+    const profile = onboardingData.profile;
+    return [
+      profile.firstName,
+      profile.lastName,
+      profile.email,
+      profile.mobilePhone,
+      profile.addressLine1,
+      profile.city,
+      profile.stateProvince,
+      profile.zipPostalCode,
+      profile.country,
+    ].every((value) => String(value).trim().length > 0);
+  };
+
+  const canContinue = () => {
+    switch (currentStep.id) {
+      case "profile":
+        return isProfileComplete();
+      case "experience":
+        return Boolean(onboardingData.experienceLevel);
+      case "amount":
+        return Boolean(onboardingData.amountRange);
+      case "accreditation":
+        return onboardingData.accreditationStatus !== null;
+      default:
+        return true;
+    }
+  };
+
+  const handleExploreFirst = () => {
+    setFaqMode(true);
+    setSelectedFaqId("");
+    setAnswer("exploreFirst", true);
+  };
+
+  const handleSelectFaq = (faqId) => {
+    setSelectedFaqId(faqId);
+    setOnboardingData((prev) => ({
+      ...prev,
+      faqHistory: prev.faqHistory.includes(faqId) ? prev.faqHistory : [...prev.faqHistory, faqId],
+    }));
+  };
+
+  const nextStepsItems = isAccredited
+    ? [
+        "Complete identity verification",
+        "Receive funding instructions",
+        "Investment activated once funds are received",
+        "Access legal documents, performance metrics, and communications",
+      ]
+    : [
+        "Complete identity verification",
+        "Once approved, receive a link to the equity crowdfunding partner",
+        "Access legal documents, performance metrics, and communications",
+      ];
+
+  const renderFooter = ({ continueLabel = "Continue", onContinueClick } = {}) => (
+    <PrimaryButton disabled={!canContinue()} onClick={onContinueClick || handleContinue}>
+      {continueLabel}
+    </PrimaryButton>
+  );
+
+  const stepContent = (() => {
+    if (faqMode) {
+      return (
+        <FAQScreen
+          selectedFaqId={selectedFaqId}
+          onSelectFaq={handleSelectFaq}
+          onAskAnother={() => setSelectedFaqId("")}
+          onContinue={() => {
+            setFaqMode(false);
+            goToStep("profile");
+          }}
+        />
+      );
+    }
+
+    switch (currentStep.id) {
+      case "welcome":
+        return (
+          <section className="overflow-hidden rounded-[32px] border border-ap-border bg-white shadow-calm">
+            <div className="grid lg:grid-cols-[1.15fr_0.85fr]">
+              <div className="relative overflow-hidden bg-gradient-to-br from-[#fbf8f3] via-white to-[#e8ece8] px-8 py-10 sm:px-10 lg:px-12 lg:py-14">
+                <div className="absolute inset-0 opacity-70">
+                  <div className="absolute left-[-10%] top-[14%] h-[360px] w-[360px] rounded-full bg-white/60 blur-2xl" />
+                  <div className="absolute bottom-[-18%] left-[-6%] h-[220px] w-[120%] rotate-[-8deg] bg-[linear-gradient(135deg,rgba(216,200,184,0.18),rgba(255,255,255,0))]" />
+                  <div className="absolute bottom-0 left-0 h-[180px] w-full bg-[radial-gradient(circle_at_15%_70%,rgba(216,200,184,0.22),transparent_45%)]" />
                 </div>
-              </motion.div>
-            ) : null}
-
-            {steps[stepIndex].id === "accredited" ? (
-              <motion.div key="accredited" {...fade} className="mt-6 space-y-6">
-                <h1 className="text-3xl md:text-4xl font-semibold">Are you an accredited investor?</h1>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {[true, false].map((value) => (
-                    <button
-                      key={String(value)}
-                      className={clsx(
-                        "rounded-2xl border px-4 py-6 text-left transition",
-                        accredited === value
-                          ? "border-accent bg-accent/10"
-                          : "border-white/10 hover:border-white/30"
-                      )}
-                      onClick={() => setAccredited(value)}
-                    >
-                      <div className="text-lg font-semibold">{value ? "Yes" : "No"}</div>
-                      <p className="text-sm text-white/70 mt-1">
-                        {value
-                          ? "I meet accreditation criteria."
-                          : "I want to invest via crowdfunding."}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-                {accredited ? (
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
-                    <p className="text-sm text-white/70">Select any that apply (for guidance only):</p>
+                <div className="relative">
+                  <p className="text-xs font-semibold uppercase tracking-[0.42em] text-ap-muted">Access Properties</p>
+                  <h1 className="mt-6 max-w-md font-serif text-4xl leading-[1.04] text-[#2f3f44] sm:text-5xl">
+                    Invest with Access Properties
+                  </h1>
+                  <div className="mt-8 h-px w-36 bg-ap-border" />
+                  <ul className="mt-8 space-y-5 text-base leading-8 text-ap-ink">
                     {[
-                      { key: "income", label: "Income over $200K (or $300K with spouse)" },
-                      { key: "netWorth", label: "Net worth over $1M (excluding primary residence)" },
-                      { key: "license", label: "Hold a Series 7/65/82 license" },
+                      "Institutional-Grade Opportunities",
+                      "Low Minimums to Start",
+                      "Expert Guidance Along the Way",
                     ].map((item) => (
-                      <label key={item.key} className="flex items-center gap-2 text-sm text-white/80">
-                        <input
-                          type="checkbox"
-                          className="accent-accent"
-                          checked={Boolean(criteria[item.key])}
-                          onChange={() => toggleCriteria(item.key)}
-                        />
-                        {item.label}
-                      </label>
+                      <li key={item} className="flex items-start gap-3">
+                        <span className="mt-3 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-ap-teal" />
+                        <span>{item}</span>
+                      </li>
                     ))}
-                  </div>
-                ) : null}
-              </motion.div>
-            ) : null}
+                  </ul>
+                </div>
+              </div>
 
-            {steps[stepIndex].id === "goals" ? (
-              <motion.div key="goals" {...fade} className="mt-6 space-y-6">
-                <h1 className="text-3xl md:text-4xl font-semibold">What are your goals?</h1>
-                <textarea
-                  className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-lg min-h-[140px]"
-                  placeholder="Optional: income, growth, timeline..."
-                  value={goals}
-                  onChange={(e) => setGoals(e.target.value)}
-                />
-                <p className="text-sm text-white/60">This does not affect eligibility.</p>
-              </motion.div>
-            ) : null}
-
-            {steps[stepIndex].id === "result" ? (
-              <motion.div key="result" {...fade} className="mt-6 space-y-6">
-                <h1 className="text-3xl md:text-4xl font-semibold">You qualify for</h1>
-                <div className="rounded-2xl border border-accent bg-accent/10 p-5">
-                  <div className="flex items-center gap-3 text-2xl font-semibold">
-                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent text-black">
-                      ✓
-                    </span>
-                    {result.track} Track
+              <div className="border-t border-ap-border bg-ap-panel px-6 py-8 sm:px-8 lg:border-l lg:border-t-0 lg:px-10 lg:py-10">
+                <div className="mb-8 flex items-center justify-between">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-ap-muted">Your Access Advisor</p>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-ap-teal/40" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-ap-teal" />
                   </div>
-                  <p className="text-sm text-white/70 mt-2">
-                    Minimum investment: ${result.min.toLocaleString()}
+                </div>
+                <AdvisorCard />
+                <div className="mt-6 rounded-[24px] border border-ap-border bg-white px-5 py-6 shadow-sm">
+                  <p className="font-serif text-2xl text-[#2f3f44]">Welcome.</p>
+                  <p className="mt-3 text-base leading-7 text-ap-muted">
+                    Let’s find the right investment path for you in a calm, guided flow that keeps each step clear.
                   </p>
-                  {accredited && result.track === "CROWDFUNDER" ? (
-                    <p className="text-sm text-white/60 mt-2">
-                      Your amount is below $10,000, so we&apos;ll continue with the Crowdfunder flow.
-                    </p>
-                  ) : null}
                 </div>
-                <div className="flex flex-col md:flex-row gap-3">
-                  <button
-                    className="bg-white text-black px-6 py-3 rounded-xl font-semibold"
-                    onClick={() => navigate("/auth", { state: { mode: "register", amount, track: result.track } })}
-                  >
-                    Sign up
-                  </button>
-                  <button
-                    className="border border-white/30 px-6 py-3 rounded-xl font-semibold"
-                    onClick={() => navigate("/auth", { state: { mode: "login" } })}
-                  >
-                    Sign in
-                  </button>
+                <div className="mt-6 flex justify-end">
+                  <PrimaryButton className="w-full sm:w-auto" onClick={handleContinue}>
+                    Continue
+                  </PrimaryButton>
                 </div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-
-          <div className="mt-8 flex items-center justify-between">
-            <button className="text-white/60 hover:text-white" onClick={back} disabled={stepIndex === 0}>
-              Back
-            </button>
-            {steps[stepIndex].id !== "result" ? (
+              </div>
+            </div>
+          </section>
+        );
+      case "services":
+        return (
+          <StepCard
+            eyebrow="What To Expect"
+            title="Here’s how I can help"
+            className="mx-auto max-w-4xl"
+            footer={renderFooter()}
+          >
+            <p className="text-base leading-7 text-ap-muted">I can help you:</p>
+            <ul className="space-y-3 text-base leading-7 text-ap-ink">
+              <li>Understand how Access Properties works</li>
+              <li>Choose the right investment approach</li>
+              <li>Complete onboarding and verification</li>
+            </ul>
+          </StepCard>
+        );
+      case "process":
+        return (
+          <StepCard
+            eyebrow="Process Overview"
+            title="Before we begin, here’s a quick overview of the onboarding process"
+            className="mx-auto max-w-4xl"
+          >
+            <ol className="grid gap-3">
+              {[
+                "Create your profile",
+                "Confirm eligibility",
+                "Review your investment",
+                "Complete your pending Investor Dashboard",
+                "Finalize your investment",
+                "Access your active Investment Dashboard",
+              ].map((item, index) => (
+                <li key={item} className="flex items-start gap-4 rounded-2xl border border-ap-beige/60 bg-[#FCFAF7] px-4 py-4">
+                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-ap-teal text-sm font-semibold text-white">
+                    {index + 1}
+                  </span>
+                  <span className="pt-1 text-sm leading-6 text-ap-ink">{item}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="flex flex-wrap gap-3">
+              <PrimaryButton onClick={handleContinue}>Continue</PrimaryButton>
               <button
-                className={clsx(
-                  "px-6 py-3 rounded-xl font-semibold",
-                  canContinue() ? "bg-white text-black" : "bg-white/20 text-white/50 cursor-not-allowed"
-                )}
-                onClick={next}
-                disabled={!canContinue()}
+                type="button"
+                onClick={() => {
+                  setShowFootnotes((prev) => !prev);
+                  setAnswer("viewedFootnotes", true);
+                }}
+                className="text-sm font-medium text-ap-teal underline underline-offset-4"
               >
-                Continue
+                View footnotes
               </button>
+            </div>
+            {showFootnotes ? (
+              <div className="rounded-[24px] border border-ap-beige/70 bg-white px-5 py-6 text-sm leading-7 text-ap-muted shadow-sm">
+                Access Properties onboarding is informational only and does not itself create an investment commitment.
+                Eligibility, disclosures, funding instructions, and final execution are subject to the applicable offering
+                documents and compliance review.
+              </div>
             ) : null}
-          </div>
-        </div>
+          </StepCard>
+        );
+      case "explore":
+        return (
+          <StepCard eyebrow="Quick Decision" title="Would you like to keep going or explore first?" className="mx-auto max-w-4xl">
+            <p className="text-base leading-7 text-ap-muted">This takes about 2–3 minutes.</p>
+            <div className="flex flex-wrap gap-3">
+              <PrimaryButton onClick={handleContinue}>Continue</PrimaryButton>
+              <button
+                type="button"
+                onClick={handleExploreFirst}
+                className="inline-flex items-center justify-center rounded-xl border border-ap-beige/80 bg-white px-5 py-3 text-sm font-medium text-ap-ink transition hover:border-ap-teal/40 hover:text-ap-teal"
+              >
+                I would like to explore first
+              </button>
+            </div>
+          </StepCard>
+        );
+      case "profile":
+        return (
+          <StepCard
+            eyebrow="Profile"
+            title="Create your investor profile"
+            description="We’ll use this information later for verification, communications, and your dashboard setup."
+            footer={renderFooter()}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <input
+                className={inputClassName}
+                placeholder="First name"
+                value={onboardingData.profile.firstName}
+                onChange={(event) => updateProfile("firstName", event.target.value)}
+              />
+              <input
+                className={inputClassName}
+                placeholder="Last name"
+                value={onboardingData.profile.lastName}
+                onChange={(event) => updateProfile("lastName", event.target.value)}
+              />
+              <input
+                className={inputClassName}
+                type="email"
+                placeholder="Email"
+                value={onboardingData.profile.email}
+                onChange={(event) => updateProfile("email", event.target.value)}
+              />
+              <input
+                className={inputClassName}
+                placeholder="Mobile phone"
+                value={onboardingData.profile.mobilePhone}
+                onChange={(event) => updateProfile("mobilePhone", event.target.value)}
+              />
+              <div className="sm:col-span-2">
+                <input
+                  className={inputClassName}
+                  placeholder="Address line 1"
+                  value={onboardingData.profile.addressLine1}
+                  onChange={(event) => updateProfile("addressLine1", event.target.value)}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <input
+                  className={inputClassName}
+                  placeholder="Address line 2"
+                  value={onboardingData.profile.addressLine2}
+                  onChange={(event) => updateProfile("addressLine2", event.target.value)}
+                />
+              </div>
+              <input
+                className={inputClassName}
+                placeholder="City"
+                value={onboardingData.profile.city}
+                onChange={(event) => updateProfile("city", event.target.value)}
+              />
+              <input
+                className={inputClassName}
+                placeholder="State / Province"
+                value={onboardingData.profile.stateProvince}
+                onChange={(event) => updateProfile("stateProvince", event.target.value)}
+              />
+              <input
+                className={inputClassName}
+                placeholder="Zip / Postal code"
+                value={onboardingData.profile.zipPostalCode}
+                onChange={(event) => updateProfile("zipPostalCode", event.target.value)}
+              />
+              <input
+                className={inputClassName}
+                placeholder="Country"
+                value={onboardingData.profile.country}
+                onChange={(event) => updateProfile("country", event.target.value)}
+              />
+            </div>
+            <label className="flex items-start gap-3 rounded-[22px] border border-ap-border bg-ap-panel px-5 py-5 text-base leading-7 text-ap-muted">
+              <input
+                type="checkbox"
+                className="mt-1 h-5 w-5 rounded accent-[#2F6F73]"
+                checked={onboardingData.profile.receiveUpdates}
+                onChange={(event) => updateProfile("receiveUpdates", event.target.checked)}
+              />
+              <span>Receive updates from Access Properties</span>
+            </label>
+          </StepCard>
+        );
+      case "experience":
+        return (
+          <StepCard
+            eyebrow="Experience"
+            title="Have you invested in real estate or private investments before?"
+            className="mx-auto max-w-4xl"
+            footer={renderFooter()}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <OptionButton
+                title="Yes, I have"
+                description="You have prior experience with real estate or private market investing."
+                selected={onboardingData.experienceLevel === "experienced"}
+                onClick={() => setAnswer("experienceLevel", "experienced")}
+              />
+              <OptionButton
+                title="No, I’m new"
+                description="You’re exploring this type of investment for the first time."
+                selected={onboardingData.experienceLevel === "new"}
+                onClick={() => setAnswer("experienceLevel", "new")}
+              />
+            </div>
+            {onboardingData.experienceLevel ? (
+              <div className="rounded-[22px] border border-ap-border bg-ap-panel px-5 py-5 text-base leading-7 text-ap-muted">
+                {experienceHelperText[onboardingData.experienceLevel]}
+              </div>
+            ) : null}
+          </StepCard>
+        );
+      case "amount":
+        return (
+          <StepCard
+            eyebrow="Investment Amount"
+            title="What amount are you considering?"
+            className="mx-auto max-w-4xl"
+            footer={renderFooter()}
+          >
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                "$10K - $25K",
+                "$25K - $50K",
+                "$50K+",
+              ].map((option) => (
+                <OptionButton
+                  key={option}
+                  title={option}
+                  centered
+                  className="min-h-[68px]"
+                  selected={onboardingData.amountRange === option}
+                  onClick={() => setAnswer("amountRange", option)}
+                />
+              ))}
+            </div>
+          </StepCard>
+        );
+      case "fund":
+        return (
+          <StepCard
+            eyebrow="Fund Overview"
+            title="Here’s how investing with Access Properties works"
+            className="mx-auto max-w-4xl"
+            footer={renderFooter()}
+          >
+            <ul className="space-y-3 text-sm leading-7 text-ap-ink">
+              <li>You invest into a real estate fund</li>
+              <li>Capital is pooled with other investors</li>
+              <li>Investments follow a defined strategy</li>
+              <li>You receive a percentage ownership interest</li>
+            </ul>
+            <div className="rounded-[24px] border border-ap-border bg-ap-panel px-5 py-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-ap-muted">Current offering</p>
+              <h3 className="mt-3 font-serif text-2xl text-ap-ink">
+                Access Properties Real Estate Diversified Income Fund I
+              </h3>
+            </div>
+          </StepCard>
+        );
+      case "accreditation":
+        return (
+          <StepCard
+            eyebrow="Accreditation"
+            title="Do you meet at least one SEC accredited investor criterion?"
+            className="mx-auto max-w-4xl"
+            footer={renderFooter()}
+          >
+            <div className="rounded-[24px] border border-ap-border bg-ap-panel px-5 py-6 text-base leading-8 text-ap-muted">
+              <p>Annual income over $200,000 or $300,000 with spouse, OR</p>
+              <p>Net worth over $1 million excluding primary home</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <OptionButton
+                title="Yes, I am accredited"
+                centered
+                className="min-h-[68px]"
+                selected={onboardingData.accreditationStatus === "accredited"}
+                onClick={() => setAnswer("accreditationStatus", "accredited")}
+              />
+              <OptionButton
+                title="No, not yet"
+                centered
+                className="min-h-[68px]"
+                selected={onboardingData.accreditationStatus === "non-accredited"}
+                onClick={() => setAnswer("accreditationStatus", "non-accredited")}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAccreditationDetails((prev) => !prev)}
+              className="text-sm font-medium text-ap-teal underline underline-offset-4"
+            >
+              View accreditation details
+            </button>
+            {showAccreditationDetails ? (
+              <div className="rounded-[22px] border border-ap-border bg-white px-5 py-5 text-base leading-7 text-ap-muted shadow-sm">
+                Accredited investor status can depend on income, net worth, licenses, entity structure, or other
+                qualifying criteria under applicable SEC rules. Final eligibility should always be confirmed through the
+                official verification process and offering materials.
+              </div>
+            ) : null}
+            {onboardingData.accreditationStatus === "accredited" ? (
+              <div className="rounded-[22px] border border-ap-teal/20 bg-ap-teal/5 px-5 py-5 text-base leading-7 text-ap-muted">
+                You’ll be able to invest directly through Access Properties after onboarding is complete.
+              </div>
+            ) : null}
+            {onboardingData.accreditationStatus === "non-accredited" ? (
+              <div className="rounded-[22px] border border-ap-border bg-ap-panel px-5 py-5 text-base leading-7 text-ap-muted">
+                You’ll complete your onboarding here, and then be guided to our equity crowdfunding partner to finalize
+                your investment.
+              </div>
+            ) : null}
+          </StepCard>
+        );
+      case "next":
+        return (
+          <StepCard
+            eyebrow="Next Steps"
+            title={isAccredited ? "Your pending Investor Dashboard is the next stop" : "Here’s what happens next"}
+            className="mx-auto max-w-4xl"
+            footer={renderFooter()}
+          >
+            <div className="grid gap-3">
+              {nextStepsItems.map((item, index) => (
+                <div key={item} className="flex items-start gap-4 rounded-[22px] border border-ap-border bg-ap-panel px-5 py-5">
+                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-ap-teal text-sm font-semibold text-white">
+                    {index + 1}
+                  </span>
+                  <span className="pt-1 text-base leading-7 text-ap-ink">{item}</span>
+                </div>
+              ))}
+            </div>
+          </StepCard>
+        );
+      case "final":
+        return (
+          <StepCard
+            eyebrow="Confirmation"
+            title={`You’re all set${firstName ? `, ${firstName}` : ""}.`}
+            description="Please check your email for your Access Properties welcome letter, with important details to help you get started."
+            className="mx-auto max-w-4xl"
+            footer={
+              <PrimaryButton
+                onClick={() =>
+                  navigate("/dashboard", {
+                    state: {
+                      onboardingData,
+                    },
+                  })
+                }
+              >
+                Go to Investor Dashboard
+              </PrimaryButton>
+            }
+          >
+            <div className="rounded-[24px] border border-ap-border bg-ap-panel px-5 py-6 text-base leading-8 text-ap-muted">
+              We’ve saved your responses locally for this prototype. The next version can connect this flow directly to
+              Laravel endpoints for profile creation, verification, and dashboard activation.
+            </div>
+          </StepCard>
+        );
+      default:
+        return null;
+    }
+  })();
 
-        {showConfetti ? <Confetti /> : null}
-      </div>
-    </div>
+  return (
+    <OnboardingLayout
+      currentStep={faqMode ? findStepIndex("explore") : currentStepIndex}
+      steps={onboardingSteps}
+      showBack={currentStepIndex > 0 || faqMode}
+      onBack={handleBack}
+      aside={!faqMode && currentStepIndex >= findStepIndex("profile") ? aside : null}
+    >
+      {stepContent}
+    </OnboardingLayout>
   );
 }

@@ -40,8 +40,8 @@ const seedPages = async () => {
             title: "Simple Real Estate Investing",
             subtitle: "for Anyone, Anywhere",
             badgeText: "Starting at just $100",
-            primaryButton: { label: "HOW IT WORKS" },
-            secondaryButton: { label: "INVEST NOW", href: "/invest-now" },
+            primaryButton: { label: "INVEST NOW", href: "/invest-now" },
+            secondaryButton: { label: "HOW IT WORKS" },
           },
         },
         {

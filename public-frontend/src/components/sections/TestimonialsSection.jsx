@@ -18,7 +18,7 @@ export default function TestimonialsSection({ data }) {
   const items = data?.items || [];
   const disclosure = data?.disclosure || DEFAULT_TESTIMONIAL_DISCLOSURE;
   return (
-    <div className="bg-gray-50 py-16 md:py-20">
+    <div className="bg-white py-16 md:py-20">
       {data?.title ? <SectionTitle title={data.title} sub={data.subtitle} /> : null}
       <div className="max-w-4xl mx-auto px-4 mt-10">
         <div className="grid md:grid-cols-2 gap-6">

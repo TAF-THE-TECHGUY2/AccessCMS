@@ -40,18 +40,21 @@ export default function PageRenderer({ slug }) {
   }
 
   const sections = page.sections || [];
-  const testimonialsIndex =
+  const homeIntroSectionIndex =
     slug === "home"
-      ? sections.findIndex((section) => section?.type === "TESTIMONIALS")
+      ? sections.findIndex(
+          (section) =>
+            section?.type === "ICON_ACCORDION_GRID"
+        )
       : -1;
 
   return (
     <>
-      {slug === "home" && testimonialsIndex >= 0 ? (
+      {slug === "home" && homeIntroSectionIndex >= 0 ? (
         <>
-          <SectionRenderer sections={sections.slice(0, testimonialsIndex + 1)} />
+          <SectionRenderer sections={sections.slice(0, homeIntroSectionIndex + 1)} />
           <NewsletterSignup />
-          <SectionRenderer sections={sections.slice(testimonialsIndex + 1)} />
+          <SectionRenderer sections={sections.slice(homeIntroSectionIndex + 1)} />
         </>
       ) : (
         <>
