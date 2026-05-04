@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api, API_BASE_URL } from "../../api.js";
 
 const PROPERTY_IMAGE_FALLBACK = "/properties/origin.jpg";
@@ -28,16 +28,16 @@ const getVisibleCardCount = (cards, track) => {
   return Math.max(1, Math.round(track.clientWidth / step));
 };
 
-const getCurrentStartIndex = (cards, track) => {
-  if (!track || cards.length === 0) return 0;
-  const tolerance = 8;
-  let currentIndex = 0;
-  for (let index = 0; index < cards.length; index += 1) {
-    if (cards[index].offsetLeft <= track.scrollLeft + tolerance) {
-      currentIndex = index;
-    }
-  }
-  return currentIndex;
+const getMaxStartIndex = (cards, visibleCount) => Math.max(0, cards.length - visibleCount);
+
+const getNearestCardIndex = (cards, scrollLeft) => {
+  if (cards.length === 0) return 0;
+
+  return cards.reduce((nearestIndex, card, index) => {
+    const nearestDistance = Math.abs(cards[nearestIndex].offsetLeft - scrollLeft);
+    const currentDistance = Math.abs(card.offsetLeft - scrollLeft);
+    return currentDistance < nearestDistance ? index : nearestIndex;
+  }, 0);
 };
 
 const PropertyCard = ({ p }) => {
@@ -104,11 +104,17 @@ const PropertyCard = ({ p }) => {
 export default function PropertyColumnsSection({ data }) {
   const [properties, setProperties] = useState([]);
   const [hasOverflow, setHasOverflow] = useState(false);
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(false);
   const [activePropertyIndexes, setActivePropertyIndexes] = useState({});
+  const [currentStartIndex, setCurrentStartIndex] = useState(0);
+  const [visibleCardCount, setVisibleCardCount] = useState(1);
+  const [maxStartIndex, setMaxStartIndex] = useState(0);
   const trackRef = useRef(null);
   const autoplayPausedRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
+  const scrollSyncTimeoutRef = useRef(null);
+  const programmaticScrollTimeoutRef = useRef(null);
+  const lastNavigationAtRef = useRef(0);
+  const useInstantScrollRef = useRef(false);
   const autoScrollEnabled = data?.autoScroll === true || data?.autoScroll === "true";
 
   const normalizeColumnProperties = (entry, itemIndex) => {
@@ -214,53 +220,119 @@ export default function PropertyColumnsSection({ data }) {
     };
   };
 
+  const updateCarouselMetrics = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const cards = getTrackCards(track);
+    if (!cards.length) {
+      setHasOverflow(false);
+      setVisibleCardCount(1);
+      setMaxStartIndex(0);
+      setCurrentStartIndex(0);
+      return;
+    }
+
+    const nextVisibleCount = getVisibleCardCount(cards, track);
+    const nextMaxStartIndex = getMaxStartIndex(cards, nextVisibleCount);
+    setVisibleCardCount(nextVisibleCount);
+    setMaxStartIndex(nextMaxStartIndex);
+    setHasOverflow(nextMaxStartIndex > 0);
+    setCurrentStartIndex((current) => Math.min(current, nextMaxStartIndex));
+  }, []);
+
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return undefined;
 
-    const updateScrollState = () => {
-      const maxScrollLeft = track.scrollWidth - track.clientWidth;
-      const overflow = maxScrollLeft > 8;
-      setHasOverflow(overflow);
-      setCanScrollPrev(track.scrollLeft > 8);
-      setCanScrollNext(track.scrollLeft < maxScrollLeft - 8);
-    };
+    updateCarouselMetrics();
 
-    updateScrollState();
-    track.addEventListener("scroll", updateScrollState, { passive: true });
-    window.addEventListener("resize", updateScrollState);
+    const resizeObserver = new ResizeObserver(() => {
+      updateCarouselMetrics();
+    });
+
+    resizeObserver.observe(track);
+    getTrackCards(track).forEach((card) => resizeObserver.observe(card));
+    window.addEventListener("resize", updateCarouselMetrics);
 
     return () => {
-      track.removeEventListener("scroll", updateScrollState);
-      window.removeEventListener("resize", updateScrollState);
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateCarouselMetrics);
     };
-  }, [items.length, properties.length]);
+  }, [items.length, properties.length, updateCarouselMetrics]);
 
-  const scrollTrack = useCallback((direction, options = {}) => {
+  useEffect(() => {
+    setCurrentStartIndex(0);
+  }, [items.length]);
+
+  useLayoutEffect(() => {
     const track = trackRef.current;
     if (!track) return;
+
     const cards = getTrackCards(track);
     if (!cards.length) return;
 
-    const { wrap = false } = options;
-    const visibleCount = getVisibleCardCount(cards, track);
-    const maxStartIndex = Math.max(0, cards.length - visibleCount);
-    const currentIndex = Math.min(getCurrentStartIndex(cards, track), maxStartIndex);
-    let targetIndex;
+    const targetCard = cards[Math.min(currentStartIndex, cards.length - 1)];
+    if (!targetCard) return;
 
-    if (direction > 0) {
-      const nextIndex = currentIndex + visibleCount;
-      targetIndex = wrap ? (nextIndex <= maxStartIndex ? nextIndex : 0) : Math.min(nextIndex, maxStartIndex);
-    } else {
-      const previousIndex = currentIndex - visibleCount;
-      targetIndex = wrap ? (previousIndex >= 0 ? previousIndex : maxStartIndex) : Math.max(previousIndex, 0);
-    }
-
+    isProgrammaticScrollRef.current = true;
+    window.clearTimeout(programmaticScrollTimeoutRef.current);
     track.scrollTo({
-      left: Math.min(cards[targetIndex].offsetLeft, Math.max(0, track.scrollWidth - track.clientWidth)),
-      behavior: "smooth",
+      left: Math.min(targetCard.offsetLeft, Math.max(0, track.scrollWidth - track.clientWidth)),
+      behavior: useInstantScrollRef.current ? "auto" : "smooth",
     });
-  }, []);
+
+    programmaticScrollTimeoutRef.current = window.setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+      useInstantScrollRef.current = false;
+    }, useInstantScrollRef.current ? 60 : 260);
+  }, [currentStartIndex, maxStartIndex]);
+
+  const scrollTrack = useCallback((direction, options = {}) => {
+    const { wrap = false } = options;
+    const now = window.performance?.now?.() ?? Date.now();
+    useInstantScrollRef.current = now - lastNavigationAtRef.current < 220;
+    lastNavigationAtRef.current = now;
+
+    setCurrentStartIndex((current) => {
+      const nextIndex = current + direction;
+
+      if (wrap) {
+        if (nextIndex > maxStartIndex) return 0;
+        if (nextIndex < 0) return maxStartIndex;
+      }
+
+      return Math.min(Math.max(nextIndex, 0), maxStartIndex);
+    });
+  }, [maxStartIndex]);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return undefined;
+
+    const syncIndexFromScroll = () => {
+      if (isProgrammaticScrollRef.current) return;
+
+      const cards = getTrackCards(track);
+      if (!cards.length) return;
+
+      const nearestIndex = getNearestCardIndex(cards, track.scrollLeft);
+      const clampedIndex = Math.min(nearestIndex, getMaxStartIndex(cards, visibleCardCount));
+      setCurrentStartIndex((current) => (current === clampedIndex ? current : clampedIndex));
+    };
+
+    const handleScroll = () => {
+      window.clearTimeout(scrollSyncTimeoutRef.current);
+      scrollSyncTimeoutRef.current = window.setTimeout(syncIndexFromScroll, 140);
+    };
+
+    track.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      track.removeEventListener("scroll", handleScroll);
+      window.clearTimeout(scrollSyncTimeoutRef.current);
+    };
+  }, [visibleCardCount]);
 
   const changeColumnProperty = (itemId, propertyCount, direction) => {
     if (propertyCount <= 1) return;
@@ -287,6 +359,17 @@ export default function PropertyColumnsSection({ data }) {
     };
   }, [autoScrollEnabled, hasOverflow, items.length, scrollTrack]);
 
+  useEffect(
+    () => () => {
+      window.clearTimeout(scrollSyncTimeoutRef.current);
+      window.clearTimeout(programmaticScrollTimeoutRef.current);
+    },
+    []
+  );
+
+  const canScrollPrev = currentStartIndex > 0;
+  const canScrollNext = currentStartIndex < maxStartIndex;
+
   return (
     <section className="py-16 bg-gray-50">
       <div className="max-w-6xl mx-auto px-4">
@@ -303,6 +386,12 @@ export default function PropertyColumnsSection({ data }) {
           autoplayPausedRef.current = true;
         }}
         onMouseLeave={() => {
+          autoplayPausedRef.current = false;
+        }}
+        onTouchStart={() => {
+          autoplayPausedRef.current = true;
+        }}
+        onTouchEnd={() => {
           autoplayPausedRef.current = false;
         }}
       >

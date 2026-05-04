@@ -3,6 +3,38 @@ import SectionRenderer from "../components/SectionRenderer.jsx";
 import NewsletterSignup from "../components/NewsletterSignup.jsx";
 import { api } from "../api.js";
 
+const normalizeText = (value = "") =>
+  String(value)
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
+const homeNewsletterAnchorMatchers = [
+  "who we are",
+  "access properties is a real estate investment manager focused on expanding access to professionally managed real estate through a simple, transparent platform.",
+];
+
+const isHomeNewsletterAnchor = (section) => {
+  const data = section?.data || {};
+  const textCandidates = [
+    data.title,
+    data.subtitle,
+    data.heading,
+    data.body,
+    data.bodyHtml,
+    data.heroTitle,
+    data.heroSubtitle,
+    data.introText,
+  ]
+    .map(normalizeText)
+    .filter(Boolean);
+
+  return homeNewsletterAnchorMatchers.some((matcher) =>
+    textCandidates.some((candidate) => candidate.includes(matcher))
+  );
+};
+
 export default function PageRenderer({ slug }) {
   const [page, setPage] = useState(null);
   const [error, setError] = useState("");
@@ -43,8 +75,7 @@ export default function PageRenderer({ slug }) {
   const homeIntroSectionIndex =
     slug === "home"
       ? sections.findIndex(
-          (section) =>
-            section?.type === "ICON_ACCORDION_GRID"
+          (section) => isHomeNewsletterAnchor(section)
         )
       : -1;
 
