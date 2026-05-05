@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { api, API_BASE_URL } from "../../api.js";
 
 const PROPERTY_IMAGE_FALLBACK = "/properties/origin.jpg";
@@ -10,34 +10,10 @@ const resolveUrl = (url) => {
   return url;
 };
 
-const getTrackCards = (track) => {
-  if (!track) return [];
-  return Array.from(track.children);
-};
-
-const getCardStep = (cards) => {
-  if (cards.length >= 2) {
-    return cards[1].offsetLeft - cards[0].offsetLeft;
-  }
-  return cards[0]?.getBoundingClientRect().width || 0;
-};
-
-const getVisibleCardCount = (cards, track) => {
-  if (!track || cards.length === 0) return 1;
-  const step = getCardStep(cards) || track.clientWidth;
-  return Math.max(1, Math.round(track.clientWidth / step));
-};
-
-const getCurrentStartIndex = (cards, track) => {
-  if (!track || cards.length === 0) return 0;
-  const tolerance = 8;
-  let currentIndex = 0;
-  for (let index = 0; index < cards.length; index += 1) {
-    if (cards[index].offsetLeft <= track.scrollLeft + tolerance) {
-      currentIndex = index;
-    }
-  }
-  return currentIndex;
+const getCardsPerPage = (width) => {
+  if (width >= 1280) return 3;
+  if (width >= 768) return 2;
+  return 1;
 };
 
 const PropertyCard = ({ p }) => {
@@ -103,12 +79,11 @@ const PropertyCard = ({ p }) => {
 
 export default function PropertyColumnsSection({ data }) {
   const [properties, setProperties] = useState([]);
-  const [hasOverflow, setHasOverflow] = useState(false);
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(false);
   const [activePropertyIndexes, setActivePropertyIndexes] = useState({});
-  const trackRef = useRef(null);
-  const autoplayPausedRef = useRef(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [cardsPerPage, setCardsPerPage] = useState(() =>
+    typeof window === "undefined" ? 3 : getCardsPerPage(window.innerWidth)
+  );
   const autoScrollEnabled = data?.autoScroll === true || data?.autoScroll === "true";
 
   const normalizeColumnProperties = (entry, itemIndex) => {
@@ -186,6 +161,13 @@ export default function PropertyColumnsSection({ data }) {
       ],
     }));
   const items = configuredItems.length > 0 ? [...configuredItems, ...autoIncludedItems] : autoIncludedItems;
+  const totalPages = Math.max(1, Math.ceil(items.length / cardsPerPage));
+  const paginatedItems = useMemo(
+    () => items.slice(currentPage * cardsPerPage, (currentPage + 1) * cardsPerPage),
+    [items, currentPage, cardsPerPage]
+  );
+  const canGoPrev = currentPage > 0;
+  const canGoNext = currentPage < totalPages - 1;
 
   const mapProperty = (entry) => {
     const slug = typeof entry === "string" ? entry : entry?.slug;
@@ -215,52 +197,25 @@ export default function PropertyColumnsSection({ data }) {
   };
 
   useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return undefined;
-
-    const updateScrollState = () => {
-      const maxScrollLeft = track.scrollWidth - track.clientWidth;
-      const overflow = maxScrollLeft > 8;
-      setHasOverflow(overflow);
-      setCanScrollPrev(track.scrollLeft > 8);
-      setCanScrollNext(track.scrollLeft < maxScrollLeft - 8);
+    const updateCardsPerPage = () => {
+      setCardsPerPage(getCardsPerPage(window.innerWidth));
     };
 
-    updateScrollState();
-    track.addEventListener("scroll", updateScrollState, { passive: true });
-    window.addEventListener("resize", updateScrollState);
+    updateCardsPerPage();
+    window.addEventListener("resize", updateCardsPerPage);
 
     return () => {
-      track.removeEventListener("scroll", updateScrollState);
-      window.removeEventListener("resize", updateScrollState);
+      window.removeEventListener("resize", updateCardsPerPage);
     };
-  }, [items.length, properties.length]);
-
-  const scrollTrack = useCallback((direction, options = {}) => {
-    const track = trackRef.current;
-    if (!track) return;
-    const cards = getTrackCards(track);
-    if (!cards.length) return;
-
-    const { wrap = false } = options;
-    const visibleCount = getVisibleCardCount(cards, track);
-    const maxStartIndex = Math.max(0, cards.length - visibleCount);
-    const currentIndex = Math.min(getCurrentStartIndex(cards, track), maxStartIndex);
-    let targetIndex;
-
-    if (direction > 0) {
-      const nextIndex = currentIndex + visibleCount;
-      targetIndex = wrap ? (nextIndex <= maxStartIndex ? nextIndex : 0) : Math.min(nextIndex, maxStartIndex);
-    } else {
-      const previousIndex = currentIndex - visibleCount;
-      targetIndex = wrap ? (previousIndex >= 0 ? previousIndex : maxStartIndex) : Math.max(previousIndex, 0);
-    }
-
-    track.scrollTo({
-      left: Math.min(cards[targetIndex].offsetLeft, Math.max(0, track.scrollWidth - track.clientWidth)),
-      behavior: "smooth",
-    });
   }, []);
+
+  useEffect(() => {
+    setCurrentPage((current) => Math.min(current, Math.max(0, totalPages - 1)));
+  }, [totalPages]);
+
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [items.length]);
 
   const changeColumnProperty = (itemId, propertyCount, direction) => {
     if (propertyCount <= 1) return;
@@ -275,17 +230,16 @@ export default function PropertyColumnsSection({ data }) {
   };
 
   useEffect(() => {
-    if (!autoScrollEnabled || !hasOverflow) return undefined;
+    if (!autoScrollEnabled || totalPages <= 1) return undefined;
 
     const intervalId = window.setInterval(() => {
-      if (autoplayPausedRef.current) return;
-      scrollTrack(1, { wrap: true });
+      setCurrentPage((current) => (current + 1) % totalPages);
     }, 5000);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [autoScrollEnabled, hasOverflow, items.length, scrollTrack]);
+  }, [autoScrollEnabled, totalPages]);
 
   return (
     <section className="py-16 bg-gray-50">
@@ -299,21 +253,15 @@ export default function PropertyColumnsSection({ data }) {
 
       <div
         className="max-w-6xl mx-auto px-4 mt-12 pb-6"
-        onMouseEnter={() => {
-          autoplayPausedRef.current = true;
-        }}
-        onMouseLeave={() => {
-          autoplayPausedRef.current = false;
-        }}
       >
-        {hasOverflow ? (
+        {totalPages > 1 ? (
           <div className="mb-5 flex justify-end gap-3">
             <button
               type="button"
-              onClick={() => scrollTrack(-1)}
-              disabled={!canScrollPrev}
+              onClick={() => setCurrentPage((current) => Math.max(current - 1, 0))}
+              disabled={!canGoPrev}
               className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-900 shadow-sm transition hover:border-gray-400 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-35"
-              aria-label="Show previous properties"
+              aria-label="Show previous page of properties"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -321,10 +269,10 @@ export default function PropertyColumnsSection({ data }) {
             </button>
             <button
               type="button"
-              onClick={() => scrollTrack(1)}
-              disabled={!canScrollNext}
+              onClick={() => setCurrentPage((current) => Math.min(current + 1, totalPages - 1))}
+              disabled={!canGoNext}
               className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-900 shadow-sm transition hover:border-gray-400 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-35"
-              aria-label="Show next properties"
+              aria-label="Show next page of properties"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
@@ -333,11 +281,8 @@ export default function PropertyColumnsSection({ data }) {
           </div>
         ) : null}
 
-        <div
-          ref={trackRef}
-          className="property-columns-track flex items-stretch gap-8 overflow-x-auto scroll-smooth pb-4 snap-x snap-mandatory"
-        >
-          {items.map((item, index) => {
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+          {paginatedItems.map((item, index) => {
             const propertyEntries = item.properties || [];
             const activePropertyIndex = Math.min(activePropertyIndexes[item.id] || 0, Math.max(propertyEntries.length - 1, 0));
             const activePropertyEntry = propertyEntries[activePropertyIndex];
@@ -345,7 +290,7 @@ export default function PropertyColumnsSection({ data }) {
             return (
               <div
                 key={item.id || `${item.label || "property-column"}-${index}`}
-                className="flex h-full min-w-[86%] w-[86%] flex-none snap-start flex-col self-stretch md:w-[calc((100%-2rem)/2)] md:min-w-[calc((100%-2rem)/2)] xl:w-[calc((100%-4rem)/3)] xl:min-w-[calc((100%-4rem)/3)]"
+                className="flex h-full flex-col self-stretch"
               >
                 <div className="mb-5 rounded-lg border border-gray-200 bg-white px-4 py-3 text-[13px] font-semibold text-gray-900 shadow-sm md:text-[14px] xl:text-[15px]">
                   <div className="grid min-h-[72px] grid-cols-[72px_minmax(0,1fr)_72px] items-center gap-2 md:min-h-[80px] md:grid-cols-[88px_minmax(0,1fr)_88px]">
@@ -394,6 +339,30 @@ export default function PropertyColumnsSection({ data }) {
             );
           })}
         </div>
+        {totalPages > 1 ? (
+          <div className="mt-8 flex items-center justify-center gap-3">
+            {Array.from({ length: totalPages }, (_, index) => {
+              const isActive = index === currentPage;
+              return (
+                <button
+                  key={`property-page-${index + 1}`}
+                  type="button"
+                  onClick={() => setCurrentPage(index)}
+                  className={[
+                    "inline-flex h-10 min-w-[40px] items-center justify-center rounded-full border px-3 text-sm font-semibold transition",
+                    isActive
+                      ? "border-gray-700 bg-gray-700 text-white"
+                      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-100",
+                  ].join(" ")}
+                  aria-label={`Go to property page ${index + 1}`}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  {index + 1}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
       <style>{`
         @keyframes fadeInUp {
@@ -401,13 +370,6 @@ export default function PropertyColumnsSection({ data }) {
           to { opacity: 1; transform: translateY(0); }
         }
         .animate-fadeInUp { animation: fadeInUp 0.6s ease-out; }
-        .property-columns-track {
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        .property-columns-track::-webkit-scrollbar {
-          display: none;
-        }
       `}</style>
     </section>
   );
