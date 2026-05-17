@@ -25,10 +25,23 @@ export default function NavBar() {
     api.getSettings().then(setSettings).catch(() => setSettings(null));
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
   const location = useLocation();
   const isActive = (path) => location.pathname === path;
   const isActivePrefix = (prefix) =>
     location.pathname === prefix || location.pathname.startsWith(prefix + "/");
+  const isPortfolioSectionActive =
+    isActivePrefix("/portfolios") || isActive("/greater-boston");
   const desktopLinkClass = (active) =>
     `relative text-black font-medium text-[15px] transition-colors ${
       active ? "font-semibold" : "hover:opacity-80"
@@ -215,7 +228,10 @@ export default function NavBar() {
           <div className="flex items-center justify-end gap-3 justify-self-end">
             <button
               className="md:hidden bg-black text-white p-2 hover:bg-gray-800 transition-colors"
-              onClick={() => setIsOpen(true)}
+              onClick={() => {
+                setIsOpen(true);
+                setMobilePortfoliosOpen(isPortfolioSectionActive);
+              }}
               aria-label="Open menu"
             >
               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,7 +248,7 @@ export default function NavBar() {
               onClick={closeMobile}
             />
             <div
-              className={`relative bg-black h-full w-80 max-w-full shadow-2xl flex flex-col ${
+              className={`relative bg-black h-full w-full max-w-sm shadow-2xl flex flex-col ${
                 isClosing ? "animate-slideOutRight" : "animate-slideInRight"
               }`}
             >
@@ -255,15 +271,16 @@ export default function NavBar() {
                 <Link to={aboutLink.href} onClick={closeMobile} className={mobileLinkClass(aboutLink.href)}>
                   {aboutLink.label}
                 </Link>
-                <Link to={portfoliosLink.href} onClick={closeMobile} className={mobileLinkClass(portfoliosLink.href)}>
-                  {portfoliosLink.label}
-                </Link>
-                <div>
+                <div className="rounded-lg bg-gray-950/70">
                   <button
                     onClick={() => setMobilePortfoliosOpen(!mobilePortfoliosOpen)}
-                    className="w-full flex items-center justify-between text-gray-300 hover:text-white px-4 py-3 rounded-lg transition-colors"
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                      isPortfolioSectionActive
+                        ? "bg-gray-800 text-white font-semibold"
+                        : "text-gray-300 hover:text-white"
+                    }`}
                   >
-                    <span className="text-sm">{greaterBostonLink.label}</span>
+                    <span>{portfoliosLink.label}</span>
                     <svg
                       className={`h-4 w-4 transition-transform duration-300 ${mobilePortfoliosOpen ? "rotate-180" : ""}`}
                       fill="none"
@@ -274,11 +291,15 @@ export default function NavBar() {
                     </svg>
                   </button>
                   {mobilePortfoliosOpen ? (
-                    <div className="pl-6 space-y-1 mt-1 bg-gray-900 rounded-lg py-2 animate-slideDown">
+                    <div className="pl-4 pr-2 pb-2 space-y-1 animate-slideDown">
                       <Link
                         to={greaterBostonLink.href}
                         onClick={closeMobile}
-                        className="block py-2 px-4 text-sm text-gray-300 hover:text-white transition-colors"
+                        className={`block py-2 px-4 text-sm rounded-lg transition-colors ${
+                          isActive(greaterBostonLink.href)
+                            ? "bg-gray-800 text-white font-semibold"
+                            : "text-gray-300 hover:text-white"
+                        }`}
                       >
                         {greaterBostonLink.label}
                       </Link>
