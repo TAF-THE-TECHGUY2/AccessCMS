@@ -1,0 +1,19 @@
+{
+  "routes": [
+    {
+      "route": "/*",
+      "rewrite": "/maintenance.html",
+      "statusCode": 503
+    }
+  ],
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/maintenance.html",
+      "statusCode": 503
+    }
+  },
+  "globalHeaders": {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Retry-After": "3600"
+  }
+}
