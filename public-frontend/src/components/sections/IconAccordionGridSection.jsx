@@ -20,6 +20,13 @@ const SectionTitle = ({ title, sub }) => (
 export default function IconAccordionGridSection({ data }) {
   const [openId, setOpenId] = useState(null);
   const items = data?.items || [];
+  const showIcons = data?.showIcons !== false;
+  const align = data?.contentAlign || "left";
+  const single = items.length === 1;
+  const justifyClass =
+    align === "center" ? "justify-center" : align === "right" ? "justify-end" : "justify-start";
+  const textAlignClass =
+    align === "center" ? "text-center" : align === "right" ? "text-right" : "text-left";
 
   const resolveItemIcon = (item) => {
     const explicitName = normalizeIconName(item?.iconName);
@@ -42,7 +49,7 @@ export default function IconAccordionGridSection({ data }) {
     <div className={`py-16 md:py-20 ${data?.background === "gray" ? "bg-gray-50" : ""}`}>
       {data?.title ? <SectionTitle title={data.title} sub={data.subtitle} /> : null}
       <div className="max-w-4xl mx-auto px-4 mt-10">
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className={single ? "grid grid-cols-1 max-w-md mx-auto" : "grid md:grid-cols-2 gap-6"}>
           {items.map((item) => {
             const Icon = resolveItemIcon(item);
             const open = openId === item.id;
@@ -53,19 +60,21 @@ export default function IconAccordionGridSection({ data }) {
               >
                 <button
                   onClick={() => toggle(item.id)}
-                  className="w-full flex items-center justify-between px-5 py-5 text-left hover:bg-gray-50 transition"
+                  className="w-full flex items-center gap-3 px-5 py-5 text-left hover:bg-gray-50 transition"
                   type="button"
                 >
-                  <div className="flex flex-row items-center gap-3 min-w-0">
-                    <Icon className="w-5 h-5 text-gray-800 flex-shrink-0" />
-                    <span className="text-[15px] md:text-[16px] text-gray-900 font-semibold truncate">
+                  <div className={`flex flex-1 flex-row items-center gap-3 min-w-0 ${justifyClass}`}>
+                    {showIcons ? <Icon className="w-5 h-5 text-gray-800 flex-shrink-0" /> : null}
+                    <span
+                      className={`text-[15px] md:text-[16px] text-gray-900 font-semibold truncate ${textAlignClass}`}
+                    >
                       {item.title}
                     </span>
                   </div>
 
                   <ChevronDown
                     size={18}
-                    className={`text-gray-500 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+                    className={`text-gray-500 transition-transform duration-300 flex-shrink-0 ${open ? "rotate-180" : ""}`}
                   />
                 </button>
 

@@ -11,13 +11,17 @@ export default function ImageBannerSection({ data }) {
     return url;
   };
   const alignClass =
-    alignment === "left" ? "object-left" : alignment === "right" ? "object-right" : "object-center";
+    alignment === "left" ? "text-left" : alignment === "right" ? "text-right" : "text-center";
   return (
     <section className="py-10">
       <div className="max-w-6xl mx-auto px-4">
-        <div className="border border-gray-200 rounded-xl overflow-hidden">
-          <img src={resolveUrl(image)} alt={caption || ""} className={`w-full h-64 object-cover ${alignClass}`} />
-          {caption ? <div className="p-4 text-sm text-gray-600">{caption}</div> : null}
+        <div className={`border border-gray-200 rounded-xl overflow-hidden ${alignClass}`}>
+          <img
+            src={resolveUrl(image)}
+            alt={caption || ""}
+            className="max-w-full h-auto inline-block align-top"
+          />
+          {caption ? <div className="p-4 text-sm text-gray-600 text-left">{caption}</div> : null}
         </div>
       </div>
     </section>

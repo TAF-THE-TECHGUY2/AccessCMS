@@ -307,6 +307,37 @@ export default function SectionInspector({ section, onChange, onRemove }) {
         </Stack>
       ) : null}
 
+      {section.type === "SIMPLE_CONTENT" ? (
+        <Stack spacing={rowGap}>
+          <TextField label="Title" value={data.title || ""} onChange={(e) => update("title", e.target.value)} />
+          <TextField
+            label="Subtitle"
+            value={data.subtitle || ""}
+            onChange={(e) => update("subtitle", e.target.value)}
+            helperText="Optional"
+          />
+          <Typography variant="subtitle2">Content</Typography>
+          <ReactQuill
+            theme="snow"
+            value={data.bodyHtml || ""}
+            onChange={(value) => update("bodyHtml", value)}
+          />
+        </Stack>
+      ) : null}
+
+      {section.type === "TITLE_IMAGE" ? (
+        <Stack spacing={rowGap}>
+          <TextField label="Title" value={data.title || ""} onChange={(e) => update("title", e.target.value)} />
+          <ImagePicker label="Image" value={data.image} onChange={(val) => update("image", val)} />
+          <TextField
+            label="Image Alt Text"
+            value={data.imageAlt || ""}
+            onChange={(e) => update("imageAlt", e.target.value)}
+            helperText="Describes the image for accessibility and SEO (optional)"
+          />
+        </Stack>
+      ) : null}
+
       {section.type === "IMAGE_BANNER" ? (
         <Stack spacing={rowGap}>
           <ImagePicker label="Image" value={data.image} onChange={(val) => update("image", val)} />
@@ -527,6 +558,25 @@ export default function SectionInspector({ section, onChange, onRemove }) {
           </TextField>
           <TextField label="CTA Label" value={data.ctaLabel || ""} onChange={(e) => update("ctaLabel", e.target.value)} />
           <TextField label="CTA Href" value={data.ctaHref || ""} onChange={(e) => update("ctaHref", e.target.value)} />
+          <TextField
+            label="Show Icons"
+            select
+            value={data.showIcons === false ? "hide" : "show"}
+            onChange={(e) => update("showIcons", e.target.value === "show")}
+          >
+            <MenuItem value="show">Show</MenuItem>
+            <MenuItem value="hide">Hide</MenuItem>
+          </TextField>
+          <TextField
+            label="Content Alignment"
+            select
+            value={data.contentAlign || "left"}
+            onChange={(e) => update("contentAlign", e.target.value)}
+          >
+            <MenuItem value="left">Left</MenuItem>
+            <MenuItem value="center">Center</MenuItem>
+            <MenuItem value="right">Right</MenuItem>
+          </TextField>
           <ArrayEditor
             label="Item"
             items={data.items || []}
@@ -556,6 +606,25 @@ export default function SectionInspector({ section, onChange, onRemove }) {
           >
             <MenuItem value="none">None</MenuItem>
             <MenuItem value="gray">Gray</MenuItem>
+          </TextField>
+          <TextField
+            label="Show Icons"
+            select
+            value={data.showIcons === false ? "hide" : "show"}
+            onChange={(e) => update("showIcons", e.target.value === "show")}
+          >
+            <MenuItem value="show">Show</MenuItem>
+            <MenuItem value="hide">Hide</MenuItem>
+          </TextField>
+          <TextField
+            label="Content Alignment"
+            select
+            value={data.contentAlign || "left"}
+            onChange={(e) => update("contentAlign", e.target.value)}
+          >
+            <MenuItem value="left">Left</MenuItem>
+            <MenuItem value="center">Center</MenuItem>
+            <MenuItem value="right">Right</MenuItem>
           </TextField>
           <ArrayEditor
             label="Card"

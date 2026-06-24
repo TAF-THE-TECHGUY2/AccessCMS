@@ -80,6 +80,50 @@ export default function SectionPreview({ section, selected, editMode, onSelect, 
           </Stack>
         </SectionShell>
       );
+    case "SIMPLE_CONTENT":
+      return (
+        <SectionShell title="Title + Content" {...baseProps}>
+          <Stack spacing={1.5}>
+            <InlineText
+              editMode={editMode}
+              value={data.title}
+              variant="h5"
+              onChange={(val) => update("title", val)}
+            />
+            {data.subtitle ? <Typography color="text.secondary">{data.subtitle}</Typography> : null}
+            <Typography color="text.secondary">
+              {data.bodyHtml ? "Content added" : "Add content in the inspector"}
+            </Typography>
+          </Stack>
+        </SectionShell>
+      );
+    case "TITLE_IMAGE":
+      return (
+        <SectionShell title="Title + Image" {...baseProps}>
+          <Stack spacing={2}>
+            <InlineText
+              editMode={editMode}
+              value={data.title}
+              variant="h5"
+              onChange={(val) => update("title", val)}
+            />
+            <Box
+              sx={{
+                width: "100%",
+                aspectRatio: "16 / 7",
+                borderRadius: 2,
+                border: "1px dashed #bbb",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#777",
+              }}
+            >
+              {data.image ? "Image set" : "Add image"}
+            </Box>
+          </Stack>
+        </SectionShell>
+      );
     case "IMAGE_BANNER":
       return (
         <SectionShell title="Image Banner" {...baseProps}>

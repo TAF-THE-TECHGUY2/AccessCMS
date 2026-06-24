@@ -1,6 +1,8 @@
 import React from "react";
 import HeroSection from "./sections/HeroSection.jsx";
 import RichTextSection from "./sections/RichTextSection.jsx";
+import SimpleContentSection from "./sections/SimpleContentSection.jsx";
+import TitleImageSection from "./sections/TitleImageSection.jsx";
 import StatsSection from "./sections/StatsSection.jsx";
 import CtaSection from "./sections/CtaSection.jsx";
 import TeamGridSection from "./sections/TeamGridSection.jsx";
@@ -25,6 +27,8 @@ import FaqPageSection from "./sections/FaqPageSection.jsx";
 const SectionMap = {
   HERO: HeroSection,
   RICH_TEXT: RichTextSection,
+  SIMPLE_CONTENT: SimpleContentSection,
+  TITLE_IMAGE: TitleImageSection,
   STATS: StatsSection,
   CTA: CtaSection,
   TEAM_GRID: TeamGridSection,

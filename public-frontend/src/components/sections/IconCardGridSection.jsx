@@ -13,11 +13,18 @@ const SectionTitle = ({ title, sub }) => (
 
 export default function IconCardGridSection({ data }) {
   const items = data?.items || [];
+  const showIcons = data?.showIcons !== false;
+  const align = data?.contentAlign || "left";
+  const single = items.length === 1;
+  const justifyClass =
+    align === "center" ? "justify-center" : align === "right" ? "justify-end" : "justify-start";
+  const textAlignClass =
+    align === "center" ? "text-center" : align === "right" ? "text-right" : "text-left";
   return (
     <div className={`py-16 md:py-20 ${data?.background === "gray" ? "bg-gray-50" : ""}`}>
       {data?.title ? <SectionTitle title={data.title} sub={data.subtitle} /> : null}
       <div className="max-w-4xl mx-auto px-4 mt-10">
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className={single ? "grid grid-cols-1 max-w-md mx-auto" : "grid md:grid-cols-2 gap-6"}>
           {items.map((item) => {
             const Icon = getIcon(item.iconName);
             return (
@@ -25,11 +32,15 @@ export default function IconCardGridSection({ data }) {
                 key={item.title}
                 className="w-full bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-6 h-6 text-gray-900" />
-                  </div>
-                  <p className="font-semibold text-gray-900 text-[15px] leading-snug">{item.title}</p>
+                <div className={`flex items-center gap-4 ${justifyClass}`}>
+                  {showIcons ? (
+                    <div className="w-11 h-11 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-6 h-6 text-gray-900" />
+                    </div>
+                  ) : null}
+                  <p className={`font-semibold text-gray-900 text-[15px] leading-snug ${textAlignClass}`}>
+                    {item.title}
+                  </p>
                 </div>
               </div>
             );
