@@ -24,6 +24,10 @@ const allowedOrigins = [env.clientUrl, env.adminUrl]
   .map((value) => value.trim())
   .filter(Boolean);
 const isLocalDevOrigin = (origin: string) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+// Allow this app's Azure Static Web Apps hostnames: the production default host
+// plus every preview/staging environment (their hostnames vary by region/slice/PR).
+const isAzureStaticWebAppOrigin = (origin: string) =>
+  /^https:\/\/gentle-water-099e3771e[a-z0-9.-]*\.azurestaticapps\.net$/i.test(origin);
 
 app.set("trust proxy", 1);
 
@@ -35,7 +39,12 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || isLocalDevOrigin(origin)) {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        isLocalDevOrigin(origin) ||
+        isAzureStaticWebAppOrigin(origin)
+      ) {
         callback(null, true);
         return;
       }

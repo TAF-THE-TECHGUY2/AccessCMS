@@ -1,5 +1,7 @@
 export const SECTION_TYPES = [
   { type: "HERO", label: "Hero" },
+  { type: "SIMPLE_CONTENT", label: "Title + Content" },
+  { type: "TITLE_IMAGE", label: "Title + Image" },
   { type: "RICH_TEXT", label: "Rich Text" },
   { type: "IMAGE_BANNER", label: "Image Banner" },
   { type: "STATS", label: "Stats" },
@@ -37,6 +39,24 @@ export const createSection = (type) => {
           overlayOpacity: 0.35,
           primaryButton: { label: "Invest Now", href: "/invest-now" },
           secondaryButton: { label: "How It Works", href: "" },
+        },
+      };
+    case "SIMPLE_CONTENT":
+      return {
+        ...base,
+        data: {
+          title: "Section title",
+          subtitle: "",
+          bodyHtml: "<p>Write your content here.</p>",
+        },
+      };
+    case "TITLE_IMAGE":
+      return {
+        ...base,
+        data: {
+          title: "Section title",
+          image: "",
+          imageAlt: "",
         },
       };
     case "RICH_TEXT":
@@ -143,6 +163,8 @@ export const createSection = (type) => {
         data: {
           heading: "How we operate",
           subheading: "A transparent view of the process.",
+          showIcons: true,
+          contentAlign: "left",
           items: [
             { title: "Acquire", body: "We source compelling assets.", iconName: "home" },
           ],
@@ -153,6 +175,8 @@ export const createSection = (type) => {
         ...base,
         data: {
           heading: "Investor Advantages",
+          showIcons: true,
+          contentAlign: "left",
           items: [
             { title: "Stable returns", body: "Focus on resilient assets.", iconName: "shield" },
           ],

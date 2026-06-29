@@ -5,6 +5,8 @@ node_modules
 .env
 .env.*
 !.env.example
+# admin API base URL is a public value, safe to commit so prod builds are correct-by-default
+!admin-frontend/.env.production
 
 # logs
 npm-debug.log*

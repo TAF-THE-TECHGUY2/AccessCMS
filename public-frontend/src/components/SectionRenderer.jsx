@@ -1,6 +1,8 @@
 import React from "react";
 import HeroSection from "./sections/HeroSection.jsx";
 import RichTextSection from "./sections/RichTextSection.jsx";
+import SimpleContentSection from "./sections/SimpleContentSection.jsx";
+import TitleImageSection from "./sections/TitleImageSection.jsx";
 import StatsSection from "./sections/StatsSection.jsx";
 import CtaSection from "./sections/CtaSection.jsx";
 import TeamGridSection from "./sections/TeamGridSection.jsx";
@@ -25,6 +27,8 @@ import FaqPageSection from "./sections/FaqPageSection.jsx";
 const SectionMap = {
   HERO: HeroSection,
   RICH_TEXT: RichTextSection,
+  SIMPLE_CONTENT: SimpleContentSection,
+  TITLE_IMAGE: TitleImageSection,
   STATS: StatsSection,
   CTA: CtaSection,
   TEAM_GRID: TeamGridSection,
@@ -49,12 +53,37 @@ const SectionMap = {
 };
 
 export default function SectionRenderer({ sections = [] }) {
+  // Group consecutive PORTFOLIO_CARD sections so they render side by side
+  // instead of stacking. Any other section stands on its own.
+  const groups = [];
+  sections.forEach((section, idx) => {
+    const last = groups[groups.length - 1];
+    if (section.type === "PORTFOLIO_CARD" && last?.type === "PORTFOLIO_CARD") {
+      last.items.push({ section, idx });
+    } else {
+      groups.push({ type: section.type, items: [{ section, idx }] });
+    }
+  });
+
   return (
     <>
-      {sections.map((section, idx) => {
-        const Component = SectionMap[section.type];
-        if (!Component) return null;
-        return <Component key={`${section.type}-${idx}`} data={section.data || {}} />;
+      {groups.map((group, gIdx) => {
+        if (group.type === "PORTFOLIO_CARD" && group.items.length > 1) {
+          return (
+            <section key={`portfolio-group-${gIdx}`} className="py-20 md:py-24">
+              <div className="max-w-6xl mx-auto px-4 grid gap-8 md:grid-cols-2 items-start">
+                {group.items.map(({ section, idx }) => (
+                  <PortfolioCardSection key={`${section.type}-${idx}`} data={section.data || {}} embedded />
+                ))}
+              </div>
+            </section>
+          );
+        }
+        return group.items.map(({ section, idx }) => {
+          const Component = SectionMap[section.type];
+          if (!Component) return null;
+          return <Component key={`${section.type}-${idx}`} data={section.data || {}} />;
+        });
       })}
     </>
   );
