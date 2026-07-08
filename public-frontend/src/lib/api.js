@@ -40,7 +40,9 @@ const request = async (method, path, options = {}) => {
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || "Request failed");
+    const err = new Error(error.message || "Request failed");
+    err.status = res.status;
+    throw err;
   }
 
   return res.json();

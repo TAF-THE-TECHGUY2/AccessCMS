@@ -10,7 +10,15 @@ const settingsSchema = z.object({
   logo: z.string().optional(),
   favicon: z.string().optional(),
   primaryColor: z.string().optional(),
-  navLinks: z.array(z.object({ label: z.string(), href: z.string() })).optional(),
+  navLinks: z
+    .array(
+      z.object({
+        label: z.string(),
+        href: z.string(),
+        children: z.array(z.object({ label: z.string(), href: z.string() })).optional(),
+      })
+    )
+    .optional(),
   footer: z
     .object({
       address: z.string().optional(),

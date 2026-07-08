@@ -31,6 +31,7 @@ export default function PageEditor() {
     status: "draft",
   });
   const [sections, setSections] = useState([]);
+  const [aliases, setAliases] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editMode, setEditMode] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,6 +54,7 @@ export default function PageEditor() {
         }
         setForm({ title: page.title, slug: page.slug, status: page.status });
         setSections(page.sections || []);
+        setAliases(page.aliases || []);
         setSelectedIndex(0);
       } catch (err) {
         setError(err.message || "Failed to load page.");
@@ -91,17 +93,20 @@ export default function PageEditor() {
       const updated = await api.pages.update(id, payload);
       setForm((prev) => ({ ...prev, title: updated.title, slug: updated.slug, status: updated.status }));
       setSections(updated.sections || []);
+      setAliases(updated.aliases || []);
       setLastSaved(new Date().toLocaleTimeString());
       setToast({ open: true, message: "Saved successfully.", severity: "success" });
-      fetch(`${API_BASE_URL}/api/pages/slug/${encodeURIComponent(payload.slug)}`)
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error("Public page not updated yet.");
-          }
-        })
-        .catch(() => {
-          setToast({ open: true, message: "Saved, but public page not found.", severity: "warning" });
-        });
+      if (updated.status === "published") {
+        fetch(`${API_BASE_URL}/api/pages/slug/${encodeURIComponent(payload.slug)}`)
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error("Public page not updated yet.");
+            }
+          })
+          .catch(() => {
+            setToast({ open: true, message: "Saved, but public page not found.", severity: "warning" });
+          });
+      }
     } catch (err) {
       const message = err.message || "Save failed.";
       setError(message);
@@ -127,6 +132,7 @@ export default function PageEditor() {
         status: published.status || "published",
       }));
       setSections(updated.sections || []);
+      setAliases(updated.aliases || []);
       setLastSaved(new Date().toLocaleTimeString());
       setToast({ open: true, message: "Published successfully.", severity: "success" });
       fetch(`${API_BASE_URL}/api/pages/slug/${encodeURIComponent(payload.slug)}`)
@@ -152,7 +158,9 @@ export default function PageEditor() {
     if (autosaveRef.current) clearTimeout(autosaveRef.current);
     autosaveRef.current = setTimeout(async () => {
       try {
-        await api.pages.update(id, payload);
+        // Slug changes only apply on explicit Save/Publish so a half-typed
+        // slug never goes live or gets recorded as a redirect alias.
+        await api.pages.update(id, { ...payload, slug: undefined });
         setLastSaved(new Date().toLocaleTimeString());
       } catch {
         // ignore autosave errors
@@ -227,7 +235,11 @@ export default function PageEditor() {
                 label="Slug"
                 value={form.slug}
                 onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-                helperText='Use "home" for homepage, e.g. "about"'
+                helperText={
+                  aliases.length
+                    ? `Old links ${aliases.map((a) => `/${a}`).join(", ")} redirect here. Changing the slug keeps old links working.`
+                    : 'Use "home" for homepage, e.g. "about". Changing the slug keeps old links working (they redirect).'
+                }
                 fullWidth
               />
               <TextField
