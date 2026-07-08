@@ -1,9 +1,11 @@
 name: Azure Static Web Apps - Staging
 
-# Deploys the `staging` branch to a STABLE named pre-production environment
-# called "staging". Reviewers get a persistent URL of the form:
-#   https://gentle-water-099e3771e-staging.<region>.azurestaticapps.net
+# Deploys the `staging` branch to a STABLE named pre-production environment.
+# Reviewers get a persistent URL of the form:
+#   https://gentle-water-099e3771e-<env>.<region>.azurestaticapps.net
 # Production (the `main` branch) is unaffected by this workflow.
+# NOTE: renamed staging -> staging2 on 2026-06-30 after Azure's edge stopped
+# serving the original "staging" environment (TLS connection drops).
 
 on:
   push:
@@ -30,4 +32,4 @@ jobs:
           api_location: ""
           output_location: "build"
           app_build_command: "CI=false npm run build"
-          deployment_environment: "staging"
+          deployment_environment: "staging2"
