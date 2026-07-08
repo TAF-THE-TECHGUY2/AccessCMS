@@ -894,7 +894,11 @@ const seedSettings = async () => {
     navLinks: [
       { label: "Home", href: "/" },
       { label: "About", href: "/about" },
-      { label: "Portfolios", href: "/portfolios" },
+      {
+        label: "Portfolios",
+        href: "/portfolios",
+        children: [{ label: "Greater Boston", href: "/greater-boston" }],
+      },
       { label: "Invest Now", href: "https://investor.ap.boston/assistant-register" },
       { label: "FAQ", href: "/faq" },
       { label: "Contact", href: "/contact" },

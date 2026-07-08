@@ -35,11 +35,17 @@ const isHomeNewsletterAnchor = (section) => {
   );
 };
 
-export default function PageRenderer({ slug }) {
-  const [page, setPage] = useState(null);
+export default function PageRenderer({ slug, page: initialPage }) {
+  const [page, setPage] = useState(initialPage || null);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // When the page document is passed in (dynamic routing), skip fetching.
+    if (initialPage) {
+      setPage(initialPage);
+      setError("");
+      return undefined;
+    }
     let active = true;
     setError("");
     api
@@ -53,7 +59,7 @@ export default function PageRenderer({ slug }) {
     return () => {
       active = false;
     };
-  }, [slug]);
+  }, [slug, initialPage]);
 
   if (error) {
     return (

@@ -7,6 +7,7 @@ export interface PageSection {
 
 export interface PageDoc extends Document {
   slug: string;
+  aliases: string[];
   title: string;
   seo: {
     metaTitle?: string;
@@ -29,6 +30,8 @@ const SectionSchema = new Schema<PageSection>(
 const PageSchema = new Schema<PageDoc>(
   {
     slug: { type: String, required: true, unique: true },
+    // Previous slugs kept so old links keep working (public lookup falls back to these)
+    aliases: { type: [String], default: [], index: true },
     title: { type: String, required: true },
     seo: {
       metaTitle: String,

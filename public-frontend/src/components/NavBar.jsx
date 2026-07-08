@@ -3,8 +3,6 @@ import { Link, useLocation } from "react-router-dom";
 import { api, API_BASE_URL } from "../api.js";
 import logoFallback from "../assets/Logo.png";
 
-const INVEST_NOW_URL = "/invest-now";
-
 const resolveUrl = (url) => {
   if (!url) return "";
   if (url.startsWith("http")) return url;
@@ -14,11 +12,51 @@ const resolveUrl = (url) => {
 
 const isExternalHref = (href = "") => /^https?:\/\//i.test(href);
 
+// Used until Site Settings provides navLinks (or if the API is unreachable).
+const DEFAULT_NAV_LINKS = [
+  { label: "Home", href: "/" },
+  { label: "About", href: "/about" },
+  {
+    label: "Portfolios",
+    href: "/portfolios",
+    children: [{ label: "Greater Boston", href: "/greater-boston" }],
+  },
+  { label: "Invest Now", href: "/invest-now" },
+  { label: "FAQ", href: "/faq" },
+  { label: "Contact", href: "/contact" },
+];
+
+// Older settings stored a flat list with "Greater Boston" as a top-level item
+// (the previous NavBar hardcoded it into the Portfolios dropdown). Recreate
+// that nesting until the menu is edited in the admin.
+const normalizeNavLinks = (links) => {
+  if (!Array.isArray(links) || links.length === 0) return DEFAULT_NAV_LINKS;
+  const items = links.map((l) => ({
+    label: l.label || "",
+    href: l.href || "#",
+    children: Array.isArray(l.children)
+      ? l.children.map((c) => ({ label: c.label || "", href: c.href || "#" }))
+      : [],
+  }));
+  const hasChildren = items.some((l) => l.children.length > 0);
+  if (!hasChildren) {
+    const gbIdx = items.findIndex((l) => l.label.toLowerCase() === "greater boston");
+    const pfIdx = items.findIndex(
+      (l) => l.href === "/portfolios" || l.label.toLowerCase() === "portfolios"
+    );
+    if (gbIdx !== -1 && pfIdx !== -1) {
+      items[pfIdx].children = [items[gbIdx]];
+      items.splice(gbIdx, 1);
+    }
+  }
+  return items;
+};
+
 export default function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
-  const [mobilePortfoliosOpen, setMobilePortfoliosOpen] = useState(false);
-  const [desktopPortfoliosOpen, setDesktopPortfoliosOpen] = useState(false);
+  const [mobileOpenIndex, setMobileOpenIndex] = useState(-1);
+  const [desktopOpenIndex, setDesktopOpenIndex] = useState(-1);
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
@@ -40,8 +78,12 @@ export default function NavBar() {
   const isActive = (path) => location.pathname === path;
   const isActivePrefix = (prefix) =>
     location.pathname === prefix || location.pathname.startsWith(prefix + "/");
-  const isPortfolioSectionActive =
-    isActivePrefix("/portfolios") || isActive("/greater-boston");
+  const itemActive = (item) => {
+    const own = item.href === "/" ? isActive("/") : isActivePrefix(item.href);
+    const child = (item.children || []).some((c) => isActivePrefix(c.href));
+    return own || child;
+  };
+
   const desktopLinkClass = (active) =>
     `relative text-black font-medium text-[15px] transition-colors ${
       active ? "font-semibold" : "hover:opacity-80"
@@ -55,7 +97,7 @@ export default function NavBar() {
     }`;
 
   const closeDesktopDropdowns = () => {
-    setDesktopPortfoliosOpen(false);
+    setDesktopOpenIndex(-1);
   };
 
   const closeMobile = () => {
@@ -63,24 +105,11 @@ export default function NavBar() {
     setTimeout(() => {
       setIsOpen(false);
       setIsClosing(false);
-      setMobilePortfoliosOpen(false);
+      setMobileOpenIndex(-1);
     }, 300);
   };
 
-  const navLinks = useMemo(() => settings?.navLinks || [], [settings]);
-  const findLink = (label, fallback) =>
-    navLinks.find((l) => l.label.toLowerCase() === label.toLowerCase()) || fallback;
-
-  const homeLink = findLink("Home", { label: "Home", href: "/" });
-  const aboutLink = findLink("About", { label: "About", href: "/about" });
-  const portfoliosLink = findLink("Portfolios", { label: "Portfolios", href: "/portfolios" });
-  const faqLink = findLink("FAQ", { label: "FAQ", href: "/faq" });
-  const contactLink = findLink("Contact", { label: "Contact", href: "/contact" });
-  const greaterBostonLink = findLink("Greater Boston", { label: "Greater Boston", href: "/greater-boston" });
-  const investNowLink = {
-    ...findLink("Invest Now", { label: "Invest Now", href: INVEST_NOW_URL }),
-    href: INVEST_NOW_URL,
-  };
+  const navLinks = useMemo(() => normalizeNavLinks(settings?.navLinks), [settings]);
 
   const NavLink = ({ to, active, onClick, children }) => (
     isExternalHref(to) ? (
@@ -157,70 +186,61 @@ export default function NavBar() {
           <div className="hidden md:flex justify-self-center">
             <nav>
               <ul className="flex items-center gap-12">
-                <li>
-                  <NavLink to={homeLink.href} active={isActive(homeLink.href)} onClick={closeDesktopDropdowns}>
-                    {homeLink.label}
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to={aboutLink.href} active={isActive(aboutLink.href)} onClick={closeDesktopDropdowns}>
-                    {aboutLink.label}
-                  </NavLink>
-                </li>
-                <li className="relative group flex items-center" onMouseLeave={() => setDesktopPortfoliosOpen(false)}>
-                  <NavLink to={portfoliosLink.href} active={isActivePrefix("/portfolios")} onClick={closeDesktopDropdowns}>
-                    {portfoliosLink.label}
-                  </NavLink>
-                  <button
-                    type="button"
-                    onClick={() => setDesktopPortfoliosOpen((p) => !p)}
-                    className="ml-1"
-                    aria-label="Toggle Portfolios menu"
-                  >
-                    <svg
-                      className={`h-4 w-4 text-black transition-transform duration-200 ${
-                        desktopPortfoliosOpen ? "rotate-180" : "group-hover:rotate-180"
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                {navLinks.map((item, idx) =>
+                  item.children && item.children.length > 0 ? (
+                    <li
+                      key={`${item.label}-${idx}`}
+                      className="relative group flex items-center"
+                      onMouseLeave={() => setDesktopOpenIndex(-1)}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  <ul
-                    className={[
-                      "absolute left-0 top-full mt-3 w-64 bg-white border border-black/20 shadow-lg z-50",
-                      "opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200",
-                      desktopPortfoliosOpen ? "opacity-100 visible" : "",
-                    ].join(" ")}
-                  >
-                    <li>
-                      <Link
-                        to={greaterBostonLink.href}
-                        className="block px-5 py-3 text-sm text-black hover:bg-black hover:text-white transition"
-                        onClick={closeDesktopDropdowns}
+                      <NavLink to={item.href} active={itemActive(item)} onClick={closeDesktopDropdowns}>
+                        {item.label}
+                      </NavLink>
+                      <button
+                        type="button"
+                        onClick={() => setDesktopOpenIndex((p) => (p === idx ? -1 : idx))}
+                        className="ml-1"
+                        aria-label={`Toggle ${item.label} menu`}
                       >
-                        {greaterBostonLink.label}
-                      </Link>
+                        <svg
+                          className={`h-4 w-4 text-black transition-transform duration-200 ${
+                            desktopOpenIndex === idx ? "rotate-180" : "group-hover:rotate-180"
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      <ul
+                        className={[
+                          "absolute left-0 top-full mt-3 w-64 bg-white border border-black/20 shadow-lg z-50",
+                          "opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200",
+                          desktopOpenIndex === idx ? "opacity-100 visible" : "",
+                        ].join(" ")}
+                      >
+                        {item.children.map((child, cIdx) => (
+                          <li key={`${child.label}-${cIdx}`}>
+                            <Link
+                              to={child.href}
+                              className="block px-5 py-3 text-sm text-black hover:bg-black hover:text-white transition"
+                              onClick={closeDesktopDropdowns}
+                            >
+                              {child.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
                     </li>
-                  </ul>
-                </li>
-                <li>
-                  <NavLink to={investNowLink.href} active={false} onClick={closeDesktopDropdowns}>
-                    {investNowLink.label}
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to={faqLink.href} active={isActive(faqLink.href)} onClick={closeDesktopDropdowns}>
-                    {faqLink.label}
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to={contactLink.href} active={isActive(contactLink.href)} onClick={closeDesktopDropdowns}>
-                    {contactLink.label}
-                  </NavLink>
-                </li>
+                  ) : (
+                    <li key={`${item.label}-${idx}`}>
+                      <NavLink to={item.href} active={itemActive(item)} onClick={closeDesktopDropdowns}>
+                        {item.label}
+                      </NavLink>
+                    </li>
+                  )
+                )}
               </ul>
             </nav>
           </div>
@@ -230,7 +250,10 @@ export default function NavBar() {
               className="md:hidden bg-black text-white p-2 hover:bg-gray-800 transition-colors"
               onClick={() => {
                 setIsOpen(true);
-                setMobilePortfoliosOpen(isPortfolioSectionActive);
+                const activeIdx = navLinks.findIndex(
+                  (item) => item.children && item.children.length > 0 && itemActive(item)
+                );
+                setMobileOpenIndex(activeIdx);
               }}
               aria-label="Open menu"
             >
@@ -265,56 +288,63 @@ export default function NavBar() {
               </div>
 
               <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-2">
-                <Link to={homeLink.href} onClick={closeMobile} className={mobileLinkClass(homeLink.href)}>
-                  {homeLink.label}
-                </Link>
-                <Link to={aboutLink.href} onClick={closeMobile} className={mobileLinkClass(aboutLink.href)}>
-                  {aboutLink.label}
-                </Link>
-                <div className="rounded-lg bg-gray-950/70">
-                  <button
-                    onClick={() => setMobilePortfoliosOpen(!mobilePortfoliosOpen)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
-                      isPortfolioSectionActive
-                        ? "bg-gray-800 text-white font-semibold"
-                        : "text-gray-300 hover:text-white"
-                    }`}
-                  >
-                    <span>{portfoliosLink.label}</span>
-                    <svg
-                      className={`h-4 w-4 transition-transform duration-300 ${mobilePortfoliosOpen ? "rotate-180" : ""}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {mobilePortfoliosOpen ? (
-                    <div className="pl-4 pr-2 pb-2 space-y-1 animate-slideDown">
-                      <Link
-                        to={greaterBostonLink.href}
-                        onClick={closeMobile}
-                        className={`block py-2 px-4 text-sm rounded-lg transition-colors ${
-                          isActive(greaterBostonLink.href)
+                {navLinks.map((item, idx) =>
+                  item.children && item.children.length > 0 ? (
+                    <div key={`${item.label}-${idx}`} className="rounded-lg bg-gray-950/70">
+                      <button
+                        onClick={() => setMobileOpenIndex((p) => (p === idx ? -1 : idx))}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                          itemActive(item)
                             ? "bg-gray-800 text-white font-semibold"
                             : "text-gray-300 hover:text-white"
                         }`}
                       >
-                        {greaterBostonLink.label}
-                      </Link>
+                        <span>{item.label}</span>
+                        <svg
+                          className={`h-4 w-4 transition-transform duration-300 ${mobileOpenIndex === idx ? "rotate-180" : ""}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {mobileOpenIndex === idx ? (
+                        <div className="pl-4 pr-2 pb-2 space-y-1 animate-slideDown">
+                          <Link
+                            to={item.href}
+                            onClick={closeMobile}
+                            className={`block py-2 px-4 text-sm rounded-lg transition-colors ${
+                              isActive(item.href)
+                                ? "bg-gray-800 text-white font-semibold"
+                                : "text-gray-300 hover:text-white"
+                            }`}
+                          >
+                            {item.label}
+                          </Link>
+                          {item.children.map((child, cIdx) => (
+                            <Link
+                              key={`${child.label}-${cIdx}`}
+                              to={child.href}
+                              onClick={closeMobile}
+                              className={`block py-2 px-4 text-sm rounded-lg transition-colors ${
+                                isActive(child.href)
+                                  ? "bg-gray-800 text-white font-semibold"
+                                  : "text-gray-300 hover:text-white"
+                              }`}
+                            >
+                              {child.label}
+                            </Link>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
-                </div>
-                <MobileLink to={investNowLink.href} onClick={closeMobile}>
-                  {investNowLink.label}
-                </MobileLink>
-                <Link to={faqLink.href} onClick={closeMobile} className={mobileLinkClass(faqLink.href)}>
-                  {faqLink.label}
-                </Link>
-                <Link to={contactLink.href} onClick={closeMobile} className={mobileLinkClass(contactLink.href)}>
-                  {contactLink.label}
-                </Link>
+                  ) : (
+                    <MobileLink key={`${item.label}-${idx}`} to={item.href} onClick={closeMobile}>
+                      {item.label}
+                    </MobileLink>
+                  )
+                )}
               </nav>
               <div className="border-t border-gray-800 p-4" />
             </div>

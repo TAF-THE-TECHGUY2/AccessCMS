@@ -5,7 +5,7 @@ export interface SiteSettingsDoc extends Document {
   logo?: string;
   favicon?: string;
   primaryColor?: string;
-  navLinks: { label: string; href: string }[];
+  navLinks: { label: string; href: string; children?: { label: string; href: string }[] }[];
   footer: {
     address?: string;
     phones?: string[];
@@ -32,7 +32,14 @@ const SiteSettingsSchema = new Schema<SiteSettingsDoc>(
     favicon: String,
     primaryColor: String,
     navLinks: {
-      type: [{ label: String, href: String }],
+      type: [
+        {
+          label: String,
+          href: String,
+          // One level of dropdown items under this menu entry
+          children: { type: [{ label: String, href: String }], default: [] },
+        },
+      ],
       default: [],
     },
     footer: {

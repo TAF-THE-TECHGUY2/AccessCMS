@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api } from "../api.js";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5050";
+import { api, API_BASE_URL } from "../api.js";
 import { Box, Button, Grid, Stack, Typography } from "@mui/material";
 
 export default function Media() {

@@ -1,14 +1,5 @@
 {
-  "routes": [
-    {
-      "route": "/*",
-      "rewrite": "/maintenance.html"
-    }
-  ],
   "navigationFallback": {
-    "rewrite": "/maintenance.html"
-  },
-  "globalHeaders": {
-    "Cache-Control": "no-cache, no-store, must-revalidate"
+    "rewrite": "/index.html"
   }
 }
