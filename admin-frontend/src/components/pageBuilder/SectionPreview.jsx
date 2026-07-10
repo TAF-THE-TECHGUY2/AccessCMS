@@ -1,8 +1,11 @@
 import React from "react";
-import { Box, Chip, Divider, Stack, Typography } from "@mui/material";
+import { Box, Chip, Divider, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import InlineText from "./InlineText.jsx";
 
-const SectionShell = ({ title, selected, onClick, children, dragProps }) => (
+const SectionShell = ({ title, selected, onClick, children, dragProps, toolbar }) => (
   <Box
     onClick={onClick}
     sx={{
@@ -13,22 +16,90 @@ const SectionShell = ({ title, selected, onClick, children, dragProps }) => (
       boxShadow: selected ? "0 8px 30px rgba(0,0,0,0.08)" : "none",
       cursor: "pointer",
       position: "relative",
+      // Reveal the toolbar on hover (it is always shown when selected)
+      "&:hover .section-toolbar": { opacity: 1 },
     }}
     {...dragProps}
   >
-    <Chip label={title} size="small" sx={{ position: "absolute", top: 12, right: 12 }} />
+    <Stack
+      direction="row"
+      spacing={0.5}
+      alignItems="center"
+      sx={{ position: "absolute", top: 8, right: 12, zIndex: 2 }}
+    >
+      {toolbar ? (
+        <Stack
+          direction="row"
+          spacing={0.5}
+          className="section-toolbar"
+          sx={{
+            opacity: selected ? 1 : 0,
+            transition: "opacity .15s",
+            bgcolor: "#fff",
+            border: "1px solid #e0e0e0",
+            borderRadius: 1.5,
+            mr: 0.5,
+          }}
+        >
+          {toolbar}
+        </Stack>
+      ) : null}
+      <Chip label={title} size="small" />
+    </Stack>
     {children}
   </Box>
 );
 
-export default function SectionPreview({ section, selected, editMode, onSelect, onUpdate, dragProps }) {
+export default function SectionPreview({
+  section,
+  selected,
+  editMode,
+  onSelect,
+  onUpdate,
+  dragProps,
+  onMoveUp,
+  onMoveDown,
+  onRemove,
+  canMoveUp = false,
+  canMoveDown = false,
+}) {
   const data = section.data || {};
   const update = (key, value) => onUpdate({ ...section, data: { ...data, [key]: value } });
+
+  const stop = (fn) => (e) => {
+    e.stopPropagation();
+    fn?.();
+  };
+
+  const toolbar = (
+    <>
+      <Tooltip title="Move up">
+        <span>
+          <IconButton size="small" disabled={!canMoveUp} onClick={stop(onMoveUp)}>
+            <ArrowUpwardIcon fontSize="inherit" />
+          </IconButton>
+        </span>
+      </Tooltip>
+      <Tooltip title="Move down">
+        <span>
+          <IconButton size="small" disabled={!canMoveDown} onClick={stop(onMoveDown)}>
+            <ArrowDownwardIcon fontSize="inherit" />
+          </IconButton>
+        </span>
+      </Tooltip>
+      <Tooltip title="Remove section">
+        <IconButton size="small" color="error" onClick={stop(onRemove)}>
+          <DeleteOutlineIcon fontSize="inherit" />
+        </IconButton>
+      </Tooltip>
+    </>
+  );
 
   const baseProps = {
     selected,
     onClick: onSelect,
     dragProps,
+    toolbar,
   };
 
   switch (section.type) {

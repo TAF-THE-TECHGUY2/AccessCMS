@@ -4,21 +4,26 @@ import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   Grid,
-  Menu,
+  MenuItem,
   Paper,
   Stack,
   Switch,
   TextField,
   Typography,
-  MenuItem,
   Snackbar,
   Alert,
 } from "@mui/material";
 import { api, API_BASE_URL } from "../api.js";
 import SectionPreview from "../components/pageBuilder/SectionPreview.jsx";
 import SectionInspector from "../components/pageBuilder/SectionInspector.jsx";
+import SectionPickerDialog from "../components/pageBuilder/SectionPickerDialog.jsx";
 import { SECTION_TYPES, createSection } from "../components/pageBuilder/sectionDefaults.js";
 import { moveItem } from "../components/pageBuilder/utils.js";
 
@@ -40,7 +45,8 @@ export default function PageEditor() {
   const [lastSaved, setLastSaved] = useState("");
   const [error, setError] = useState("");
   const [toast, setToast] = useState({ open: false, message: "", severity: "success" });
-  const [menuAnchor, setMenuAnchor] = useState(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(null); // section index or null
   const [loaded, setLoaded] = useState(isNew);
   const livePath = form.slug.trim() === "home" || form.slug.trim() === "/" ? "/" : `/${form.slug.trim()}`;
   // The public website's address — the admin runs on its own domain, so the
@@ -184,7 +190,7 @@ export default function PageEditor() {
     const nextSection = createSection(type);
     setSections((prev) => [...prev, nextSection]);
     setSelectedIndex(sections.length);
-    setMenuAnchor(null);
+    setPickerOpen(false);
   };
 
   const onUpdateSection = (index, nextSection) => {
@@ -280,18 +286,11 @@ export default function PageEditor() {
 
             <Stack direction="row" spacing={2} alignItems="center">
               <Typography variant="subtitle1">Page Canvas</Typography>
-              <Button variant="outlined" onClick={(e) => setMenuAnchor(e.currentTarget)}>
+              <Button variant="outlined" onClick={() => setPickerOpen(true)}>
                 Add Section
               </Button>
-              <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-                {SECTION_TYPES.map((section) => (
-                  <MenuItem key={section.type} onClick={() => onAddSection(section.type)}>
-                    {section.label}
-                  </MenuItem>
-                ))}
-              </Menu>
               <Typography variant="body2" color="text.secondary">
-                Drag sections to reorder
+                Drag sections to reorder, or use the arrows on each section
               </Typography>
             </Stack>
 
@@ -304,6 +303,11 @@ export default function PageEditor() {
                   editMode={editMode}
                   onSelect={() => setSelectedIndex(idx)}
                   onUpdate={(nextSection) => onUpdateSection(idx, nextSection)}
+                  onMoveUp={() => onReorder(idx, idx - 1)}
+                  onMoveDown={() => onReorder(idx, idx + 1)}
+                  onRemove={() => setConfirmRemove(idx)}
+                  canMoveUp={idx > 0}
+                  canMoveDown={idx < sections.length - 1}
                   dragProps={{
                     draggable: true,
                     onDragStart: (e) => e.dataTransfer.setData("text/plain", String(idx)),
@@ -328,11 +332,43 @@ export default function PageEditor() {
             <SectionInspector
               section={selectedSection}
               onChange={(nextSection) => onUpdateSection(selectedIndex, nextSection)}
-              onRemove={() => onRemoveSection(selectedIndex)}
+              onRemove={() => setConfirmRemove(selectedIndex)}
             />
           </Paper>
         </Grid>
       </Grid>
+
+      <SectionPickerDialog open={pickerOpen} onClose={() => setPickerOpen(false)} onPick={onAddSection} />
+
+      <Dialog open={confirmRemove !== null} onClose={() => setConfirmRemove(null)}>
+        <DialogTitle>Remove this section?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {confirmRemove !== null
+              ? `The "${
+                  SECTION_TYPES.find((s) => s.type === sections[confirmRemove]?.type)?.label ||
+                  sections[confirmRemove]?.type ||
+                  "selected"
+                }" section and its content will be removed from this page. This takes effect when you save.`
+              : ""}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button color="inherit" onClick={() => setConfirmRemove(null)}>
+            Cancel
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => {
+              onRemoveSection(confirmRemove);
+              setConfirmRemove(null);
+            }}
+          >
+            Remove section
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={toast.open}
