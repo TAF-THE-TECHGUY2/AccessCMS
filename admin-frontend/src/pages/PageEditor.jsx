@@ -29,7 +29,9 @@ import { moveItem } from "../components/pageBuilder/utils.js";
 
 export default function PageEditor() {
   const { id } = useParams();
-  const isNew = id === "new";
+  // The /pages/new route is static, so useParams() has no id there — treat a
+  // missing id as "new" or the editor tries to load/update page "undefined".
+  const isNew = !id || id === "new";
   const navigate = useNavigate();
   const autosaveRef = useRef(null);
   const [form, setForm] = useState({
