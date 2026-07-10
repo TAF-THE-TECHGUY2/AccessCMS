@@ -28,7 +28,7 @@ export const publicRouter = Router();
 export const adminRouter = Router();
 
 const normalizeSlug = (slug: string) => {
-  const trimmed = slug.trim();
+  const trimmed = slug.trim().toLowerCase();
   if (trimmed === "/" || trimmed === "root") return "home";
   return trimmed.replace(/^\/+/, "");
 };
