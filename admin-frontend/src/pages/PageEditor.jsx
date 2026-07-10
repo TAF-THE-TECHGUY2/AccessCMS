@@ -112,7 +112,8 @@ export default function PageEditor() {
       setLastSaved(new Date().toLocaleTimeString());
       setToast({ open: true, message: "Saved successfully.", severity: "success" });
       if (updated.status === "published") {
-        fetch(`${API_BASE_URL}/api/pages/slug/${encodeURIComponent(payload.slug)}`)
+        // Check with the server-normalized slug, not what was typed
+        fetch(`${API_BASE_URL}/api/pages/slug/${encodeURIComponent(updated.slug)}`)
           .then((res) => {
             if (!res.ok) {
               throw new Error("Public page not updated yet.");
@@ -150,7 +151,8 @@ export default function PageEditor() {
       setAliases(updated.aliases || []);
       setLastSaved(new Date().toLocaleTimeString());
       setToast({ open: true, message: "Published successfully.", severity: "success" });
-      fetch(`${API_BASE_URL}/api/pages/slug/${encodeURIComponent(payload.slug)}`)
+      // Check with the server-normalized slug, not what was typed
+      fetch(`${API_BASE_URL}/api/pages/slug/${encodeURIComponent(updated.slug)}`)
         .then((res) => {
           if (!res.ok) {
             throw new Error("Public page not updated yet.");
