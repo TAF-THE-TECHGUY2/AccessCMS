@@ -15,12 +15,16 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  TextField,
+  InputAdornment,
   Typography,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import { api } from "../api.js";
 
 export default function Pages() {
   const [pages, setPages] = useState([]);
+  const [query, setQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null); // page object or null
 
   const load = async () => {
@@ -43,13 +47,35 @@ export default function Pages() {
     await load();
   };
 
+  const q = query.trim().toLowerCase();
+  const visiblePages = q
+    ? pages.filter(
+        (p) => p.title.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q)
+      )
+    : pages;
+
   return (
     <Stack spacing={2}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Stack direction="row" spacing={2} justifyContent="space-between" alignItems="center">
         <Typography variant="h5">Pages</Typography>
-        <Button component={Link} to="/pages/new" variant="contained" color="secondary">
-          New Page
-        </Button>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <TextField
+            size="small"
+            placeholder="Search pages…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Button component={Link} to="/pages/new" variant="contained" color="secondary">
+            New Page
+          </Button>
+        </Stack>
       </Stack>
       <Paper variant="outlined">
         <Table>
@@ -62,7 +88,7 @@ export default function Pages() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {pages.map((page) => (
+            {visiblePages.map((page) => (
               <TableRow key={page._id} hover>
                 <TableCell sx={{ fontWeight: 600 }}>{page.title}</TableCell>
                 <TableCell>{page.slug === "home" ? "home (/)" : `/${page.slug}`}</TableCell>
