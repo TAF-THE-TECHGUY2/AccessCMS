@@ -31,6 +31,7 @@ import {
   Logout as LogoutIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../AuthContext.jsx";
+import logo from "../assets/Logo.png";
 
 const navItems = [
   { label: "Dashboard", to: "/", icon: <DashboardIcon /> },
@@ -124,17 +125,7 @@ export default function AdminLayout({ children }) {
             <MenuIcon />
           </IconButton>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, flexGrow: 1 }}>
-            <Box
-              sx={{
-                width: 10,
-                height: 26,
-                borderRadius: 0.5,
-                bgcolor: "secondary.main",
-              }}
-            />
-            <Typography variant="h6" sx={{ letterSpacing: 0.4 }}>
-              Access Properties
-            </Typography>
+            <Box component="img" src={logo} alt="Access Properties" sx={{ height: 40, width: "auto" }} />
             <Chip label="CMS" size="small" color="secondary" sx={{ fontWeight: 700 }} />
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
