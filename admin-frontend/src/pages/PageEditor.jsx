@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Button,
   Chip,
@@ -20,10 +23,12 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { api, API_BASE_URL } from "../api.js";
 import SectionPreview from "../components/pageBuilder/SectionPreview.jsx";
 import SectionInspector from "../components/pageBuilder/SectionInspector.jsx";
 import SectionPickerDialog from "../components/pageBuilder/SectionPickerDialog.jsx";
+import ImagePicker from "../components/pageBuilder/ImagePicker.jsx";
 import { SECTION_TYPES, createSection } from "../components/pageBuilder/sectionDefaults.js";
 import { moveItem } from "../components/pageBuilder/utils.js";
 
@@ -40,6 +45,7 @@ export default function PageEditor() {
     status: "draft",
   });
   const [sections, setSections] = useState([]);
+  const [seo, setSeo] = useState({ metaTitle: "", metaDescription: "", ogImage: "" });
   const [aliases, setAliases] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editMode, setEditMode] = useState(true);
@@ -69,6 +75,11 @@ export default function PageEditor() {
         }
         setForm({ title: page.title, slug: page.slug, status: page.status });
         setSections(page.sections || []);
+        setSeo({
+          metaTitle: page.seo?.metaTitle || "",
+          metaDescription: page.seo?.metaDescription || "",
+          ogImage: page.seo?.ogImage || "",
+        });
         setAliases(page.aliases || []);
         setSelectedIndex(0);
       } catch (err) {
@@ -83,8 +94,8 @@ export default function PageEditor() {
   const payload = useMemo(() => {
     const trimmedSlug = form.slug.trim();
     const normalizedSlug = trimmedSlug === "/" ? "home" : trimmedSlug;
-    return { ...form, slug: normalizedSlug, sections };
-  }, [form, sections]);
+    return { ...form, slug: normalizedSlug, sections, seo };
+  }, [form, sections, seo]);
 
   const onReorder = (from, to) => {
     setSections((prev) => moveItem(prev, from, to));
@@ -285,6 +296,37 @@ export default function PageEditor() {
                 <MenuItem value="published">Published</MenuItem>
               </TextField>
             </Stack>
+
+            <Accordion disableGutters elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, "&:before": { display: "none" } }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle2">SEO — browser tab &amp; Google/sharing preview</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack spacing={2}>
+                  <TextField
+                    label="Meta title"
+                    value={seo.metaTitle}
+                    onChange={(e) => setSeo((s) => ({ ...s, metaTitle: e.target.value }))}
+                    helperText={`Browser tab & search result title. Empty = "${form.title || "Page title"} | Access Properties"`}
+                    fullWidth
+                  />
+                  <TextField
+                    label="Meta description"
+                    value={seo.metaDescription}
+                    onChange={(e) => setSeo((s) => ({ ...s, metaDescription: e.target.value }))}
+                    helperText="1–2 sentences shown under the title in Google results (~155 characters)."
+                    multiline
+                    minRows={2}
+                    fullWidth
+                  />
+                  <ImagePicker
+                    label="Share image (shown when the page is linked on social media)"
+                    value={seo.ogImage}
+                    onChange={(val) => setSeo((s) => ({ ...s, ogImage: val }))}
+                  />
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
 
             <Divider />
 

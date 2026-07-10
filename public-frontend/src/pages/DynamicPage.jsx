@@ -3,6 +3,7 @@ import { useParams, Navigate } from "react-router-dom";
 import { api } from "../api.js";
 import PageRenderer from "./PageRenderer.jsx";
 import PropertyDetails from "./PropertyDetails.jsx";
+import { PageLoading, PageError } from "../components/PageStates.jsx";
 
 // Renders whatever published CMS page matches the URL. If the URL matches an
 // old slug (alias), redirects to the page's current slug. If no page matches,
@@ -38,13 +39,13 @@ export default function DynamicPage() {
   const state = loaded.forSlug === slug ? loaded : { status: "loading" };
 
   if (state.status === "loading") {
-    return <div className="max-w-4xl mx-auto px-4 py-10 text-gray-500">Loading...</div>;
+    return <PageLoading />;
   }
   if (state.status === "property") {
     return <PropertyDetails />;
   }
   if (state.status === "error") {
-    return <div className="max-w-4xl mx-auto px-4 py-10 text-red-600">{state.message}</div>;
+    return <PageError message={state.message} />;
   }
 
   const page = state.page;

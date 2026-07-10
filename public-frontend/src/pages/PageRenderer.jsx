@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import SectionRenderer from "../components/SectionRenderer.jsx";
 import NewsletterSignup from "../components/NewsletterSignup.jsx";
 import { api } from "../api.js";
+import { PageLoading, PageError } from "../components/PageStates.jsx";
 
 const normalizeText = (value = "") =>
   String(value)
@@ -61,20 +62,28 @@ export default function PageRenderer({ slug, page: initialPage }) {
     };
   }, [slug, initialPage]);
 
+  // Apply the page's SEO settings from the CMS (browser tab title + meta description)
+  useEffect(() => {
+    if (!page) return;
+    const seo = page.seo || {};
+    document.title = seo.metaTitle || `${page.title} | Access Properties`;
+    if (seo.metaDescription) {
+      let meta = document.querySelector('meta[name="description"]');
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.setAttribute("name", "description");
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute("content", seo.metaDescription);
+    }
+  }, [page]);
+
   if (error) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-10 text-red-600">
-        {error}
-      </div>
-    );
+    return <PageError message={error} />;
   }
 
   if (!page) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-10 text-gray-500">
-        Loading...
-      </div>
-    );
+    return <PageLoading />;
   }
 
   const sections = page.sections || [];
