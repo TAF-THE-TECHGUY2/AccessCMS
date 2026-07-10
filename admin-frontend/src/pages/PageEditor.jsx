@@ -3,9 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   Box,
   Button,
+  Chip,
   Divider,
   Grid,
   Menu,
+  Paper,
   Stack,
   Switch,
   TextField,
@@ -41,8 +43,13 @@ export default function PageEditor() {
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [loaded, setLoaded] = useState(isNew);
   const livePath = form.slug.trim() === "home" || form.slug.trim() === "/" ? "/" : `/${form.slug.trim()}`;
+  // The public website's address — the admin runs on its own domain, so the
+  // live link must be absolute or it points at the admin host and 404s.
+  const PUBLIC_SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL || "https://ap.boston";
+  const liveUrl = `${PUBLIC_SITE_URL}${livePath}`;
 
   useEffect(() => {
+    setError(""); // don't carry a stale error into another page or "New Page"
     if (isNew) return;
     const load = async () => {
       try {
@@ -193,15 +200,24 @@ export default function PageEditor() {
     <Stack spacing={2}>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ xs: "stretch", md: "center" }}>
         <Box sx={{ flex: 1 }}>
-          <Typography variant="h5">{isNew ? "New Page" : "Edit Page"}</Typography>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Typography variant="h5">
+              {isNew ? "New Page" : form.title || "Edit Page"}
+            </Typography>
+            <Chip
+              label={form.status === "published" ? "Published" : "Draft"}
+              size="small"
+              color={form.status === "published" ? "success" : "default"}
+            />
+          </Stack>
           <Typography variant="body2" color="text.secondary">
             {lastSaved ? `Last saved at ${lastSaved}` : "Autosave is on for drafts."}
           </Typography>
           {!isNew ? (
             <Typography variant="body2" color="text.secondary">
               Live URL:{" "}
-              <a href={livePath} target="_blank" rel="noreferrer">
-                {livePath}
+              <a href={liveUrl} target="_blank" rel="noreferrer">
+                {liveUrl}
               </a>
             </Typography>
           ) : null}
@@ -209,21 +225,27 @@ export default function PageEditor() {
         <Stack direction="row" spacing={2} alignItems="center">
           <Typography variant="body2">Edit mode</Typography>
           <Switch checked={editMode} onChange={(e) => setEditMode(e.target.checked)} />
-          <Button variant="outlined" onClick={() => navigate("/pages")}>
+          <Button variant="outlined" color="inherit" onClick={() => navigate("/pages")}>
             Back
           </Button>
-          <Button variant="contained" onClick={onSave} disabled={saving}>
+          <Button variant="outlined" onClick={onSave} disabled={saving}>
             Save
           </Button>
-          <Button onClick={onPublish} disabled={saving || isNew}>
+          <Button variant="contained" color="secondary" onClick={onPublish} disabled={saving || isNew}>
             Publish
           </Button>
         </Stack>
       </Stack>
 
+      {error ? (
+        <Alert severity="error" onClose={() => setError("")}>
+          {error}
+        </Alert>
+      ) : null}
+
       <Grid container spacing={2}>
         <Grid item xs={12} md={8}>
-          <Stack spacing={2}>
+          <Stack component={Paper} variant="outlined" spacing={2} sx={{ p: 2.5 }}>
             <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
               <TextField
                 label="Title"
@@ -302,17 +324,15 @@ export default function PageEditor() {
           </Stack>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Box sx={{ border: "1px solid #e0e0e0", borderRadius: 2, bgcolor: "#fff", height: "100%" }}>
+          <Paper variant="outlined" sx={{ height: "100%" }}>
             <SectionInspector
               section={selectedSection}
               onChange={(nextSection) => onUpdateSection(selectedIndex, nextSection)}
               onRemove={() => onRemoveSection(selectedIndex)}
             />
-          </Box>
+          </Paper>
         </Grid>
       </Grid>
-
-      {error ? <Typography color="error">{error}</Typography> : null}
 
       <Snackbar
         open={toast.open}

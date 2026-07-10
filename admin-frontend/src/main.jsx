@@ -8,10 +8,24 @@ const theme = createTheme({
   palette: {
     mode: "light",
     primary: { main: "#1f2937" },
-    secondary: { main: "#b3a17a" },
+    secondary: { main: "#b3a17a", contrastText: "#ffffff" },
+    background: { default: "#f4f5f7", paper: "#ffffff" },
   },
+  shape: { borderRadius: 10 },
   typography: {
     fontFamily: '"Public Sans", "Segoe UI", sans-serif',
+    h5: { fontWeight: 700 },
+    h6: { fontWeight: 700 },
+    subtitle1: { fontWeight: 600 },
+    button: { textTransform: "none", fontWeight: 600 },
+  },
+  components: {
+    MuiButton: {
+      defaultProps: { disableElevation: true },
+    },
+    MuiPaper: {
+      styleOverrides: { root: { backgroundImage: "none" } },
+    },
   },
 });
 
