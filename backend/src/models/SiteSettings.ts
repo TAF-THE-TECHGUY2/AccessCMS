@@ -6,6 +6,12 @@ export interface SiteSettingsDoc extends Document {
   favicon?: string;
   primaryColor?: string;
   navLinks: { label: string; href: string; children?: { label: string; href: string }[] }[];
+  header?: {
+    loginLabel?: string;
+    loginHref?: string;
+    signupLabel?: string;
+    signupHref?: string;
+  };
   footer: {
     address?: string;
     phones?: string[];
@@ -41,6 +47,13 @@ const SiteSettingsSchema = new Schema<SiteSettingsDoc>(
         },
       ],
       default: [],
+    },
+    // Login / Sign Up buttons in the public site's top bar
+    header: {
+      loginLabel: String,
+      loginHref: String,
+      signupLabel: String,
+      signupHref: String,
     },
     footer: {
       address: String,

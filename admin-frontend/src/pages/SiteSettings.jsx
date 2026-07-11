@@ -28,6 +28,7 @@ export default function SiteSettings() {
   const [siteName, setSiteName] = useState("");
   const [logo, setLogo] = useState("");
   const [menu, setMenu] = useState([]);
+  const [header, setHeader] = useState({ loginLabel: "", loginHref: "", signupLabel: "", signupHref: "" });
   const [footer, setFooter] = useState({ address: "", ctaLine: "" });
   const [phones, setPhones] = useState([]);
   const [emails, setEmails] = useState([]);
@@ -52,6 +53,13 @@ export default function SiteSettings() {
           })),
         }))
       );
+      const h = data.header || {};
+      setHeader({
+        loginLabel: h.loginLabel || "",
+        loginHref: h.loginHref || "",
+        signupLabel: h.signupLabel || "",
+        signupHref: h.signupHref || "",
+      });
       const f = data.footer || {};
       setFooter({ address: f.address || "", ctaLine: f.ctaLine || "" });
       setPhones(f.phones || []);
@@ -118,6 +126,12 @@ export default function SiteSettings() {
           .filter((c) => c.label.trim() && c.href.trim())
           .map((c) => ({ label: c.label.trim(), href: c.href.trim() })),
       }));
+    payload.header = {
+      loginLabel: header.loginLabel.trim(),
+      loginHref: header.loginHref.trim(),
+      signupLabel: header.signupLabel.trim(),
+      signupHref: header.signupHref.trim(),
+    };
     payload.footer = {
       ...(payload.footer || {}),
       address: footer.address.trim(),
@@ -226,6 +240,54 @@ export default function SiteSettings() {
         <Button variant="outlined" startIcon={<AddIcon />} onClick={addItem} sx={{ alignSelf: "flex-start" }}>
           Add menu item
         </Button>
+      </Stack>
+
+      <Divider />
+
+      <Box>
+        <Typography variant="h6">Header Buttons</Typography>
+        <Typography variant="body2" color="text.secondary">
+          The Log In / Sign Up buttons at the top right of the public site. Leave a field empty to
+          use the default (investor portal links).
+        </Typography>
+      </Box>
+      <Stack spacing={1.5}>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={1.5}>
+          <TextField
+            label="Log In label"
+            size="small"
+            value={header.loginLabel}
+            onChange={(e) => setHeader((h) => ({ ...h, loginLabel: e.target.value }))}
+            placeholder="Log In"
+            sx={{ width: { md: 220 } }}
+          />
+          <TextField
+            label="Log In link"
+            size="small"
+            value={header.loginHref}
+            onChange={(e) => setHeader((h) => ({ ...h, loginHref: e.target.value }))}
+            placeholder="https://investor.ap.boston/login"
+            sx={{ flex: 1 }}
+          />
+        </Stack>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={1.5}>
+          <TextField
+            label="Sign Up label"
+            size="small"
+            value={header.signupLabel}
+            onChange={(e) => setHeader((h) => ({ ...h, signupLabel: e.target.value }))}
+            placeholder="Sign Up"
+            sx={{ width: { md: 220 } }}
+          />
+          <TextField
+            label="Sign Up link"
+            size="small"
+            value={header.signupHref}
+            onChange={(e) => setHeader((h) => ({ ...h, signupHref: e.target.value }))}
+            placeholder="https://investor.ap.boston/"
+            sx={{ flex: 1 }}
+          />
+        </Stack>
       </Stack>
 
       <Divider />

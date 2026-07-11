@@ -111,6 +111,14 @@ export default function NavBar() {
 
   const navLinks = useMemo(() => normalizeNavLinks(settings?.navLinks), [settings]);
 
+  // Login / Sign Up buttons (top right) — editable in Site Settings, with the
+  // investor portal as the default destination.
+  const header = settings?.header || {};
+  const loginLabel = header.loginLabel || "Log In";
+  const loginHref = header.loginHref || "https://investor.ap.boston/login";
+  const signupLabel = header.signupLabel || "Sign Up";
+  const signupHref = header.signupHref || "https://investor.ap.boston/";
+
   const NavLink = ({ to, active, onClick, children }) => (
     isExternalHref(to) ? (
       <a href={to} className={desktopLinkClass(active)} onClick={onClick}>
@@ -246,6 +254,18 @@ export default function NavBar() {
           </div>
 
           <div className="flex items-center justify-end gap-3 justify-self-end">
+            <a
+              href={loginHref}
+              className="hidden md:inline-block text-black font-medium text-[15px] hover:opacity-80 transition-opacity"
+            >
+              {loginLabel}
+            </a>
+            <a
+              href={signupHref}
+              className="hidden md:inline-block bg-black hover:bg-gray-800 text-white px-5 py-2.5 text-sm font-semibold transition-colors"
+            >
+              {signupLabel}
+            </a>
             <button
               className="md:hidden bg-black text-white p-2 hover:bg-gray-800 transition-colors"
               onClick={() => {
@@ -346,7 +366,20 @@ export default function NavBar() {
                   )
                 )}
               </nav>
-              <div className="border-t border-gray-800 p-4" />
+              <div className="border-t border-gray-800 p-4 space-y-2">
+                <a
+                  href={loginHref}
+                  className="block w-full text-center border border-white text-white px-4 py-3 text-sm font-semibold hover:bg-white hover:text-black transition-colors"
+                >
+                  {loginLabel}
+                </a>
+                <a
+                  href={signupHref}
+                  className="block w-full text-center bg-white text-black px-4 py-3 text-sm font-semibold hover:bg-gray-200 transition-colors"
+                >
+                  {signupLabel}
+                </a>
+              </div>
             </div>
           </div>
         ) : null}

@@ -19,6 +19,14 @@ const settingsSchema = z.object({
       })
     )
     .optional(),
+  header: z
+    .object({
+      loginLabel: z.string().optional(),
+      loginHref: z.string().optional(),
+      signupLabel: z.string().optional(),
+      signupHref: z.string().optional(),
+    })
+    .optional(),
   footer: z
     .object({
       address: z.string().optional(),
