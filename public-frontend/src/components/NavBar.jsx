@@ -21,7 +21,6 @@ const DEFAULT_NAV_LINKS = [
     href: "/portfolios",
     children: [{ label: "Greater Boston", href: "/greater-boston" }],
   },
-  { label: "Invest Now", href: "/invest-now" },
   { label: "FAQ", href: "/faq" },
   { label: "Contact", href: "/contact" },
 ];
@@ -111,13 +110,26 @@ export default function NavBar() {
 
   const navLinks = useMemo(() => normalizeNavLinks(settings?.navLinks), [settings]);
 
-  // Login / Sign Up buttons (top right) — editable in Site Settings, with the
-  // investor portal as the default destination.
+  // Header buttons (top right) — editable in Site Settings. Per compliance
+  // review, the primary button is "Invest Now" -> the invest-now page (a
+  // "Sign Up" button was misleading for non-accredited investors).
   const header = settings?.header || {};
   const loginLabel = header.loginLabel || "Log In";
   const loginHref = header.loginHref || "https://investor.ap.boston/login";
-  const signupLabel = header.signupLabel || "Sign Up";
-  const signupHref = header.signupHref || "https://investor.ap.boston/";
+  const primaryLabel = header.signupLabel || "Invest Now";
+  const primaryHref = header.signupHref || "/invest-now";
+
+  // Internal links must use the SPA router; external ones a plain anchor.
+  const HeaderButton = ({ href, className, children }) =>
+    isExternalHref(href) ? (
+      <a href={href} className={className}>
+        {children}
+      </a>
+    ) : (
+      <Link to={href} className={className}>
+        {children}
+      </Link>
+    );
 
   const NavLink = ({ to, active, onClick, children }) => (
     isExternalHref(to) ? (
@@ -254,18 +266,18 @@ export default function NavBar() {
           </div>
 
           <div className="flex items-center justify-end gap-3 justify-self-end">
-            <a
+            <HeaderButton
               href={loginHref}
               className="hidden md:inline-block text-black font-medium text-[15px] hover:opacity-80 transition-opacity"
             >
               {loginLabel}
-            </a>
-            <a
-              href={signupHref}
+            </HeaderButton>
+            <HeaderButton
+              href={primaryHref}
               className="hidden md:inline-block bg-black hover:bg-gray-800 text-white px-5 py-2.5 text-sm font-semibold transition-colors"
             >
-              {signupLabel}
-            </a>
+              {primaryLabel}
+            </HeaderButton>
             <button
               className="md:hidden bg-black text-white p-2 hover:bg-gray-800 transition-colors"
               onClick={() => {
@@ -366,19 +378,19 @@ export default function NavBar() {
                   )
                 )}
               </nav>
-              <div className="border-t border-gray-800 p-4 space-y-2">
-                <a
+              <div className="border-t border-gray-800 p-4 space-y-2" onClick={closeMobile}>
+                <HeaderButton
                   href={loginHref}
                   className="block w-full text-center border border-white text-white px-4 py-3 text-sm font-semibold hover:bg-white hover:text-black transition-colors"
                 >
                   {loginLabel}
-                </a>
-                <a
-                  href={signupHref}
+                </HeaderButton>
+                <HeaderButton
+                  href={primaryHref}
                   className="block w-full text-center bg-white text-black px-4 py-3 text-sm font-semibold hover:bg-gray-200 transition-colors"
                 >
-                  {signupLabel}
-                </a>
+                  {primaryLabel}
+                </HeaderButton>
               </div>
             </div>
           </div>

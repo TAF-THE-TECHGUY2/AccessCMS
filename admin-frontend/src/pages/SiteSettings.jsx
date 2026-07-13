@@ -247,8 +247,8 @@ export default function SiteSettings() {
       <Box>
         <Typography variant="h6">Header Buttons</Typography>
         <Typography variant="body2" color="text.secondary">
-          The Log In / Sign Up buttons at the top right of the public site. Leave a field empty to
-          use the default (investor portal links).
+          The buttons at the top right of the public site. Defaults: "Log In" → investor portal
+          login, "Invest Now" → the /invest-now page. Leave fields empty to use the defaults.
         </Typography>
       </Box>
       <Stack spacing={1.5}>
@@ -272,19 +272,19 @@ export default function SiteSettings() {
         </Stack>
         <Stack direction={{ xs: "column", md: "row" }} spacing={1.5}>
           <TextField
-            label="Sign Up label"
+            label="Primary button label"
             size="small"
             value={header.signupLabel}
             onChange={(e) => setHeader((h) => ({ ...h, signupLabel: e.target.value }))}
-            placeholder="Sign Up"
+            placeholder="Invest Now"
             sx={{ width: { md: 220 } }}
           />
           <TextField
-            label="Sign Up link"
+            label="Primary button link"
             size="small"
             value={header.signupHref}
             onChange={(e) => setHeader((h) => ({ ...h, signupHref: e.target.value }))}
-            placeholder="https://investor.ap.boston/"
+            placeholder="/invest-now"
             sx={{ flex: 1 }}
           />
         </Stack>
