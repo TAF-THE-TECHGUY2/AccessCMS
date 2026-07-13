@@ -1,8 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { getIcon } from "./iconMap.js";
-import { api } from "../../api.js";
+import { api, API_BASE_URL } from "../../api.js";
 import buildImg from "../../assets/Build.png";
+
+// Uploaded images live on the API server; a bare /uploads path would resolve
+// against the website's own domain and 404 (grey hero).
+const resolveUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  if (url.startsWith("/uploads")) return `${API_BASE_URL}${url}`;
+  return url;
+};
 
 export default function FaqPageSection({ data }) {
   const [openId, setOpenId] = useState(null);
@@ -36,7 +45,7 @@ export default function FaqPageSection({ data }) {
       <section
         className="relative h-[597px] bg-cover bg-center"
         style={{
-          backgroundImage: data?.heroImage ? `url(${data.heroImage})` : `url(${buildImg})`,
+          backgroundImage: data?.heroImage ? `url(${resolveUrl(data.heroImage)})` : `url(${buildImg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
