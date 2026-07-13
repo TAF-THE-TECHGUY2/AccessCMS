@@ -264,6 +264,26 @@ export default function SectionPreview({
               onChange={(val) => update("headline", val)}
             />
             <Typography color="text.secondary">{data.subtext || "CTA subtext"}</Typography>
+            <Box
+              sx={{
+                display: data.buttonLayout === "split-columns" ? "grid" : "flex",
+                gridTemplateColumns:
+                  data.buttonLayout === "split-columns" ? "repeat(2, minmax(0, 1fr))" : undefined,
+                gap: 2,
+                width: "100%",
+                justifyItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {(data.buttons || []).map((button, index) => (
+                <Box
+                  key={`${button.label}-${index}`}
+                  sx={{ px: 2.5, py: 1, borderRadius: 1, backgroundColor: "#111", color: "#fff" }}
+                >
+                  {button.label || `Button ${index + 1}`}
+                </Box>
+              ))}
+            </Box>
           </Stack>
         </SectionShell>
       );

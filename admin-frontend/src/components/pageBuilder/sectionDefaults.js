@@ -95,6 +95,7 @@ export const createSection = (type) => {
         data: {
           headline: "Ready to invest?",
           subtext: "Start with as little as $100 or qualify as accredited.",
+          buttonLayout: "centered",
           buttons: [
             { label: "Invest Now", href: "/invest-now" },
             { label: "Contact", href: "/contact" },

@@ -397,6 +397,16 @@ export default function SectionInspector({ section, onChange, onRemove }) {
         <Stack spacing={rowGap}>
           <TextField label="Headline" value={data.headline || ""} onChange={(e) => update("headline", e.target.value)} />
           <TextField label="Subtext" value={data.subtext || ""} onChange={(e) => update("subtext", e.target.value)} />
+          <TextField
+            label="Button Layout"
+            select
+            value={data.buttonLayout || "centered"}
+            onChange={(e) => update("buttonLayout", e.target.value)}
+            helperText="Split columns places button 1 under the left column and button 2 under the right column."
+          >
+            <MenuItem value="centered">Centered group</MenuItem>
+            <MenuItem value="split-columns">Split columns (left / right)</MenuItem>
+          </TextField>
           <ArrayEditor
             label="Button"
             items={data.buttons || []}
