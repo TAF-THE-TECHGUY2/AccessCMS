@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Facebook, Linkedin, Instagram } from "lucide-react";
 import { api } from "../api.js";
 
-const INVEST_NOW_URL = "/invest-now";
 const isExternalHref = (href = "") => /^https?:\/\//i.test(href);
 
 export default function Footer() {
@@ -14,16 +13,13 @@ export default function Footer() {
   }, []);
 
   const footer = settings?.footer || {};
-  const quickLinks = (footer.quickLinks || [
-    { label: "Invest Now", href: INVEST_NOW_URL },
+  // Quick links come straight from Site Settings — no label-based overrides.
+  const quickLinks = footer.quickLinks || [
+    { label: "Invest Now", href: "/invest-now" },
     { label: "FAQ", href: "/faq" },
     { label: "Contact Us", href: "/contact" },
     { label: "Privacy Policy", href: "/privacy-policy" },
-  ]).map((link) =>
-    String(link?.label || "").trim().toLowerCase() === "invest now"
-      ? { ...link, href: INVEST_NOW_URL }
-      : link
-  );
+  ];
 
   const socialLinks = footer.socialLinks || [];
   const getIcon = (label) => {
