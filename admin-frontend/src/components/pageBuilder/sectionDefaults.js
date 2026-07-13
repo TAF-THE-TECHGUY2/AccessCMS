@@ -24,6 +24,7 @@ export const SECTION_TYPES = [
   { type: "ADVISORY", label: "Advisory", description: "Advisory board members block." },
   { type: "CONTACT_FORM", label: "Contact Form", description: "Form that sends visitor messages to you." },
   { type: "FAQ_PAGE", label: "FAQ Page", description: "Full FAQ page layout with categories, pulled from the FAQ list." },
+  { type: "NEWSLETTER", label: "Newsletter Signup", description: "Heading, blurb and a Subscribe button linking to your mailing list." },
 ];
 
 export const createSection = (type) => {
@@ -314,6 +315,16 @@ export const createSection = (type) => {
           items: [
             { question: "Question", answer: "Answer text." },
           ],
+        },
+      };
+    case "NEWSLETTER":
+      return {
+        ...base,
+        data: {
+          title: "Subscribe to Our Newsletter",
+          subtitle: "Get periodic updates from Access Properties.",
+          buttonLabel: "Subscribe",
+          buttonHref: "https://mailchi.mp/052b0234689c/access-properties",
         },
       };
     default:

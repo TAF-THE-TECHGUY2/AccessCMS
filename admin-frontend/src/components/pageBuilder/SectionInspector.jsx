@@ -1074,6 +1074,28 @@ export default function SectionInspector({ section, onChange, onRemove }) {
         </Stack>
       ) : null}
 
+      {section.type === "NEWSLETTER" ? (
+        <Stack spacing={rowGap}>
+          <TextField label="Title" value={data.title || ""} onChange={(e) => update("title", e.target.value)} />
+          <TextField
+            label="Subtitle"
+            value={data.subtitle || ""}
+            onChange={(e) => update("subtitle", e.target.value)}
+          />
+          <TextField
+            label="Button Label"
+            value={data.buttonLabel || ""}
+            onChange={(e) => update("buttonLabel", e.target.value)}
+          />
+          <TextField
+            label="Button Link"
+            value={data.buttonHref || ""}
+            onChange={(e) => update("buttonHref", e.target.value)}
+            helperText="Usually your mailing list signup URL (e.g. Mailchimp)"
+          />
+        </Stack>
+      ) : null}
+
       <Divider />
       <Button color="error" variant="outlined" onClick={onRemove}>
         Remove Section

@@ -38,6 +38,7 @@ import BadgeIcon from "@mui/icons-material/Badge";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ContactMailIcon from "@mui/icons-material/ContactMail";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
 import WidgetsIcon from "@mui/icons-material/Widgets";
 import { SECTION_TYPES } from "./sectionDefaults.js";
 
@@ -67,6 +68,7 @@ const ICONS = {
   ADVISORY: <SupportAgentIcon />,
   CONTACT_FORM: <ContactMailIcon />,
   FAQ_PAGE: <HelpOutlineIcon />,
+  NEWSLETTER: <MarkEmailReadIcon />,
 };
 
 export default function SectionPickerDialog({ open, onClose, onPick }) {

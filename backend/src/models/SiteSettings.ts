@@ -19,6 +19,7 @@ export interface SiteSettingsDoc extends Document {
     socialLinks?: { label: string; url: string }[];
     quickLinks?: { label: string; href: string }[];
     ctaLine?: string;
+    ctaSubline?: string;
   };
   defaultSeo: {
     metaTitle?: string;
@@ -62,6 +63,7 @@ const SiteSettingsSchema = new Schema<SiteSettingsDoc>(
       socialLinks: { type: [{ label: String, url: String }], default: [] },
       quickLinks: { type: [{ label: String, href: String }], default: [] },
       ctaLine: String,
+      ctaSubline: String,
     },
     defaultSeo: {
       metaTitle: String,

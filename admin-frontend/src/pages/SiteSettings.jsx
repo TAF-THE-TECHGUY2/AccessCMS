@@ -29,7 +29,7 @@ export default function SiteSettings() {
   const [logo, setLogo] = useState("");
   const [menu, setMenu] = useState([]);
   const [header, setHeader] = useState({ loginLabel: "", loginHref: "", signupLabel: "", signupHref: "" });
-  const [footer, setFooter] = useState({ address: "", ctaLine: "" });
+  const [footer, setFooter] = useState({ address: "", ctaLine: "", ctaSubline: "" });
   const [phones, setPhones] = useState([]);
   const [emails, setEmails] = useState([]);
   const [socialLinks, setSocialLinks] = useState([]);
@@ -61,7 +61,7 @@ export default function SiteSettings() {
         signupHref: h.signupHref || "",
       });
       const f = data.footer || {};
-      setFooter({ address: f.address || "", ctaLine: f.ctaLine || "" });
+      setFooter({ address: f.address || "", ctaLine: f.ctaLine || "", ctaSubline: f.ctaSubline || "" });
       setPhones(f.phones || []);
       setEmails(f.emails || []);
       setSocialLinks((f.socialLinks || []).map((l) => ({ label: l.label || "", url: l.url || "" })));
@@ -136,6 +136,7 @@ export default function SiteSettings() {
       ...(payload.footer || {}),
       address: footer.address.trim(),
       ctaLine: footer.ctaLine.trim(),
+      ctaSubline: footer.ctaSubline.trim(),
       phones: phones.map((p) => p.trim()).filter(Boolean),
       emails: emails.map((e) => e.trim()).filter(Boolean),
       socialLinks: socialLinks
@@ -308,11 +309,19 @@ export default function SiteSettings() {
             sx={{ flex: 1 }}
           />
           <TextField
-            label="Footer tagline"
+            label="Footer headline"
             size="small"
             value={footer.ctaLine}
             onChange={(e) => setFooter((f) => ({ ...f, ctaLine: e.target.value }))}
-            helperText='e.g. "Start investing in real estate today"'
+            helperText='Big line, e.g. "Start investing in real estate today"'
+            sx={{ flex: 1 }}
+          />
+          <TextField
+            label="Footer subline"
+            size="small"
+            value={footer.ctaSubline}
+            onChange={(e) => setFooter((f) => ({ ...f, ctaSubline: e.target.value }))}
+            helperText={'Small line under it, e.g. "It\'s easier than you think."'}
             sx={{ flex: 1 }}
           />
         </Stack>

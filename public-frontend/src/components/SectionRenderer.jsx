@@ -23,6 +23,7 @@ import ProfileCardsSection from "./sections/ProfileCardsSection.jsx";
 import AdvisorySection from "./sections/AdvisorySection.jsx";
 import ContactFormSection from "./sections/ContactFormSection.jsx";
 import FaqPageSection from "./sections/FaqPageSection.jsx";
+import NewsletterSection from "./sections/NewsletterSection.jsx";
 
 const SectionMap = {
   HERO: HeroSection,
@@ -50,6 +51,7 @@ const SectionMap = {
   ADVISORY: AdvisorySection,
   CONTACT_FORM: ContactFormSection,
   FAQ_PAGE: FaqPageSection,
+  NEWSLETTER: NewsletterSection,
 };
 
 export default function SectionRenderer({ sections = [] }) {

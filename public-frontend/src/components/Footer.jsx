@@ -40,7 +40,9 @@ export default function Footer() {
           <p className="text-2xl md:text-3xl font-semibold tracking-tight">
             {footer.ctaLine || "Start investing in real estate today"}
           </p>
-          <p className="mt-3 text-gray-400 text-base">It's easier than you think.</p>
+          <p className="mt-3 text-gray-400 text-base">
+            {footer.ctaSubline || "It's easier than you think."}
+          </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             {quickLinks.map((link) => (
               isExternalHref(link.href) ? (

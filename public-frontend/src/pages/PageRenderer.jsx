@@ -87,8 +87,11 @@ export default function PageRenderer({ slug, page: initialPage }) {
   }
 
   const sections = page.sections || [];
+  // Once a page has its own NEWSLETTER section, the legacy auto-inserted
+  // newsletter block steps aside entirely.
+  const hasNewsletterSection = sections.some((section) => section.type === "NEWSLETTER");
   const homeIntroSectionIndex =
-    slug === "home"
+    slug === "home" && !hasNewsletterSection
       ? sections.findIndex(
           (section) => isHomeNewsletterAnchor(section)
         )
@@ -105,7 +108,7 @@ export default function PageRenderer({ slug, page: initialPage }) {
       ) : (
         <>
           <SectionRenderer sections={sections} />
-          {(slug === "home" || slug === "contact") && <NewsletterSignup />}
+          {(slug === "home" || slug === "contact") && !hasNewsletterSection && <NewsletterSignup />}
         </>
       )}
     </>

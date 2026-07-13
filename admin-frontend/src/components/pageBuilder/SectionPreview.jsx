@@ -236,6 +236,23 @@ export default function SectionPreview({
           </Stack>
         </SectionShell>
       );
+    case "NEWSLETTER":
+      return (
+        <SectionShell title="Newsletter" {...baseProps}>
+          <Stack spacing={2} alignItems="center" textAlign="center">
+            <InlineText
+              editMode={editMode}
+              value={data.title}
+              variant="h5"
+              onChange={(val) => update("title", val)}
+            />
+            <Typography color="text.secondary">{data.subtitle || "Newsletter blurb"}</Typography>
+            <Box sx={{ px: 4, py: 1.2, borderRadius: 2, backgroundColor: "#374151", color: "#fff" }}>
+              {data.buttonLabel || "Subscribe"}
+            </Box>
+          </Stack>
+        </SectionShell>
+      );
     case "CTA":
       return (
         <SectionShell title="CTA" {...baseProps}>
