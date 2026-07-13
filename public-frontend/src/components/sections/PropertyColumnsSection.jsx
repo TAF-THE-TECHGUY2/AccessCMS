@@ -37,13 +37,13 @@ const PropertyCard = ({ p }) => {
   };
 
   const Stat = ({ icon: Icon, label, value }) => (
-    <div className="flex items-center justify-center gap-2.5 px-3 py-3.5">
+    <div className="grid min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-2.5 px-4 py-3.5 text-left">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-700">
         <Icon className="h-4 w-4" />
       </span>
-      <div className="text-left">
+      <div className="min-w-0">
         <div className="text-[11px] leading-tight text-gray-500">{label}</div>
-        <div className="text-sm font-semibold leading-tight text-gray-900">{value ?? "—"}</div>
+        <div className="break-words text-sm font-semibold leading-tight text-gray-900">{value ?? "—"}</div>
       </div>
     </div>
   );
