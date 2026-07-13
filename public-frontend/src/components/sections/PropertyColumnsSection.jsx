@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Building2, BedDouble, Bath, Car, Ruler, Calendar } from "lucide-react";
 import { api, API_BASE_URL } from "../../api.js";
 
 const PROPERTY_IMAGE_FALLBACK = "/properties/origin.jpg";
@@ -35,6 +36,18 @@ const PropertyCard = ({ p }) => {
     }
   };
 
+  const Stat = ({ icon: Icon, label, value }) => (
+    <div className="flex items-center justify-center gap-2.5 px-3 py-3.5">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-700">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="text-left">
+        <div className="text-[11px] leading-tight text-gray-500">{label}</div>
+        <div className="text-sm font-semibold leading-tight text-gray-900">{value ?? "—"}</div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm animate-fadeInUp">
       <div className="h-[260px] w-full overflow-hidden bg-gray-100">
@@ -42,37 +55,54 @@ const PropertyCard = ({ p }) => {
       </div>
 
       <div className="flex flex-1 flex-col p-5">
-        <div className="flex-1 rounded bg-gray-200 px-4 py-3 text-[13px] text-gray-900 md:min-h-[250px] md:text-sm">
-          <div className="font-semibold leading-snug">{p.address}</div>
+        <div className="text-center text-[15px] font-semibold leading-snug text-gray-900 md:text-base">
+          {p.address}
+        </div>
 
-          <div className="mt-2 grid grid-cols-1 gap-1">
-            <div>
-              <span className="font-semibold">Type:</span> {p.type}
+        <div className="mt-4 flex-1">
+          <div className="overflow-hidden rounded-lg border border-gray-200">
+            <div className="grid grid-cols-2 divide-x divide-gray-200 border-b border-gray-200">
+              <Stat icon={Building2} label="Type" value={p.type} />
+              <Stat icon={BedDouble} label="Bedrooms" value={p.bedrooms} />
             </div>
-            <div>
-              <span className="font-semibold">Bedrooms:</span> {p.bedrooms}
+            <div className="grid grid-cols-2 divide-x divide-gray-200 border-b border-gray-200">
+              <Stat icon={Bath} label="Bathrooms" value={p.bathrooms} />
+              <Stat icon={Car} label="Parking" value={p.parking} />
             </div>
-            <div>
-              <span className="font-semibold">Bathrooms:</span> {p.bathrooms}
-            </div>
-            <div>
-              <span className="font-semibold">Parking:</span> {p.parking}
-            </div>
-            <div>
-              <span className="font-semibold">Square Feet:</span> {p.squareFeet}
-            </div>
+            <Stat icon={Ruler} label="Square Feet" value={p.squareFeet} />
           </div>
         </div>
 
-        <div className="mt-5">
+        <div className="mt-5 text-center">
           <a
             href={`/${p.slug}`}
-            className="inline-block bg-[#b3a17a] hover:bg-[#9e8f6d] text-white px-6 py-2 text-sm rounded transition"
+            className="inline-block rounded bg-black px-8 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800"
           >
             View More
           </a>
         </div>
       </div>
+    </div>
+  );
+};
+
+// Green status pill + acquired-date pill shown under the strategy label
+const PropertyBadges = ({ p }) => {
+  if (!p?.holdingStatus && !p?.acquiredLabel) return null;
+  return (
+    <div className="mt-2 flex flex-wrap items-center justify-center gap-2 pb-1">
+      {p.holdingStatus ? (
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-green-50 px-2.5 py-1 text-[12px] font-medium text-green-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+          {p.holdingStatus}
+        </span>
+      ) : null}
+      {p.acquiredLabel ? (
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-[12px] font-medium text-gray-700">
+          <Calendar className="h-3.5 w-3.5" />
+          Acquired {p.acquiredLabel}
+        </span>
+      ) : null}
     </div>
   );
 };
@@ -193,6 +223,8 @@ export default function PropertyColumnsSection({ data }) {
       bathrooms: p.baths,
       parking: p.parking,
       squareFeet: p.sqft,
+      holdingStatus: p.holdingStatus,
+      acquiredLabel: p.acquiredLabel,
     };
   };
 
@@ -331,6 +363,7 @@ export default function PropertyColumnsSection({ data }) {
                       <div aria-hidden="true" />
                     )}
                   </div>
+                  <PropertyBadges p={p} />
                 </div>
                 <div className="flex-1">
                   {p ? <PropertyCard p={p} /> : null}
