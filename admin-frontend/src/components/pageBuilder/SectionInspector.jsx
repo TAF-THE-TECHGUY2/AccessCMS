@@ -3,8 +3,10 @@ import {
   Box,
   Button,
   Divider,
+  FormControlLabel,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from "@mui/material";
@@ -13,6 +15,7 @@ import "react-quill/dist/quill.snow.css";
 import ArrayEditor from "./ArrayEditor.jsx";
 import ImagePicker from "./ImagePicker.jsx";
 import AudioPicker from "./AudioPicker.jsx";
+import VideoPicker from "./VideoPicker.jsx";
 import { setValueAtPath } from "./utils.js";
 
 const rowGap = 2;
@@ -292,6 +295,22 @@ export default function SectionInspector({ section, onChange, onRemove }) {
             value={data.secondaryButton?.href || ""}
             onChange={(e) => update("secondaryButton.href", e.target.value)}
           />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={Boolean(data.secondaryButtonOpensVideo)}
+                onChange={(e) => update("secondaryButtonOpensVideo", e.target.checked)}
+              />
+            }
+            label="Secondary button plays a video (popup)"
+          />
+          {data.secondaryButtonOpensVideo ? (
+            <VideoPicker
+              label="Video"
+              value={data.videoUrl}
+              onChange={(val) => update("videoUrl", val)}
+            />
+          ) : null}
         </Stack>
       ) : null}
 

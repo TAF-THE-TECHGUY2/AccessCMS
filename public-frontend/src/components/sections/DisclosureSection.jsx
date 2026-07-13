@@ -72,5 +72,7 @@ export default function DisclosureSection({ data }) {
     );
   }
 
-  return <DisclosureBar />;
+  // Default variant: the standard collapsible bar, fed by CMS content
+  // (falls back to the built-in legal copy when none is written).
+  return <DisclosureBar title={data?.title} bodyHtml={data?.bodyHtml || data?.body} />;
 }

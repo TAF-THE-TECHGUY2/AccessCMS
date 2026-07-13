@@ -69,7 +69,7 @@ export default function Media() {
         <Typography variant="h5">Media Library</Typography>
         <Button variant="contained" color="secondary" component="label" disabled={uploading} startIcon={<UploadIcon />}>
           {uploading ? "Uploading…" : "Upload"}
-          <input type="file" hidden accept="image/*" onChange={onUpload} />
+          <input type="file" hidden accept="image/*,video/*" onChange={onUpload} />
         </Button>
       </Stack>
       <Grid container spacing={2}>
@@ -83,15 +83,27 @@ export default function Media() {
                 "&:hover": { borderColor: "secondary.main", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" },
               }}
             >
-              <Box
-                sx={{
-                  aspectRatio: "4 / 3",
-                  backgroundImage: `url(${fullUrl(item.url)})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  bgcolor: "#f0f1f3",
-                }}
-              />
+              {item.mime?.startsWith("video") || /\.(mp4|webm|mov)$/i.test(item.url) ? (
+                <Box sx={{ aspectRatio: "4 / 3", bgcolor: "#000" }}>
+                  <video
+                    src={fullUrl(item.url)}
+                    preload="metadata"
+                    muted
+                    controls
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                  />
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    aspectRatio: "4 / 3",
+                    backgroundImage: `url(${fullUrl(item.url)})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    bgcolor: "#f0f1f3",
+                  }}
+                />
+              )}
               <Stack direction="row" alignItems="center" sx={{ px: 1.5, py: 0.75 }} spacing={0.5}>
                 <Typography variant="caption" noWrap sx={{ flex: 1 }} title={item.key}>
                   {item.key}

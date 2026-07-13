@@ -13,6 +13,7 @@ export default function HeroSection({ data }) {
   const payload = {
     ...data,
     backgroundImage: data?.backgroundImage ? resolveUrl(data.backgroundImage) : undefined,
+    videoUrl: data?.videoUrl ? resolveUrl(data.videoUrl) : undefined,
   };
   return <HeroS {...payload} />;
 }

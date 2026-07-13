@@ -18,6 +18,7 @@ export default function HeroSection({
   primaryButton = { label: "INVEST NOW", href: "/invest-now" },
   secondaryButton = { label: "HOW IT WORKS", href: "" },
   videoUrl = "/videos/how-it-works.mp4",
+  secondaryButtonOpensVideo = false,
 }) {
   const [showHowItWorksVideo, setShowHowItWorksVideo] = useState(false);
   const closeVideo = () => setShowHowItWorksVideo(false);
@@ -42,9 +43,13 @@ export default function HeroSection({
 
     const buttonClass =
       "bg-gray-700 hover:bg-gray-800 text-white px-10 py-3 rounded-sm text-sm font-semibold tracking-wide transition-colors";
-    const isHowItWorksButton = normalizeLabel(button.label) === HOW_IT_WORKS_LABEL;
+    // Opens the video popup when explicitly enabled in the CMS for the
+    // secondary button, or (legacy) when the button is labelled "How It Works".
+    const isVideoButton =
+      (secondaryButtonOpensVideo && button === secondaryButton) ||
+      normalizeLabel(button.label) === HOW_IT_WORKS_LABEL;
 
-    if (isHowItWorksButton && videoUrl) {
+    if (isVideoButton && videoUrl) {
       return (
         <button
           key={key}
