@@ -29,7 +29,7 @@ export default function SiteSettings() {
   const [logo, setLogo] = useState("");
   const [menu, setMenu] = useState([]);
   const [header, setHeader] = useState({ loginLabel: "", loginHref: "", signupLabel: "", signupHref: "" });
-  const [footer, setFooter] = useState({ address: "", ctaLine: "", ctaSubline: "" });
+  const [footer, setFooter] = useState({ address: "", ctaLine: "", ctaSubline: "", companyTagline: "" });
   const [phones, setPhones] = useState([]);
   const [emails, setEmails] = useState([]);
   const [socialLinks, setSocialLinks] = useState([]);
@@ -61,7 +61,7 @@ export default function SiteSettings() {
         signupHref: h.signupHref || "",
       });
       const f = data.footer || {};
-      setFooter({ address: f.address || "", ctaLine: f.ctaLine || "", ctaSubline: f.ctaSubline || "" });
+      setFooter({ address: f.address || "", ctaLine: f.ctaLine || "", ctaSubline: f.ctaSubline || "", companyTagline: f.companyTagline || "" });
       setPhones(f.phones || []);
       setEmails(f.emails || []);
       setSocialLinks((f.socialLinks || []).map((l) => ({ label: l.label || "", url: l.url || "" })));
@@ -137,6 +137,7 @@ export default function SiteSettings() {
       address: footer.address.trim(),
       ctaLine: footer.ctaLine.trim(),
       ctaSubline: footer.ctaSubline.trim(),
+      companyTagline: footer.companyTagline.trim(),
       phones: phones.map((p) => p.trim()).filter(Boolean),
       emails: emails.map((e) => e.trim()).filter(Boolean),
       socialLinks: socialLinks
@@ -306,6 +307,14 @@ export default function SiteSettings() {
             size="small"
             value={footer.address}
             onChange={(e) => setFooter((f) => ({ ...f, address: e.target.value }))}
+            sx={{ flex: 1 }}
+          />
+          <TextField
+            label="Company tagline"
+            size="small"
+            value={footer.companyTagline}
+            onChange={(e) => setFooter((f) => ({ ...f, companyTagline: e.target.value }))}
+            helperText='Line under the company name, e.g. "Simple Real Estate Investing for Anyone, Anywhere"'
             sx={{ flex: 1 }}
           />
           <TextField

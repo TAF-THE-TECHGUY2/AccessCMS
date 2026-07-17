@@ -66,7 +66,7 @@ export default function Footer() {
           <div>
             <p className="font-semibold text-white">{settings?.siteName || "Access Properties"}</p>
             <p className="mt-1 text-sm text-gray-400 max-w-md">
-              Simple Real Estate Investing for Anyone, Anywhere
+              {footer.companyTagline || "Simple Real Estate Investing for Anyone, Anywhere"}
             </p>
             <div className="mt-4 flex items-center gap-3">
               {socialLinks.map((link) => {

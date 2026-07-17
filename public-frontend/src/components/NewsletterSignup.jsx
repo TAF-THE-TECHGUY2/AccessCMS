@@ -21,7 +21,7 @@ export default function NewsletterSignup({
             href={buttonHref}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center justify-center bg-gray-700 hover:bg-gray-800 text-white px-10 py-4 rounded-md text-[15px] font-medium transition-colors"
+            className="inline-flex items-center justify-center bg-black hover:bg-gray-800 text-white px-10 py-3 rounded-md text-sm font-semibold tracking-wide transition-colors"
           >
             {buttonLabel}
           </a>

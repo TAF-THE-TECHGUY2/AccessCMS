@@ -36,6 +36,7 @@ const settingsSchema = z.object({
       quickLinks: z.array(z.object({ label: z.string(), href: z.string() })).optional(),
       ctaLine: z.string().optional(),
       ctaSubline: z.string().optional(),
+      companyTagline: z.string().optional(),
     })
     .optional(),
   defaultSeo: z

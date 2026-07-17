@@ -20,6 +20,7 @@ export interface SiteSettingsDoc extends Document {
     quickLinks?: { label: string; href: string }[];
     ctaLine?: string;
     ctaSubline?: string;
+    companyTagline?: string;
   };
   defaultSeo: {
     metaTitle?: string;
@@ -64,6 +65,7 @@ const SiteSettingsSchema = new Schema<SiteSettingsDoc>(
       quickLinks: { type: [{ label: String, href: String }], default: [] },
       ctaLine: String,
       ctaSubline: String,
+      companyTagline: String,
     },
     defaultSeo: {
       metaTitle: String,
