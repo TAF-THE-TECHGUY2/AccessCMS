@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Building2, BedDouble, Bath, Car, Ruler, Calendar } from "lucide-react";
+import { Building2, BedDouble, Bath, Car, Ruler, Maximize2, Calendar } from "lucide-react";
 import { api, API_BASE_URL } from "../../api.js";
 
 const PROPERTY_IMAGE_FALLBACK = "/properties/origin.jpg";
@@ -69,7 +69,10 @@ const PropertyCard = ({ p }) => {
               <Stat icon={Bath} label="Bathrooms" value={p.bathrooms} />
               <Stat icon={Car} label="Parking" value={p.parking} />
             </div>
-            <Stat icon={Ruler} label="Square Feet" value={p.squareFeet} />
+            <div className="grid grid-cols-2 divide-x divide-gray-200">
+              <Stat icon={Ruler} label="Square Feet" value={p.squareFeet} />
+              <Stat icon={Maximize2} label="Lot Size" value={p.lotSize} />
+            </div>
           </div>
         </div>
 
@@ -223,6 +226,7 @@ export default function PropertyColumnsSection({ data }) {
       bathrooms: p.baths,
       parking: p.parking,
       squareFeet: p.sqft,
+      lotSize: p.lotSqft,
       holdingStatus: p.holdingStatus,
       acquiredLabel: p.acquiredLabel,
     };
