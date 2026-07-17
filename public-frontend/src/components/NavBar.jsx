@@ -274,7 +274,7 @@ export default function NavBar() {
             </HeaderButton>
             <HeaderButton
               href={primaryHref}
-              className="hidden md:inline-block bg-black hover:bg-gray-800 text-white px-5 py-2.5 text-sm font-semibold transition-colors"
+              className="hidden md:inline-block rounded-md bg-black hover:bg-gray-800 text-white px-5 py-2.5 text-sm font-semibold transition-colors"
             >
               {primaryLabel}
             </HeaderButton>
@@ -381,13 +381,13 @@ export default function NavBar() {
               <div className="border-t border-gray-800 p-4 space-y-2" onClick={closeMobile}>
                 <HeaderButton
                   href={loginHref}
-                  className="block w-full text-center border border-white text-white px-4 py-3 text-sm font-semibold hover:bg-white hover:text-black transition-colors"
+                  className="block w-full text-center rounded-md border border-white text-white px-4 py-3 text-sm font-semibold hover:bg-white hover:text-black transition-colors"
                 >
                   {loginLabel}
                 </HeaderButton>
                 <HeaderButton
                   href={primaryHref}
-                  className="block w-full text-center bg-white text-black px-4 py-3 text-sm font-semibold hover:bg-gray-200 transition-colors"
+                  className="block w-full text-center rounded-md bg-white text-black px-4 py-3 text-sm font-semibold hover:bg-gray-200 transition-colors"
                 >
                   {primaryLabel}
                 </HeaderButton>
