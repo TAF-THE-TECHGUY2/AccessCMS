@@ -5,6 +5,8 @@ import { OnboardingProvider } from "./lib/onboarding";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import OnboardingWizard from "./pages/OnboardingWizard";
 import AssistantRegister from "./pages/AssistantRegister";
 import WelcomePage from "./pages/onboarding/WelcomePage";
@@ -29,6 +31,8 @@ const App = () => (
           <Route path="/" element={<Navigate to="/welcome" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/assistant-register" element={<AssistantRegister />} />
 
           <Route

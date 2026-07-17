@@ -21,6 +21,8 @@ const PropertySchema = new Schema({
     lotSqft: Number,
     description: String,
     heroImage: String,
+    holdingStatus: String,
+    acquiredLabel: String,
     status: {
         type: String,
         enum: ["coming_soon", "active", "sold"],

@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\InvestorProfile;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Str;
@@ -136,5 +138,50 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return response()->json(['user' => $request->user()->load('investorProfile')]);
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        // Always respond with the same message so the endpoint cannot be used
+        // to probe which email addresses have accounts.
+        PasswordBroker::sendResetLink($request->only('email'));
+
+        return response()->json([
+            'message' => 'If an account exists for that email, a password reset link has been sent.',
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ]);
+
+        $status = PasswordBroker::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                // Revoke all existing API tokens after a password reset.
+                $user->tokens()->delete();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status !== PasswordBroker::PASSWORD_RESET) {
+            return response()->json(['message' => __($status)], 422);
+        }
+
+        return response()->json(['message' => 'Your password has been reset. You can now sign in.']);
     }
 }

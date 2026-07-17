@@ -5,6 +5,8 @@ const SectionSchema = new Schema({
 }, { _id: false });
 const PageSchema = new Schema({
     slug: { type: String, required: true, unique: true },
+    // Previous slugs kept so old links keep working (public lookup falls back to these)
+    aliases: { type: [String], default: [], index: true },
     title: { type: String, required: true },
     seo: {
         metaTitle: String,

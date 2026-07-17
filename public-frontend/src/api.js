@@ -1,4 +1,4 @@
-import { API_BASE_URL, get } from "./lib/api.js";
+import { API_BASE_URL, get, post } from "./lib/api.js";
 
 export { API_BASE_URL };
 
@@ -12,4 +12,5 @@ export const api = {
   getFaq: () => get(`/api/faq`),
   getTeam: () => get(`/api/team`),
   getSettings: () => get(`/api/site-settings`),
+  sendContactMessage: (payload) => post(`/api/contact`, payload),
 };

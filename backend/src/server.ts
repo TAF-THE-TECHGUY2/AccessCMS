@@ -16,6 +16,7 @@ import { publicRouter as teamPublicRouter, adminRouter as teamAdminRouter } from
 import { publicRouter as faqPublicRouter, adminRouter as faqAdminRouter } from "./routes/faq.routes.js";
 import mediaRoutes from "./routes/media.routes.js";
 import { publicRouter as siteSettingsPublicRouter, adminRouter as siteSettingsAdminRouter } from "./routes/siteSettings.routes.js";
+import { publicRouter as contactPublicRouter, adminRouter as contactAdminRouter } from "./routes/contact.routes.js";
 import { swaggerRouter } from "./config/swagger.js";
 
 const app = express();
@@ -91,6 +92,8 @@ app.use("/api/admin/faq", faqAdminRouter);
 app.use("/api/admin/media", mediaRoutes);
 app.use("/api/site-settings", siteSettingsPublicRouter);
 app.use("/api/admin/site-settings", siteSettingsAdminRouter);
+app.use("/api/contact", contactPublicRouter);
+app.use("/api/admin/contact", contactAdminRouter);
 
 app.use(notFound);
 app.use(errorHandler);

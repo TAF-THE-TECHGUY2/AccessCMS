@@ -27,6 +27,8 @@ const propertySchema = z.object({
     lotSqft: z.number().optional(),
     description: z.string().optional(),
     heroImage: z.string().optional(),
+    holdingStatus: z.string().optional(),
+    acquiredLabel: z.string().optional(),
     status: z.enum(["coming_soon", "active", "sold"]).optional(),
     featured: z.boolean().optional(),
     highlights: z.array(z.string()).optional(),
