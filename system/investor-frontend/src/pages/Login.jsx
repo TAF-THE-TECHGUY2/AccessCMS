@@ -48,12 +48,12 @@ const Login = () => {
   return (
     <AuthLayout
       title="Sign in."
-      subtitle="Continue your accredited investor onboarding steps and check on the status of your investment account."
+      subtitle="Continue your accredited investor onboarding or access your investment account."
       footer={
         <>
-          New to Access Properties?{" "}
+          New to the accredited investor pathway?{" "}
           <Link className="font-semibold text-ink underline underline-offset-4" to="/register">
-            Start your application
+            Create an account
           </Link>
         </>
       }

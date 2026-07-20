@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { API_BASE_URL } from "../../api.js";
+import { API_BASE_URL, api } from "../../api.js";
 
 const resolveUrl = (url) => {
   if (!url) return "";
@@ -29,6 +29,7 @@ export default function ContactFormSection({ data }) {
     message: "",
   });
   const [status, setStatus] = useState({ type: "", msg: "" });
+  const [submitting, setSubmitting] = useState(false);
 
   const topics =
     Array.isArray(data?.topics) && data.topics.length > 0
@@ -52,15 +53,39 @@ export default function ContactFormSection({ data }) {
     return "";
   };
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     const err = validate();
     if (err) {
       setStatus({ type: "error", msg: err });
       return;
     }
-    setStatus({ type: "success", msg: "Message sent successfully." });
-    setForm({ name: "", email: "", subject: "", phone: "", topic: "", message: "" });
+    setSubmitting(true);
+    setStatus({ type: "", msg: "" });
+    try {
+      await api.sendContactMessage({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        subject: form.subject.trim(),
+        phone: form.phone.trim(),
+        topic: form.topic,
+        message: form.message.trim(),
+      });
+      setStatus({
+        type: "success",
+        msg: "Thanks — your message has been sent. We'll be in touch shortly.",
+      });
+      setForm({ name: "", email: "", subject: "", phone: "", topic: "", message: "" });
+    } catch (error) {
+      setStatus({
+        type: "error",
+        msg:
+          error?.message ||
+          "Sorry, we couldn't send your message. Please try again in a moment.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -216,9 +241,10 @@ export default function ContactFormSection({ data }) {
               ) : null}
               <button
                 type="submit"
-                className="w-full rounded-lg bg-black text-white px-10 py-3.5 text-sm font-semibold hover:bg-black/90 transition"
+                disabled={submitting}
+                className="w-full rounded-lg bg-black text-white px-10 py-3.5 text-sm font-semibold hover:bg-black/90 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {data?.buttonLabel || "Send Message"}
+                {submitting ? "Sending..." : data?.buttonLabel || "Send Message"}
               </button>
             </form>
           </div>

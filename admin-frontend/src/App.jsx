@@ -12,6 +12,7 @@ import PropertyEditor from "./pages/PropertyEditor.jsx";
 import Media from "./pages/Media.jsx";
 import Team from "./pages/Team.jsx";
 import Faq from "./pages/Faq.jsx";
+import Messages from "./pages/Messages.jsx";
 import SiteSettings from "./pages/SiteSettings.jsx";
 import Users from "./pages/Users.jsx";
 import RequireAdmin from "./components/RequireAdmin.jsx";
@@ -37,6 +38,7 @@ export default function App() {
                   <Route path="/media" element={<Media />} />
                   <Route path="/team" element={<Team />} />
                   <Route path="/faq" element={<Faq />} />
+                  <Route path="/messages" element={<Messages />} />
                   <Route
                     path="/settings"
                     element={

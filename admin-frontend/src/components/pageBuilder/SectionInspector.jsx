@@ -1078,7 +1078,44 @@ export default function SectionInspector({ section, onChange, onRemove }) {
 
       {section.type === "CONTACT_FORM" ? (
         <Stack spacing={rowGap}>
-          <TextField label="Title" value={data.title || ""} onChange={(e) => update("title", e.target.value)} />
+          <TextField
+            label="Heading"
+            value={data.title || ""}
+            onChange={(e) => update("title", e.target.value)}
+            helperText='The large heading, e.g. "Send a Message".'
+          />
+          <TextField
+            label="Subtext"
+            value={data.subtext || ""}
+            onChange={(e) => update("subtext", e.target.value)}
+            multiline
+            minRows={2}
+            helperText="The short line under the heading."
+          />
+          <TextField
+            label="Topics"
+            value={(data.topics || []).join("\n")}
+            onChange={(e) =>
+              update(
+                "topics",
+                e.target.value.split("\n").map((line) => line.trim()).filter(Boolean)
+              )
+            }
+            multiline
+            minRows={3}
+            helperText="Choices for the contact-reason dropdown — one per line. Leave blank to use the defaults."
+          />
+          <TextField
+            label="Response Note"
+            value={data.responseNote || ""}
+            onChange={(e) => update("responseNote", e.target.value)}
+            helperText="Small note next to the clock icon above the button."
+          />
+          <TextField
+            label="Button Label"
+            value={data.buttonLabel || ""}
+            onChange={(e) => update("buttonLabel", e.target.value)}
+          />
           <ImagePicker label="Image" value={data.image} onChange={(val) => update("image", val)} />
           <TextField label="Image Alt" value={data.imageAlt || ""} onChange={(e) => update("imageAlt", e.target.value)} />
         </Stack>

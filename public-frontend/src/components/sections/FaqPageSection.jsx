@@ -81,7 +81,7 @@ export default function FaqPageSection({ data }) {
                 <button
                   key={cat.key}
                   onClick={() => scrollToSection(cat.key)}
-                  className="flex items-center gap-2 bg-gray-700 hover:bg-gray-800 border border-gray-600 text-white px-6 py-2.5 text-sm font-semibold transition shadow-sm"
+                  className="flex items-center gap-2 rounded-md bg-black hover:bg-gray-800 text-white px-6 py-2.5 text-sm font-semibold transition shadow-sm"
                 >
                   <Icon className="w-4 h-4" />
                   {cat.title}

@@ -25,6 +25,7 @@ import {
   PhotoLibrary as MediaIcon,
   People as TeamIcon,
   HelpOutline as FaqIcon,
+  MailOutline as MessagesIcon,
   Settings as SettingsIcon,
   AdminPanelSettings as UsersIcon,
   Menu as MenuIcon,
@@ -40,6 +41,7 @@ const navItems = [
   { label: "Media", to: "/media", icon: <MediaIcon /> },
   { label: "Team", to: "/team", icon: <TeamIcon /> },
   { label: "FAQ", to: "/faq", icon: <FaqIcon /> },
+  { label: "Messages", to: "/messages", icon: <MessagesIcon /> },
   { label: "Site Settings", to: "/settings", icon: <SettingsIcon /> },
   { label: "Users", to: "/users", icon: <UsersIcon /> },
 ];

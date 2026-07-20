@@ -152,4 +152,11 @@ export const api = {
     update: (payload) =>
       request("/api/admin/site-settings", { method: "PATCH", body: JSON.stringify(payload) }),
   },
+  contact: {
+    list: (status) =>
+      request(`/api/admin/contact${status ? `?status=${encodeURIComponent(status)}` : ""}`),
+    update: (id, payload) =>
+      request(`/api/admin/contact/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+    remove: (id) => request(`/api/admin/contact/${id}`, { method: "DELETE" }),
+  },
 };
