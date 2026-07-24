@@ -461,13 +461,14 @@ export default function SectionInspector({ section, onChange, onRemove }) {
                 fields={[
                   { name: "key", label: "Key" },
                   { name: "title", label: "Title" },
+                  { name: "subtitle", label: "Subtitle", multiline: true },
                   { name: "iconName", label: "Icon Name" },
                 ]}
                 onChange={(items) => updateArray("categories", items)}
                 onAdd={() =>
                   updateArray("categories", [
                     ...(data.categories || []),
-                    { key: "", title: "", iconName: "" },
+                    { key: "", title: "", subtitle: "", iconName: "" },
                   ])
                 }
               />

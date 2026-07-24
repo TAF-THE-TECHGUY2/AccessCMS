@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Check } from "lucide-react";
 import { getIcon } from "./iconMap.js";
 import { api, API_BASE_URL } from "../../api.js";
 import buildImg from "../../assets/Build.png";
+
+// Accent used to highlight the selected question card and its checkmark.
+const ACCENT = "#1e2a5e";
 
 // Uploaded images live on the API server; a bare /uploads path would resolve
 // against the website's own domain and 404 (grey hero).
@@ -95,42 +98,49 @@ export default function FaqPageSection({ data }) {
       <div className="max-w-6xl mx-auto px-4 md:px-8 lg:px-16 py-16">
         {grouped.map((cat) => {
           const Icon = getIcon(cat.iconName);
+          const selected = cat.items.find((item) => item._id === openId);
           return (
             <section key={cat.key} className="pt-20 scroll-mt-40" ref={refs.current[cat.key]}>
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-2">
                 <Icon className="w-6 h-6 text-gray-900" />
                 <h2 className="text-2xl font-semibold text-gray-900">{cat.title}</h2>
               </div>
-              <div className="space-y-4">
+              {cat.subtitle ? (
+                <p className="text-gray-500 text-[15px] leading-relaxed max-w-3xl mb-6">{cat.subtitle}</p>
+              ) : (
+                <div className="mb-6" />
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {cat.items.map((item) => {
                   const open = openId === item._id;
                   return (
-                    <div
+                    <button
                       key={item._id}
-                      className="border border-gray-200 rounded-lg w-full max-w-3xl mx-auto bg-white shadow-sm overflow-hidden animate-fadeInUp"
+                      onClick={() => toggle(item._id)}
+                      className={`flex items-center justify-between gap-2 rounded-md border bg-white px-4 py-3 text-left text-[15px] transition animate-fadeInUp ${
+                        open
+                          ? "border-2 font-semibold shadow-sm"
+                          : "border-gray-200 text-gray-800 font-medium hover:border-gray-400 hover:shadow-sm"
+                      }`}
+                      style={open ? { borderColor: ACCENT, color: ACCENT } : undefined}
                     >
-                      <button
-                        onClick={() => toggle(item._id)}
-                        className="w-full flex items-center justify-between px-5 py-5 text-left hover:bg-gray-50 transition"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-5 h-5 text-gray-800 shrink-0" />
-                          <span className="font-semibold text-gray-900 text-[15px] md:text-base">{item.question}</span>
-                        </div>
-                        <ChevronDown
-                          className={`w-5 h-5 text-gray-500 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}
-                        />
-                      </button>
-                      {open ? (
-                        <div
-                          className="px-5 pb-5 text-gray-700 text-[14px] md:text-[15px] leading-relaxed"
-                          dangerouslySetInnerHTML={{ __html: item.answerHtml }}
-                        />
-                      ) : null}
-                    </div>
+                      <span>{item.question}</span>
+                      {open ? <Check className="w-4 h-4 shrink-0" style={{ color: ACCENT }} /> : null}
+                    </button>
                   );
                 })}
               </div>
+
+              {selected ? (
+                <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-6 animate-fadeInUp">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{selected.question}</h3>
+                  <div
+                    className="text-gray-700 text-[14px] md:text-[15px] leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: selected.answerHtml }}
+                  />
+                </div>
+              ) : null}
             </section>
           );
         })}

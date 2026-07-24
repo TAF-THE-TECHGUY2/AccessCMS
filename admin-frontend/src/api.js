@@ -112,6 +112,8 @@ export const api = {
     create: (payload) => request("/api/admin/faq", { method: "POST", body: JSON.stringify(payload) }),
     update: (id, payload) =>
       request(`/api/admin/faq/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+    reorder: (items) =>
+      request(`/api/admin/faq/reorder`, { method: "PATCH", body: JSON.stringify({ items }) }),
     remove: (id) => request(`/api/admin/faq/${id}`, { method: "DELETE" }),
   },
   media: {
