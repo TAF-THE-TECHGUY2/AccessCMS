@@ -41,8 +41,10 @@ export default function HeroSection({
   const renderButton = (button, key) => {
     if (!button?.label) return null;
 
+    // Matches the site-wide primary button (nav "Invest Now", FAQ hero CTA):
+    // solid black, rounded-md, gray-800 on hover.
     const buttonClass =
-      "bg-gray-700 hover:bg-gray-800 text-white px-10 py-3 rounded-sm text-sm font-semibold tracking-wide transition-colors";
+      "inline-flex items-center justify-center rounded-md bg-black hover:bg-gray-800 text-white px-10 py-3 text-sm font-semibold tracking-wide transition-colors shadow-sm";
     // Opens the video popup when explicitly enabled in the CMS for the
     // secondary button, or (legacy) when the button is labelled "How It Works".
     const isVideoButton =
