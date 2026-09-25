@@ -35,6 +35,9 @@ const request = async (method, path, options = {}) => {
     method,
     headers: body ? { "Content-Type": "application/json", ...headers } : headers,
     body: body ? JSON.stringify(body) : undefined,
+    // Sends the shared `.ap.boston` member cookie, which is how the API knows
+    // whether to include members-only section content in its response.
+    credentials: "include",
     ...rest,
   });
 

@@ -19,6 +19,9 @@ import {
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import UploadIcon from "@mui/icons-material/Upload";
+import LockIcon from "@mui/icons-material/Lock";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
+import Chip from "@mui/material/Chip";
 
 const fullUrl = (url) => (url.startsWith("http") ? url : `${API_BASE_URL}${url}`);
 
@@ -27,6 +30,7 @@ export default function Media() {
   const [uploading, setUploading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null); // item or null
   const [copied, setCopied] = useState(false);
+  const [accessError, setAccessError] = useState("");
 
   const load = async () => {
     const data = await api.media.list();
@@ -45,6 +49,18 @@ export default function Media() {
     setUploading(false);
     e.target.value = "";
     await load();
+  };
+
+  // Members-only files are refused to anyone without a valid investor cookie,
+  // even by direct URL. Public files stay reachable by anyone who has the link.
+  const onToggleAccess = async (item) => {
+    const next = item.access === "MEMBERS" ? "PUBLIC" : "MEMBERS";
+    try {
+      await api.media.setAccess(item._id, next);
+      await load();
+    } catch (err) {
+      setAccessError(err?.message || "Could not change this file's access.");
+    }
   };
 
   const onDelete = async (id) => {
@@ -108,6 +124,31 @@ export default function Media() {
                 <Typography variant="caption" noWrap sx={{ flex: 1 }} title={item.key}>
                   {item.key}
                 </Typography>
+                {item.access === "MEMBERS" ? (
+                  <Chip
+                    size="small"
+                    color="warning"
+                    variant="outlined"
+                    icon={<LockIcon sx={{ fontSize: 14 }} />}
+                    label="Members"
+                    sx={{ height: 20, "& .MuiChip-label": { px: 0.75, fontSize: 11 } }}
+                  />
+                ) : null}
+                <Tooltip
+                  title={
+                    item.access === "MEMBERS"
+                      ? "Members only — refused to signed-out visitors, even by direct URL. Click to make public."
+                      : "Public — anyone with the link can download it. Click to restrict to signed-in investors."
+                  }
+                >
+                  <IconButton size="small" onClick={() => onToggleAccess(item)}>
+                    {item.access === "MEMBERS" ? (
+                      <LockIcon fontSize="inherit" />
+                    ) : (
+                      <LockOpenIcon fontSize="inherit" />
+                    )}
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title="Copy URL (paste into any image field)">
                   <IconButton size="small" onClick={() => onCopy(item)}>
                     <ContentCopyIcon fontSize="inherit" />
@@ -150,6 +191,13 @@ export default function Media() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={Boolean(accessError)}
+        autoHideDuration={8000}
+        onClose={() => setAccessError("")}
+        message={accessError}
+      />
 
       <Snackbar
         open={copied}

@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 const SectionSchema = new Schema({
     type: { type: String, required: true },
+    access: { type: String, enum: ["PUBLIC", "MEMBERS"], default: "PUBLIC" },
     data: { type: Schema.Types.Mixed, default: {} },
 }, { _id: false });
 const PageSchema = new Schema({

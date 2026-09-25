@@ -147,6 +147,11 @@ export const api = {
       }
       return res.json();
     },
+    setAccess: (id, access) =>
+      request(`/api/admin/media/${id}/access`, {
+        method: "PATCH",
+        body: JSON.stringify({ access }),
+      }),
     remove: (id) => request(`/api/admin/media/${id}`, { method: "DELETE" }),
   },
   settings: {

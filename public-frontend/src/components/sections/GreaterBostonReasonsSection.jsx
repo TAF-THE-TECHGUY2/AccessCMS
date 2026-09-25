@@ -29,7 +29,6 @@ export default function GreaterBostonReasonsSection({ data }) {
             alt={data?.imageAlt || "Boston skyline"}
             className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/10" />
 
           <div className="absolute left-3 right-3 sm:left-[4%] sm:right-[4%] md:left-[6%] top-[15%] sm:top-[20%] md:top-[22%] max-w-full sm:w-[92%] md:w-[560px] bg-black/70 sm:bg-black/60 border border-white/20 p-4 sm:p-6 rounded">
             <ul className="list-disc pl-4 sm:pl-6 space-y-2 sm:space-y-3 text-white text-sm sm:text-[15px] md:text-base leading-relaxed">

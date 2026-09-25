@@ -17,6 +17,9 @@ import { publicRouter as faqPublicRouter, adminRouter as faqAdminRouter } from "
 import mediaRoutes from "./routes/media.routes.js";
 import { publicRouter as siteSettingsPublicRouter, adminRouter as siteSettingsAdminRouter } from "./routes/siteSettings.routes.js";
 import { publicRouter as contactPublicRouter, adminRouter as contactAdminRouter } from "./routes/contact.routes.js";
+import { publicRouter as memberPublicRouter } from "./routes/member.routes.js";
+import { resolveMember } from "./middleware/member.js";
+import { guardUploads } from "./middleware/protectedUploads.js";
 import { swaggerRouter } from "./config/swagger.js";
 
 const app = express();
@@ -71,7 +74,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 if (env.storageDriver === "local") {
-  app.use("/uploads", express.static(path.join(__dirname, "..", env.uploadDir)));
+  // resolveMember and guardUploads run before express.static so a members-only
+  // file is never handed to a guest, even by direct URL.
+  app.use(
+    "/uploads",
+    resolveMember,
+    guardUploads,
+    express.static(path.join(__dirname, "..", env.uploadDir))
+  );
 }
 
 app.get("/health", (_req, res) => {
@@ -81,6 +91,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/docs", swaggerRouter);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/member", memberPublicRouter);
 app.use("/api/pages", pagesPublicRouter);
 app.use("/api/admin/pages", pagesAdminRouter);
 app.use("/api/properties", propertiesPublicRouter);

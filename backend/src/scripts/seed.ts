@@ -198,6 +198,15 @@ const seedPages = async () => {
         },
         { type: "DISCLOSURE", data: {} },
         { type: "SOCIALS", data: {} },
+        {
+          type: "NEWSLETTER",
+          data: {
+            title: "Subscribe to Our Newsletter",
+            subtitle: "Get periodic updates from Access Properties.",
+            buttonLabel: "Subscribe",
+            buttonHref: "https://mailchi.mp/052b0234689c/access-properties",
+          },
+        },
       ],
     },
     {
@@ -457,6 +466,80 @@ const seedPages = async () => {
       ],
     },
     {
+      slug: "funds",
+      title: "Our Funds",
+      status: "published",
+      publishedAt: new Date(),
+      sections: [
+        {
+          type: "HERO",
+          data: {
+            title: "Browse Our Funds",
+            subtitle: "Explore current real estate investment opportunities",
+            backgroundImage: "",
+          },
+        },
+        {
+          type: "MEMBER_GATE",
+          data: {
+            title: "Create an account to view fund information",
+            body: "Detailed fund information, offering documents, and investment materials are available to registered users and prospective investors.",
+            loginLabel: "Log In",
+            loginHref: "https://investor.ap.boston/login",
+            registerLabel: "Invest Now",
+            registerHref: "https://investor.ap.boston",
+            footnote:
+              "Certain materials are available only to registered users and prospective investors.",
+            benefits: [
+              {
+                iconName: "BarChart3",
+                title: "View fund overview",
+                body: "Explore strategy, target returns, and key highlights.",
+              },
+              {
+                iconName: "BadgeCheck",
+                title: "Begin investor onboarding",
+                body: "Complete your profile and start the investment process.",
+              },
+              {
+                iconName: "Briefcase",
+                title: "Review offering documents",
+                body: "Access confidential offering memoranda and reports.",
+              },
+            ],
+          },
+        },
+        {
+          type: "FUND_DETAIL",
+          access: "MEMBERS",
+          data: {
+            eyebrow: "Private Fund",
+            title: "Access Real Estate Fund I",
+            body: "Detailed fund information, offering documents, and investment materials are available to verified, accredited investors.",
+            objectiveTitle: "Investment Objective",
+            objectiveBody:
+              "Describe what the fund is trying to achieve for its investors.",
+            factsTitle: "Fund Overview",
+            lockedTitle: "Members access",
+            lockedSubtitle: "Sign up or log in to unlock full fund details.",
+            facts: [
+              { iconName: "Building2", label: "Asset Class", value: "Residential Real Estate" },
+              { iconName: "Settings", label: "Strategy", value: "Core-Plus" },
+              { iconName: "TrendingUp", label: "Target Net IRR", value: "Mid Teens" },
+              { iconName: "DollarSign", label: "Minimum Investment", value: "$250,000" },
+            ],
+          },
+        },
+        {
+          type: "DISCLOSURE",
+          data: {
+            title: "Important Disclosures",
+            body: "Nothing on this page is an offer to sell or a solicitation of an offer to buy any security. Any such offer is made only through offering documents to verified, accredited investors.",
+          },
+        },
+      ],
+    },
+    {
       slug: "contact",
       title: "Contact",
       status: "published",
@@ -471,6 +554,15 @@ const seedPages = async () => {
           },
         },
         { type: "SOCIALS", data: {} },
+        {
+          type: "NEWSLETTER",
+          data: {
+            title: "Subscribe to Our Newsletter",
+            subtitle: "Get periodic updates from Access Properties.",
+            buttonLabel: "Subscribe",
+            buttonHref: "https://mailchi.mp/052b0234689c/access-properties",
+          },
+        },
       ],
     },
     {

@@ -14,7 +14,6 @@ export default function HeroSection({
   subtitle = "for Anyone, Anywhere",
   badgeText = "Starting at just $100",
   backgroundImage = buildImg,
-  overlayOpacity = 0.55,
   primaryButton = { label: "INVEST NOW", href: "/invest-now" },
   secondaryButton = { label: "HOW IT WORKS", href: "" },
   videoUrl = "/videos/how-it-works.mp4",
@@ -90,8 +89,8 @@ export default function HeroSection({
           backgroundPosition: "center",
         }}
       >
-        <div className="absolute inset-0 bg-black" style={{ opacity: overlayOpacity }} />
-
+        {/* No dark overlay: the background image shows at its uploaded brightness.
+            Text stays readable via the translucent panels below. */}
         <div className="relative flex h-full flex-col justify-center">
           <Container>
             <div className="mx-auto max-w-4xl rounded-xl border border-white/10 bg-black/70 px-6 py-7 text-center shadow-lg backdrop-blur-md animate-slideDown md:px-10">

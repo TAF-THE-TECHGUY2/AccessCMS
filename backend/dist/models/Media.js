@@ -4,6 +4,7 @@ const MediaSchema = new Schema({
     key: { type: String, required: true },
     mime: { type: String, required: true },
     size: { type: Number, required: true },
+    access: { type: String, enum: ["PUBLIC", "MEMBERS"], default: "PUBLIC", index: true },
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
 }, { timestamps: true });
 export const Media = mongoose.model("Media", MediaSchema);

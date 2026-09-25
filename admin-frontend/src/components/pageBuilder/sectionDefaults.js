@@ -25,10 +25,12 @@ export const SECTION_TYPES = [
   { type: "CONTACT_FORM", label: "Contact Form", description: "Form that sends visitor messages to you." },
   { type: "FAQ_PAGE", label: "FAQ Page", description: "Full FAQ page layout with categories, pulled from the FAQ list." },
   { type: "NEWSLETTER", label: "Newsletter Signup", description: "Heading, blurb and a Subscribe button linking to your mailing list." },
+  { type: "MEMBER_GATE", label: "Members Gate", description: "Sign-up card inviting visitors to log in to the investor dashboard. Hidden once they are signed in." },
+  { type: "FUND_DETAIL", label: "Fund Detail", description: "Fund overview with objective and key facts. Mark it Members Only to blur it for signed-out visitors." },
 ];
 
 export const createSection = (type) => {
-  const base = { type, data: {} };
+  const base = { type, access: "PUBLIC", data: {} };
   switch (type) {
     case "HERO":
       return {
@@ -37,7 +39,6 @@ export const createSection = (type) => {
           title: "Headline for this page",
           subtitle: "Support the headline with a clear value statement.",
           backgroundImage: "",
-          overlayOpacity: 0.35,
           primaryButton: { label: "Invest Now", href: "/invest-now" },
           secondaryButton: { label: "How It Works", href: "" },
         },
@@ -326,6 +327,58 @@ export const createSection = (type) => {
           subtitle: "Get periodic updates from Access Properties.",
           buttonLabel: "Subscribe",
           buttonHref: "https://mailchi.mp/052b0234689c/access-properties",
+        },
+      };
+    case "MEMBER_GATE":
+      return {
+        ...base,
+        data: {
+          title: "Create an account to view fund information",
+          body: "Detailed fund information, offering documents, and investment materials are available to registered users and prospective investors.",
+          loginLabel: "Log In",
+          loginHref: "https://investor.ap.boston/login",
+          registerLabel: "Invest Now",
+          registerHref: "https://investor.ap.boston",
+          footnote: "Certain materials are available only to registered users and prospective investors.",
+          benefits: [
+            {
+              iconName: "BarChart3",
+              title: "View fund overview",
+              body: "Explore strategy, target returns, and key highlights.",
+            },
+            {
+              iconName: "BadgeCheck",
+              title: "Begin investor onboarding",
+              body: "Complete your profile and start the investment process.",
+            },
+            {
+              iconName: "Briefcase",
+              title: "Review offering documents",
+              body: "Access confidential offering memoranda and reports.",
+            },
+          ],
+        },
+      };
+    case "FUND_DETAIL":
+      return {
+        ...base,
+        // Fund terms are the thing worth gating, so this type starts locked.
+        access: "MEMBERS",
+        data: {
+          eyebrow: "Private Fund",
+          title: "Access Real Estate Fund I",
+          body: "Detailed fund information, offering documents, and investment materials are available to verified, accredited investors.",
+          objectiveTitle: "Investment Objective",
+          objectiveBody: "Describe what the fund is trying to achieve for its investors.",
+          factsTitle: "Fund Overview",
+          lockedTitle: "Members access",
+          lockedSubtitle: "Sign up or log in to unlock full fund details.",
+          facts: [
+            { iconName: "Building2", label: "Asset Class", value: "Residential Real Estate" },
+            { iconName: "Settings", label: "Strategy", value: "Core-Plus" },
+            { iconName: "TrendingUp", label: "Target Net IRR", value: "Mid Teens" },
+            { iconName: "DollarSign", label: "Minimum Investment", value: "$250,000" },
+          ],
         },
       };
     default:

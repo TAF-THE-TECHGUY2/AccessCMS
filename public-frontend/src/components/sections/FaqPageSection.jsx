@@ -53,7 +53,7 @@ export default function FaqPageSection({ data }) {
           backgroundPosition: "center",
         }}
       >
-        <div className="absolute inset-0 bg-black/55" />
+        {/* No dark overlay: the hero image shows at its uploaded brightness. */}
         <div className="relative h-full flex flex-col items-center justify-center px-4">
           <div className="w-full max-w-6xl">
             <div className="mx-auto rounded-xl py-7 px-6 md:px-10 shadow-lg animate-slideDown bg-black/70 backdrop-blur-md border border-white/10">

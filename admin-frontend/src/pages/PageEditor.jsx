@@ -29,18 +29,9 @@ import SectionPreview from "../components/pageBuilder/SectionPreview.jsx";
 import SectionInspector from "../components/pageBuilder/SectionInspector.jsx";
 import SectionPickerDialog from "../components/pageBuilder/SectionPickerDialog.jsx";
 import ImagePicker from "../components/pageBuilder/ImagePicker.jsx";
+import MemberAccessPanel from "../components/pageBuilder/MemberAccessPanel.jsx";
 import { SECTION_TYPES, createSection } from "../components/pageBuilder/sectionDefaults.js";
 import { moveItem } from "../components/pageBuilder/utils.js";
-
-const withEditableLegacyNewsletter = (page) => {
-  const sections = page.sections || [];
-  const normalizedSlug = page.slug === "/" ? "home" : String(page.slug || "").replace(/^\/+/, "");
-  const usesLegacyNewsletter = normalizedSlug === "home" || normalizedSlug === "contact";
-  const alreadyEditable = sections.some((section) => section.type === "NEWSLETTER");
-
-  if (!usesLegacyNewsletter || alreadyEditable) return sections;
-  return [...sections, createSection("NEWSLETTER")];
-};
 
 export default function PageEditor() {
   const { id } = useParams();
@@ -84,12 +75,7 @@ export default function PageEditor() {
           return;
         }
         setForm({ title: page.title, slug: page.slug, status: page.status });
-        // Home and Contact historically received a newsletter only at public
-        // render time, so editors could see it on the site but not in the page
-        // builder. Convert that legacy block into a normal editable section the
-        // first time the page is opened; autosave then persists it without
-        // duplicating the public fallback.
-        setSections(withEditableLegacyNewsletter(page));
+        setSections(page.sections || []);
         setSeo({
           metaTitle: page.seo?.metaTitle || "",
           metaDescription: page.seo?.metaDescription || "",
@@ -342,6 +328,10 @@ export default function PageEditor() {
                 </Stack>
               </AccordionDetails>
             </Accordion>
+
+            <Divider />
+
+            <MemberAccessPanel sections={sections} onChange={setSections} />
 
             <Divider />
 

@@ -255,6 +255,29 @@ export default function SectionInspector({ section, onChange, onRemove }) {
 
       <Divider />
 
+      {section.type === "MEMBER_GATE" ? null : (
+        <Box>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={section.access === "MEMBERS"}
+                onChange={(e) =>
+                  onChange({ ...section, access: e.target.checked ? "MEMBERS" : "PUBLIC" })
+                }
+              />
+            }
+            label="Members only"
+          />
+          <Typography variant="caption" color="text.secondary" display="block">
+            {section.access === "MEMBERS"
+              ? "Blurred behind a \u201cMembers access\u201d card until the visitor signs in to the investor dashboard."
+              : "Visible to everyone."}
+          </Typography>
+        </Box>
+      )}
+
+      <Divider />
+
       {section.type === "HERO" ? (
         <Stack spacing={rowGap}>
           <TextField label="Title" value={data.title || ""} onChange={(e) => update("title", e.target.value)} />
@@ -269,12 +292,6 @@ export default function SectionInspector({ section, onChange, onRemove }) {
             onChange={(e) => update("badgeText", e.target.value)}
           />
           <ImagePicker label="Background Image" value={data.backgroundImage} onChange={(val) => update("backgroundImage", val)} />
-          <TextField
-            label="Overlay Opacity"
-            type="number"
-            value={data.overlayOpacity ?? 0.35}
-            onChange={(e) => update("overlayOpacity", Number(e.target.value))}
-          />
           <TextField
             label="Primary Button Label"
             value={data.primaryButton?.label || ""}
@@ -1140,6 +1157,122 @@ export default function SectionInspector({ section, onChange, onRemove }) {
             value={data.buttonHref || ""}
             onChange={(e) => update("buttonHref", e.target.value)}
             helperText="Usually your mailing list signup URL (e.g. Mailchimp)"
+          />
+        </Stack>
+      ) : null}
+
+      {section.type === "MEMBER_GATE" ? (
+        <Stack spacing={rowGap}>
+          <TextField label="Title" value={data.title || ""} onChange={(e) => update("title", e.target.value)} />
+          <TextField
+            label="Body"
+            value={data.body || ""}
+            onChange={(e) => update("body", e.target.value)}
+            multiline
+            minRows={3}
+          />
+          <TextField
+            label="Log In Button Label"
+            value={data.loginLabel || ""}
+            onChange={(e) => update("loginLabel", e.target.value)}
+          />
+          <TextField
+            label="Log In Button Link"
+            value={data.loginHref || ""}
+            onChange={(e) => update("loginHref", e.target.value)}
+            helperText="The investor dashboard sign-in page, e.g. https://investor.ap.boston/login"
+          />
+          <TextField
+            label="Sign Up Button Label"
+            value={data.registerLabel || ""}
+            onChange={(e) => update("registerLabel", e.target.value)}
+          />
+          <TextField
+            label="Sign Up Button Link"
+            value={data.registerHref || ""}
+            onChange={(e) => update("registerHref", e.target.value)}
+            helperText="The investor onboarding flow, e.g. https://investor.ap.boston"
+          />
+          <TextField
+            label="Footnote"
+            value={data.footnote || ""}
+            onChange={(e) => update("footnote", e.target.value)}
+            multiline
+            minRows={2}
+          />
+          <ArrayEditor
+            label="Benefit"
+            items={data.benefits || []}
+            fields={[
+              { name: "title", label: "Title" },
+              { name: "body", label: "Text", multiline: true },
+              { name: "iconName", label: "Icon Name" },
+            ]}
+            onChange={(items) => updateArray("benefits", items)}
+            onAdd={() =>
+              updateArray("benefits", [...(data.benefits || []), { title: "", body: "", iconName: "" }])
+            }
+          />
+        </Stack>
+      ) : null}
+
+      {section.type === "FUND_DETAIL" ? (
+        <Stack spacing={rowGap}>
+          <TextField label="Eyebrow" value={data.eyebrow || ""} onChange={(e) => update("eyebrow", e.target.value)} />
+          <TextField label="Fund Name" value={data.title || ""} onChange={(e) => update("title", e.target.value)} />
+          <TextField
+            label="Intro"
+            value={data.body || ""}
+            onChange={(e) => update("body", e.target.value)}
+            multiline
+            minRows={3}
+          />
+          <TextField
+            label="Objective Heading"
+            value={data.objectiveTitle || ""}
+            onChange={(e) => update("objectiveTitle", e.target.value)}
+          />
+          <TextField
+            label="Objective Text"
+            value={data.objectiveBody || ""}
+            onChange={(e) => update("objectiveBody", e.target.value)}
+            multiline
+            minRows={3}
+          />
+          <TextField
+            label="Facts Panel Heading"
+            value={data.factsTitle || ""}
+            onChange={(e) => update("factsTitle", e.target.value)}
+          />
+          <ArrayEditor
+            label="Fact"
+            items={data.facts || []}
+            fields={[
+              { name: "label", label: "Label" },
+              { name: "value", label: "Value" },
+              { name: "iconName", label: "Icon Name" },
+            ]}
+            onChange={(items) => updateArray("facts", items)}
+            onAdd={() =>
+              updateArray("facts", [...(data.facts || []), { label: "", value: "", iconName: "" }])
+            }
+          />
+          <Divider />
+          <Typography variant="subtitle2">Locked overlay</Typography>
+          <Typography variant="caption" color="text.secondary">
+            Shown over this section while it is Members only and the visitor is signed out.
+          </Typography>
+          <TextField
+            label="Locked Heading"
+            value={data.lockedTitle || ""}
+            onChange={(e) => update("lockedTitle", e.target.value)}
+            placeholder="Members access"
+          />
+          <TextField
+            label="Locked Text"
+            value={data.lockedSubtitle || ""}
+            onChange={(e) => update("lockedSubtitle", e.target.value)}
+            placeholder="Sign up or log in to unlock full fund details."
           />
         </Stack>
       ) : null}

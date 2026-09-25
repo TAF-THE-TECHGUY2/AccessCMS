@@ -427,6 +427,29 @@ export default function SectionPreview({
           </Stack>
         </SectionShell>
       );
+    case "MEMBER_GATE":
+      return (
+        <SectionShell title="members gate" {...baseProps}>
+          <Stack spacing={1}>
+            <Typography variant="h6">{data.title || "Create an account to view fund information"}</Typography>
+            <Typography color="text.secondary">
+              {(data.benefits || []).length} benefit{(data.benefits || []).length === 1 ? "" : "s"} &middot; hidden once the visitor signs in
+            </Typography>
+          </Stack>
+        </SectionShell>
+      );
+    case "FUND_DETAIL":
+      return (
+        <SectionShell title="fund detail" {...baseProps}>
+          <Stack spacing={1}>
+            <Typography variant="h6">{data.title || "Fund name"}</Typography>
+            <Typography color="text.secondary">
+              {(data.facts || []).length} fact{(data.facts || []).length === 1 ? "" : "s"} &middot;{" "}
+              {section.access === "MEMBERS" ? "members only" : "visible to everyone"}
+            </Typography>
+          </Stack>
+        </SectionShell>
+      );
     case "ADVISORY":
     case "CONTACT_FORM":
     case "FAQ_PAGE":

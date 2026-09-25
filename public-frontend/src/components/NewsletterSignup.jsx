@@ -1,8 +1,8 @@
 import React from "react";
 
-// Newsletter block. Renders CMS-provided content when used as a page section;
-// the defaults preserve the legacy hardcoded version (auto-inserted on the
-// home and contact pages until those pages get their own NEWSLETTER section).
+// Newsletter block, rendered from a page's NEWSLETTER section. The defaults
+// match the old hardcoded version that home and contact used to get injected
+// at render time, so backfilled pages look unchanged.
 export default function NewsletterSignup({
   title = "Subscribe to Our Newsletter",
   subtitle = "Get periodic updates from Access Properties.",

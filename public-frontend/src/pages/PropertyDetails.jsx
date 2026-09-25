@@ -363,7 +363,9 @@ export default function PropertyDetails() {
           alt={property.title}
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/50" />
+        {/* The title sits straight on the photo here (no panel), so instead of
+            dimming the whole image we only shade the bottom strip behind it. */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="relative h-full max-w-6xl mx-auto px-4 flex items-end pb-10">
           <div className="w-full">
             <Link

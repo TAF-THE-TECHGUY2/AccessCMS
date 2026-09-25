@@ -1,40 +1,7 @@
 import React, { useEffect, useState } from "react";
 import SectionRenderer from "../components/SectionRenderer.jsx";
-import NewsletterSignup from "../components/NewsletterSignup.jsx";
 import { api } from "../api.js";
 import { PageLoading, PageError } from "../components/PageStates.jsx";
-
-const normalizeText = (value = "") =>
-  String(value)
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-
-const homeNewsletterAnchorMatchers = [
-  "who we are",
-  "access properties is a real estate investment manager focused on expanding access to professionally managed real estate through a simple, transparent platform.",
-];
-
-const isHomeNewsletterAnchor = (section) => {
-  const data = section?.data || {};
-  const textCandidates = [
-    data.title,
-    data.subtitle,
-    data.heading,
-    data.body,
-    data.bodyHtml,
-    data.heroTitle,
-    data.heroSubtitle,
-    data.introText,
-  ]
-    .map(normalizeText)
-    .filter(Boolean);
-
-  return homeNewsletterAnchorMatchers.some((matcher) =>
-    textCandidates.some((candidate) => candidate.includes(matcher))
-  );
-};
 
 export default function PageRenderer({ slug, page: initialPage }) {
   const [page, setPage] = useState(initialPage || null);
@@ -86,31 +53,8 @@ export default function PageRenderer({ slug, page: initialPage }) {
     return <PageLoading />;
   }
 
-  const sections = page.sections || [];
-  // Once a page has its own NEWSLETTER section, the legacy auto-inserted
-  // newsletter block steps aside entirely.
-  const hasNewsletterSection = sections.some((section) => section.type === "NEWSLETTER");
-  const homeIntroSectionIndex =
-    slug === "home" && !hasNewsletterSection
-      ? sections.findIndex(
-          (section) => isHomeNewsletterAnchor(section)
-        )
-      : -1;
-
-  return (
-    <>
-      {slug === "home" && homeIntroSectionIndex >= 0 ? (
-        <>
-          <SectionRenderer sections={sections.slice(0, homeIntroSectionIndex + 1)} />
-          <NewsletterSignup />
-          <SectionRenderer sections={sections.slice(homeIntroSectionIndex + 1)} />
-        </>
-      ) : (
-        <>
-          <SectionRenderer sections={sections} />
-          {(slug === "home" || slug === "contact") && !hasNewsletterSection && <NewsletterSignup />}
-        </>
-      )}
-    </>
-  );
+  // Every section comes from the CMS, including the newsletter block on home
+  // and contact. Nothing is injected here: a page with no NEWSLETTER section
+  // is a page whose editor removed it.
+  return <SectionRenderer sections={page.sections || []} />;
 }
