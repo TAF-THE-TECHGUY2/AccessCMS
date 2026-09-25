@@ -19,6 +19,14 @@ const settingsSchema = z.object({
       })
     )
     .optional(),
+  header: z
+    .object({
+      loginLabel: z.string().optional(),
+      loginHref: z.string().optional(),
+      signupLabel: z.string().optional(),
+      signupHref: z.string().optional(),
+    })
+    .optional(),
   footer: z
     .object({
       address: z.string().optional(),
@@ -27,6 +35,8 @@ const settingsSchema = z.object({
       socialLinks: z.array(z.object({ label: z.string(), url: z.string() })).optional(),
       quickLinks: z.array(z.object({ label: z.string(), href: z.string() })).optional(),
       ctaLine: z.string().optional(),
+      ctaSubline: z.string().optional(),
+      companyTagline: z.string().optional(),
     })
     .optional(),
   defaultSeo: z

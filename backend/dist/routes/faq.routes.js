@@ -10,21 +10,50 @@ const faqSchema = z.object({
     category: z.string().optional(),
     order: z.number().optional(),
 });
+const reorderSchema = z.object({
+    items: z.array(z.object({
+        id: z.string().min(1),
+        order: z.number(),
+        category: z.string().optional(),
+    })),
+});
 export const publicRouter = Router();
 export const adminRouter = Router();
 publicRouter.get("/", async (_req, res) => {
-    const faqs = await FAQ.find().sort({ order: 1, createdAt: -1 });
+    // order ascending is the admin-defined display order; oldest-first is the
+    // tie-break so untouched FAQs keep insertion order (never reversed).
+    const faqs = await FAQ.find().sort({ order: 1, createdAt: 1 });
     res.json(faqs);
 });
 adminRouter.use(requireAuth, requireRole(["admin", "editor"]));
 adminRouter.get("/", async (_req, res) => {
-    const faqs = await FAQ.find().sort({ order: 1, updatedAt: -1 });
+    const faqs = await FAQ.find().sort({ order: 1, createdAt: 1 });
     res.json(faqs);
 });
 adminRouter.post("/", validate(faqSchema), async (req, res) => {
-    const faq = await FAQ.create(req.body);
+    const body = { ...req.body };
+    // New FAQs append to the end of their category so they don't jump to the top.
+    if (body.order === undefined) {
+        const last = await FAQ.findOne({ category: body.category ?? null }).sort({ order: -1 });
+        body.order = last ? last.order + 1 : 0;
+    }
+    const faq = await FAQ.create(body);
     await logAudit({ userId: req.userId, action: "create", entity: "faq", entityId: faq.id });
     res.status(201).json(faq);
+});
+// Bulk reorder. Declared before "/:id" so "reorder" isn't treated as an id.
+adminRouter.patch("/reorder", validate(reorderSchema), async (req, res) => {
+    const ops = req.body.items.map((it) => ({
+        updateOne: {
+            filter: { _id: it.id },
+            update: { $set: { order: it.order, ...(it.category !== undefined ? { category: it.category } : {}) } },
+        },
+    }));
+    if (ops.length)
+        await FAQ.bulkWrite(ops);
+    await logAudit({ userId: req.userId, action: "reorder", entity: "faq" });
+    const faqs = await FAQ.find().sort({ order: 1, createdAt: 1 });
+    res.json(faqs);
 });
 adminRouter.patch("/:id", validate(faqSchema.partial()), async (req, res) => {
     const faq = await FAQ.findByIdAndUpdate(req.params.id, req.body, { new: true });

@@ -1,39 +1,7 @@
 import React, { useEffect, useState } from "react";
 import SectionRenderer from "../components/SectionRenderer.jsx";
-import NewsletterSignup from "../components/NewsletterSignup.jsx";
 import { api } from "../api.js";
-
-const normalizeText = (value = "") =>
-  String(value)
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-
-const homeNewsletterAnchorMatchers = [
-  "who we are",
-  "access properties is a real estate investment manager focused on expanding access to professionally managed real estate through a simple, transparent platform.",
-];
-
-const isHomeNewsletterAnchor = (section) => {
-  const data = section?.data || {};
-  const textCandidates = [
-    data.title,
-    data.subtitle,
-    data.heading,
-    data.body,
-    data.bodyHtml,
-    data.heroTitle,
-    data.heroSubtitle,
-    data.introText,
-  ]
-    .map(normalizeText)
-    .filter(Boolean);
-
-  return homeNewsletterAnchorMatchers.some((matcher) =>
-    textCandidates.some((candidate) => candidate.includes(matcher))
-  );
-};
+import { PageLoading, PageError } from "../components/PageStates.jsx";
 
 export default function PageRenderer({ slug, page: initialPage }) {
   const [page, setPage] = useState(initialPage || null);
@@ -61,44 +29,32 @@ export default function PageRenderer({ slug, page: initialPage }) {
     };
   }, [slug, initialPage]);
 
+  // Apply the page's SEO settings from the CMS (browser tab title + meta description)
+  useEffect(() => {
+    if (!page) return;
+    const seo = page.seo || {};
+    document.title = seo.metaTitle || `${page.title} | Access Properties`;
+    if (seo.metaDescription) {
+      let meta = document.querySelector('meta[name="description"]');
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.setAttribute("name", "description");
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute("content", seo.metaDescription);
+    }
+  }, [page]);
+
   if (error) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-10 text-red-600">
-        {error}
-      </div>
-    );
+    return <PageError message={error} />;
   }
 
   if (!page) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-10 text-gray-500">
-        Loading...
-      </div>
-    );
+    return <PageLoading />;
   }
 
-  const sections = page.sections || [];
-  const homeIntroSectionIndex =
-    slug === "home"
-      ? sections.findIndex(
-          (section) => isHomeNewsletterAnchor(section)
-        )
-      : -1;
-
-  return (
-    <>
-      {slug === "home" && homeIntroSectionIndex >= 0 ? (
-        <>
-          <SectionRenderer sections={sections.slice(0, homeIntroSectionIndex + 1)} />
-          <NewsletterSignup />
-          <SectionRenderer sections={sections.slice(homeIntroSectionIndex + 1)} />
-        </>
-      ) : (
-        <>
-          <SectionRenderer sections={sections} />
-          {(slug === "home" || slug === "contact") && <NewsletterSignup />}
-        </>
-      )}
-    </>
-  );
+  // Every section comes from the CMS, including the newsletter block on home
+  // and contact. Nothing is injected here: a page with no NEWSLETTER section
+  // is a page whose editor removed it.
+  return <SectionRenderer sections={page.sections || []} />;
 }

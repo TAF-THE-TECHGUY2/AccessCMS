@@ -112,6 +112,8 @@ export const api = {
     create: (payload) => request("/api/admin/faq", { method: "POST", body: JSON.stringify(payload) }),
     update: (id, payload) =>
       request(`/api/admin/faq/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+    reorder: (items) =>
+      request(`/api/admin/faq/reorder`, { method: "PATCH", body: JSON.stringify({ items }) }),
     remove: (id) => request(`/api/admin/faq/${id}`, { method: "DELETE" }),
   },
   media: {
@@ -145,11 +147,23 @@ export const api = {
       }
       return res.json();
     },
+    setAccess: (id, access) =>
+      request(`/api/admin/media/${id}/access`, {
+        method: "PATCH",
+        body: JSON.stringify({ access }),
+      }),
     remove: (id) => request(`/api/admin/media/${id}`, { method: "DELETE" }),
   },
   settings: {
     get: () => request("/api/site-settings"),
     update: (payload) =>
       request("/api/admin/site-settings", { method: "PATCH", body: JSON.stringify(payload) }),
+  },
+  contact: {
+    list: (status) =>
+      request(`/api/admin/contact${status ? `?status=${encodeURIComponent(status)}` : ""}`),
+    update: (id, payload) =>
+      request(`/api/admin/contact/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+    remove: (id) => request(`/api/admin/contact/${id}`, { method: "DELETE" }),
   },
 };

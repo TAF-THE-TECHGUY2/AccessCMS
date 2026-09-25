@@ -34,4 +34,9 @@ export const env = {
     awsRegion: process.env.AWS_REGION ?? "",
     s3Bucket: process.env.S3_BUCKET ?? "",
     logLevel: process.env.LOG_LEVEL ?? "info",
+    // Shared with the Laravel API's MEMBER_JWT_SECRET. Unset disables member
+    // gating entirely: every visitor is a guest and MEMBERS sections are stripped
+    // for everyone, which fails closed. See docs/member-gating.md.
+    memberJwtSecret: process.env.MEMBER_JWT_SECRET ?? "",
+    memberCookieName: process.env.MEMBER_COOKIE_NAME ?? "ap_member",
 };

@@ -61,6 +61,8 @@ export default function PropertyEditor() {
     sqft: "",
     lotSqft: "",
     heroImage: "",
+    holdingStatus: "",
+    acquiredLabel: "",
     status: "active",
   });
   const [description, setDescription] = useState("");
@@ -89,6 +91,8 @@ export default function PropertyEditor() {
         sqft: item.sqft ?? "",
         lotSqft: item.lotSqft ?? "",
         heroImage: item.heroImage || "",
+        holdingStatus: item.holdingStatus || "",
+        acquiredLabel: item.acquiredLabel || "",
         status: item.status || "active",
       });
       setDescription(item.description || "");
@@ -231,6 +235,18 @@ export default function PropertyEditor() {
       <TextField label="Parking" value={form.parking} onChange={(e) => setForm({ ...form, parking: e.target.value })} />
       <TextField label="Sqft" value={form.sqft} onChange={(e) => setForm({ ...form, sqft: e.target.value })} />
       <TextField label="Lot Sqft" value={form.lotSqft} onChange={(e) => setForm({ ...form, lotSqft: e.target.value })} />
+      <TextField
+        label="Card badge"
+        value={form.holdingStatus}
+        onChange={(e) => setForm({ ...form, holdingStatus: e.target.value })}
+        helperText='Green badge on the property card, e.g. "Stabilized Holding". Leave empty to hide.'
+      />
+      <TextField
+        label="Acquired"
+        value={form.acquiredLabel}
+        onChange={(e) => setForm({ ...form, acquiredLabel: e.target.value })}
+        helperText='Shows as "Acquired 8/2023" on the property card. Leave empty to hide.'
+      />
       <TextField
         label="Status"
         select

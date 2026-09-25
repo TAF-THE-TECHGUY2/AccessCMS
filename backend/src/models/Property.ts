@@ -23,6 +23,9 @@ export interface PropertyDoc extends Document {
   lotSqft?: number;
   description?: string;
   heroImage?: string;
+  // Property-card badges (e.g. "Stabilized Holding", acquired "8/2023")
+  holdingStatus?: string;
+  acquiredLabel?: string;
   status: "coming_soon" | "active" | "sold";
   featured: boolean;
   highlights: string[];
@@ -61,6 +64,8 @@ const PropertySchema = new Schema<PropertyDoc>(
     lotSqft: Number,
     description: String,
     heroImage: String,
+    holdingStatus: String,
+    acquiredLabel: String,
     status: {
       type: String,
       enum: ["coming_soon", "active", "sold"],

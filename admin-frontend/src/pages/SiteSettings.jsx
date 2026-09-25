@@ -28,6 +28,12 @@ export default function SiteSettings() {
   const [siteName, setSiteName] = useState("");
   const [logo, setLogo] = useState("");
   const [menu, setMenu] = useState([]);
+  const [header, setHeader] = useState({ loginLabel: "", loginHref: "", signupLabel: "", signupHref: "" });
+  const [footer, setFooter] = useState({ address: "", ctaLine: "", ctaSubline: "", companyTagline: "" });
+  const [phones, setPhones] = useState([]);
+  const [emails, setEmails] = useState([]);
+  const [socialLinks, setSocialLinks] = useState([]);
+  const [quickLinks, setQuickLinks] = useState([]);
   const [json, setJson] = useState("{}");
   const [message, setMessage] = useState("");
 
@@ -47,6 +53,19 @@ export default function SiteSettings() {
           })),
         }))
       );
+      const h = data.header || {};
+      setHeader({
+        loginLabel: h.loginLabel || "",
+        loginHref: h.loginHref || "",
+        signupLabel: h.signupLabel || "",
+        signupHref: h.signupHref || "",
+      });
+      const f = data.footer || {};
+      setFooter({ address: f.address || "", ctaLine: f.ctaLine || "", ctaSubline: f.ctaSubline || "", companyTagline: f.companyTagline || "" });
+      setPhones(f.phones || []);
+      setEmails(f.emails || []);
+      setSocialLinks((f.socialLinks || []).map((l) => ({ label: l.label || "", url: l.url || "" })));
+      setQuickLinks((f.quickLinks || []).map((l) => ({ label: l.label || "", href: l.href || "" })));
       setJson(JSON.stringify(data, null, 2));
     };
     load();
@@ -107,6 +126,27 @@ export default function SiteSettings() {
           .filter((c) => c.label.trim() && c.href.trim())
           .map((c) => ({ label: c.label.trim(), href: c.href.trim() })),
       }));
+    payload.header = {
+      loginLabel: header.loginLabel.trim(),
+      loginHref: header.loginHref.trim(),
+      signupLabel: header.signupLabel.trim(),
+      signupHref: header.signupHref.trim(),
+    };
+    payload.footer = {
+      ...(payload.footer || {}),
+      address: footer.address.trim(),
+      ctaLine: footer.ctaLine.trim(),
+      ctaSubline: footer.ctaSubline.trim(),
+      companyTagline: footer.companyTagline.trim(),
+      phones: phones.map((p) => p.trim()).filter(Boolean),
+      emails: emails.map((e) => e.trim()).filter(Boolean),
+      socialLinks: socialLinks
+        .filter((l) => l.label.trim() && l.url.trim())
+        .map((l) => ({ label: l.label.trim(), url: l.url.trim() })),
+      quickLinks: quickLinks
+        .filter((l) => l.label.trim() && l.href.trim())
+        .map((l) => ({ label: l.label.trim(), href: l.href.trim() })),
+    };
     try {
       const saved = await api.settings.update(payload);
       if (saved) setJson(JSON.stringify(saved, null, 2));
@@ -206,13 +246,231 @@ export default function SiteSettings() {
 
       <Divider />
 
+      <Box>
+        <Typography variant="h6">Header Buttons</Typography>
+        <Typography variant="body2" color="text.secondary">
+          The buttons at the top right of the public site. Defaults: "Log In" → investor portal
+          login, "Invest Now" → the /invest-now page. Leave fields empty to use the defaults.
+        </Typography>
+      </Box>
+      <Stack spacing={1.5}>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={1.5}>
+          <TextField
+            label="Log In label"
+            size="small"
+            value={header.loginLabel}
+            onChange={(e) => setHeader((h) => ({ ...h, loginLabel: e.target.value }))}
+            placeholder="Log In"
+            sx={{ width: { md: 220 } }}
+          />
+          <TextField
+            label="Log In link"
+            size="small"
+            value={header.loginHref}
+            onChange={(e) => setHeader((h) => ({ ...h, loginHref: e.target.value }))}
+            placeholder="https://investor.ap.boston/login"
+            sx={{ flex: 1 }}
+          />
+        </Stack>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={1.5}>
+          <TextField
+            label="Primary button label"
+            size="small"
+            value={header.signupLabel}
+            onChange={(e) => setHeader((h) => ({ ...h, signupLabel: e.target.value }))}
+            placeholder="Invest Now"
+            sx={{ width: { md: 220 } }}
+          />
+          <TextField
+            label="Primary button link"
+            size="small"
+            value={header.signupHref}
+            onChange={(e) => setHeader((h) => ({ ...h, signupHref: e.target.value }))}
+            placeholder="/invest-now"
+            sx={{ flex: 1 }}
+          />
+        </Stack>
+      </Stack>
+
+      <Divider />
+
+      <Box>
+        <Typography variant="h6">Footer</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Contact details, social media and quick links shown at the bottom of every page.
+        </Typography>
+      </Box>
+      <Stack spacing={1.5}>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={1.5}>
+          <TextField
+            label="Address"
+            size="small"
+            value={footer.address}
+            onChange={(e) => setFooter((f) => ({ ...f, address: e.target.value }))}
+            sx={{ flex: 1 }}
+          />
+          <TextField
+            label="Company tagline"
+            size="small"
+            value={footer.companyTagline}
+            onChange={(e) => setFooter((f) => ({ ...f, companyTagline: e.target.value }))}
+            helperText='Line under the company name, e.g. "Simple Real Estate Investing for Anyone, Anywhere"'
+            sx={{ flex: 1 }}
+          />
+          <TextField
+            label="Footer headline"
+            size="small"
+            value={footer.ctaLine}
+            onChange={(e) => setFooter((f) => ({ ...f, ctaLine: e.target.value }))}
+            helperText='Big line, e.g. "Start investing in real estate today"'
+            sx={{ flex: 1 }}
+          />
+          <TextField
+            label="Footer subline"
+            size="small"
+            value={footer.ctaSubline}
+            onChange={(e) => setFooter((f) => ({ ...f, ctaSubline: e.target.value }))}
+            helperText={'Small line under it, e.g. "It\'s easier than you think."'}
+            sx={{ flex: 1 }}
+          />
+        </Stack>
+
+        <Typography variant="subtitle2">Phone numbers</Typography>
+        {phones.map((phone, idx) => (
+          <Stack key={idx} direction="row" spacing={1} alignItems="center">
+            <TextField
+              size="small"
+              value={phone}
+              onChange={(e) => setPhones((prev) => prev.map((p, i) => (i === idx ? e.target.value : p)))}
+              sx={{ flex: 1, maxWidth: 360 }}
+            />
+            <IconButton size="small" onClick={() => setPhones((prev) => prev.filter((_, i) => i !== idx))}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+        ))}
+        <Button size="small" startIcon={<AddIcon />} onClick={() => setPhones((prev) => [...prev, ""])} sx={{ alignSelf: "flex-start" }}>
+          Add phone
+        </Button>
+
+        <Typography variant="subtitle2">Email addresses</Typography>
+        {emails.map((email, idx) => (
+          <Stack key={idx} direction="row" spacing={1} alignItems="center">
+            <TextField
+              size="small"
+              value={email}
+              onChange={(e) => setEmails((prev) => prev.map((p, i) => (i === idx ? e.target.value : p)))}
+              sx={{ flex: 1, maxWidth: 360 }}
+            />
+            <IconButton size="small" onClick={() => setEmails((prev) => prev.filter((_, i) => i !== idx))}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+        ))}
+        <Button size="small" startIcon={<AddIcon />} onClick={() => setEmails((prev) => [...prev, ""])} sx={{ alignSelf: "flex-start" }}>
+          Add email
+        </Button>
+
+        <Typography variant="subtitle2">Social media links</Typography>
+        {socialLinks.map((link, idx) => (
+          <Stack key={idx} direction="row" spacing={1} alignItems="center">
+            <TextField
+              label="Platform"
+              size="small"
+              value={link.label}
+              onChange={(e) =>
+                setSocialLinks((prev) => prev.map((l, i) => (i === idx ? { ...l, label: e.target.value } : l)))
+              }
+              sx={{ width: 180 }}
+            />
+            <TextField
+              label="URL"
+              size="small"
+              value={link.url}
+              onChange={(e) =>
+                setSocialLinks((prev) => prev.map((l, i) => (i === idx ? { ...l, url: e.target.value } : l)))
+              }
+              sx={{ flex: 1 }}
+            />
+            <IconButton size="small" onClick={() => setSocialLinks((prev) => moveInArray(prev, idx, idx - 1))} disabled={idx === 0}>
+              <ArrowUpwardIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={() => setSocialLinks((prev) => moveInArray(prev, idx, idx + 1))}
+              disabled={idx === socialLinks.length - 1}
+            >
+              <ArrowDownwardIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small" onClick={() => setSocialLinks((prev) => prev.filter((_, i) => i !== idx))}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+        ))}
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={() => setSocialLinks((prev) => [...prev, { label: "", url: "" }])}
+          sx={{ alignSelf: "flex-start" }}
+        >
+          Add social link
+        </Button>
+
+        <Typography variant="subtitle2">Footer quick links</Typography>
+        {quickLinks.map((link, idx) => (
+          <Stack key={idx} direction="row" spacing={1} alignItems="center">
+            <TextField
+              label="Label"
+              size="small"
+              value={link.label}
+              onChange={(e) =>
+                setQuickLinks((prev) => prev.map((l, i) => (i === idx ? { ...l, label: e.target.value } : l)))
+              }
+              sx={{ width: 180 }}
+            />
+            <TextField
+              label="Link"
+              size="small"
+              value={link.href}
+              onChange={(e) =>
+                setQuickLinks((prev) => prev.map((l, i) => (i === idx ? { ...l, href: e.target.value } : l)))
+              }
+              sx={{ flex: 1 }}
+            />
+            <IconButton size="small" onClick={() => setQuickLinks((prev) => moveInArray(prev, idx, idx - 1))} disabled={idx === 0}>
+              <ArrowUpwardIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={() => setQuickLinks((prev) => moveInArray(prev, idx, idx + 1))}
+              disabled={idx === quickLinks.length - 1}
+            >
+              <ArrowDownwardIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small" onClick={() => setQuickLinks((prev) => prev.filter((_, i) => i !== idx))}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+        ))}
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={() => setQuickLinks((prev) => [...prev, { label: "", href: "" }])}
+          sx={{ alignSelf: "flex-start" }}
+        >
+          Add quick link
+        </Button>
+      </Stack>
+
+      <Divider />
+
       <TextField
         label="Settings JSON (advanced)"
         value={json}
         onChange={(e) => setJson(e.target.value)}
         multiline
         minRows={12}
-        helperText="Advanced settings. The menu above overrides navLinks in this JSON on save."
+        helperText="Advanced settings. The Menu and Footer editors above override navLinks/footer in this JSON on save."
       />
       {message ? <Typography>{message}</Typography> : null}
       <Button variant="contained" onClick={onSave}>

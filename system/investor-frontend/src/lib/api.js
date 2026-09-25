@@ -39,6 +39,8 @@ export const api = {
     return data;
   },
   me: () => client.get("/api/auth/me").then((r) => r.data),
+  forgotPassword: (payload) => client.post("/api/auth/forgot-password", payload).then((r) => r.data),
+  resetPassword: (payload) => client.post("/api/auth/reset-password", payload).then((r) => r.data),
   getProfile: () => client.get("/api/investor/profile").then((r) => r.data),
   updateProfile: (payload) => client.patch("/api/investor/profile", payload).then((r) => r.data),
   submitApplication: () => client.post("/api/investor/submit").then((r) => r.data),

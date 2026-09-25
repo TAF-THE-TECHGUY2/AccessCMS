@@ -2,10 +2,16 @@ import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
-export default function DisclosureBar() {
+// The seeded CMS body is a placeholder — treat it as "no content" so the
+// built-in legal copy below still shows until real content is written.
+const isRealContent = (html) =>
+  Boolean(html) && !/Disclosure details can be edited in the CMS/i.test(html);
+
+export default function DisclosureBar({ title, bodyHtml }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const sectionBgClass = pathname === "/" ? "bg-white" : "bg-gray-100";
+  const hasCmsBody = isRealContent(bodyHtml);
 
   return (
     <>
@@ -19,7 +25,7 @@ export default function DisclosureBar() {
               aria-expanded={open}
             >
               <h3 className="text-xl md:text-2xl font-semibold text-gray-900">
-                Full Disclosure
+                {title || "Full Disclosure"}
               </h3>
               
               <ChevronDown
@@ -30,10 +36,19 @@ export default function DisclosureBar() {
               />
             </button>
 
-            {open && (
+            {open && hasCmsBody && (
               <div className="px-6 pb-6 animate-fadeInUp">
                 <div className="h-px bg-gray-300 mb-6" />
-                
+                <div
+                  className="space-y-4 text-gray-700 text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: bodyHtml }}
+                />
+              </div>
+            )}
+            {open && !hasCmsBody && (
+              <div className="px-6 pb-6 animate-fadeInUp">
+                <div className="h-px bg-gray-300 mb-6" />
+
                 <div className="space-y-4 text-gray-700 text-sm leading-relaxed">
                   <p>
                     This website and its content are provided for informational purposes only. 

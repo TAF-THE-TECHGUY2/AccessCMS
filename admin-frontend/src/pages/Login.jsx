@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Box, Button, Card, CardContent, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext.jsx";
+import logo from "../assets/Logo.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -22,10 +23,15 @@ export default function Login() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center", p: 2 }}>
-      <Card sx={{ width: 360 }}>
-        <CardContent>
-          <Typography variant="h6">Admin Login</Typography>
+    <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center", p: 2, bgcolor: "background.default" }}>
+      <Card sx={{ width: 380 }} variant="outlined">
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+            <Box component="img" src={logo} alt="Access Properties" sx={{ height: 56, width: "auto" }} />
+          </Box>
+          <Typography variant="h6" align="center">
+            Sign in to the CMS
+          </Typography>
           <Box component="form" onSubmit={onSubmit} sx={{ mt: 2, display: "grid", gap: 2 }}>
             <TextField
               label="Email"

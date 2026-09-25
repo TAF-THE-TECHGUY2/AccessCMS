@@ -5,8 +5,22 @@ const SiteSettingsSchema = new Schema({
     favicon: String,
     primaryColor: String,
     navLinks: {
-        type: [{ label: String, href: String }],
+        type: [
+            {
+                label: String,
+                href: String,
+                // One level of dropdown items under this menu entry
+                children: { type: [{ label: String, href: String }], default: [] },
+            },
+        ],
         default: [],
+    },
+    // Login / Sign Up buttons in the public site's top bar
+    header: {
+        loginLabel: String,
+        loginHref: String,
+        signupLabel: String,
+        signupHref: String,
     },
     footer: {
         address: String,
@@ -15,6 +29,8 @@ const SiteSettingsSchema = new Schema({
         socialLinks: { type: [{ label: String, url: String }], default: [] },
         quickLinks: { type: [{ label: String, href: String }], default: [] },
         ctaLine: String,
+        ctaSubline: String,
+        companyTagline: String,
     },
     defaultSeo: {
         metaTitle: String,

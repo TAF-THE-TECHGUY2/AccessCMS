@@ -1,13 +1,14 @@
 {
   "files": {
-    "main.css": "/static/css/main.ee8eb1c2.css",
-    "main.js": "/static/js/main.ea6aaa6f.js",
+    "main.css": "/static/css/main.8bd3a643.css",
+    "main.js": "/static/js/main.eb50e2e2.js",
+    "static/media/ap-mark.jpg": "/static/media/ap-mark.a7d17c5f7c96fcfe536c.jpg",
     "index.html": "/index.html",
-    "main.ee8eb1c2.css.map": "/static/css/main.ee8eb1c2.css.map",
-    "main.ea6aaa6f.js.map": "/static/js/main.ea6aaa6f.js.map"
+    "main.8bd3a643.css.map": "/static/css/main.8bd3a643.css.map",
+    "main.eb50e2e2.js.map": "/static/js/main.eb50e2e2.js.map"
   },
   "entrypoints": [
-    "static/css/main.ee8eb1c2.css",
-    "static/js/main.ea6aaa6f.js"
+    "static/css/main.8bd3a643.css",
+    "static/js/main.eb50e2e2.js"
   ]
 }

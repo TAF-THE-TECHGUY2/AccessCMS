@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { BedDouble, Bath, Car, Ruler, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { api, API_BASE_URL } from "../api.js";
+import { PageNotFound, PageLoading } from "../components/PageStates.jsx";
 
 const SectionTitle = ({ title, sub }) => (
   <div className="max-w-6xl mx-auto px-4">
@@ -340,22 +341,13 @@ export default function PropertyDetails() {
   }, [property]);
 
   if (error) {
-    return (
-      <div className="min-h-screen bg-white p-10">
-        <p className="text-xl text-red-600">{error}</p>
-        <Link to="/greater-boston" className="mt-6 inline-block text-blue-600">
-          Back to Greater Boston
-        </Link>
-      </div>
-    );
+    // Reached for any URL that is neither a page nor a property — show a
+    // branded not-found rather than raw error text.
+    return <PageNotFound />;
   }
 
   if (!property) {
-    return (
-      <div className="min-h-screen bg-white p-10">
-        <p className="text-xl text-gray-600">Loading property...</p>
-      </div>
-    );
+    return <PageLoading />;
   }
 
   return (
@@ -371,7 +363,9 @@ export default function PropertyDetails() {
           alt={property.title}
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/50" />
+        {/* The title sits straight on the photo here (no panel), so instead of
+            dimming the whole image we only shade the bottom strip behind it. */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="relative h-full max-w-6xl mx-auto px-4 flex items-end pb-10">
           <div className="w-full">
             <Link

@@ -14,10 +14,10 @@ export default function HeroSection({
   subtitle = "for Anyone, Anywhere",
   badgeText = "Starting at just $100",
   backgroundImage = buildImg,
-  overlayOpacity = 0.55,
   primaryButton = { label: "INVEST NOW", href: "/invest-now" },
   secondaryButton = { label: "HOW IT WORKS", href: "" },
   videoUrl = "/videos/how-it-works.mp4",
+  secondaryButtonOpensVideo = false,
 }) {
   const [showHowItWorksVideo, setShowHowItWorksVideo] = useState(false);
   const closeVideo = () => setShowHowItWorksVideo(false);
@@ -40,11 +40,17 @@ export default function HeroSection({
   const renderButton = (button, key) => {
     if (!button?.label) return null;
 
+    // Matches the site-wide primary button (nav "Invest Now", FAQ hero CTA):
+    // solid black, rounded-md, gray-800 on hover.
     const buttonClass =
-      "bg-gray-700 hover:bg-gray-800 text-white px-10 py-3 rounded-sm text-sm font-semibold tracking-wide transition-colors";
-    const isHowItWorksButton = normalizeLabel(button.label) === HOW_IT_WORKS_LABEL;
+      "inline-flex items-center justify-center rounded-md bg-black hover:bg-gray-800 text-white px-10 py-3 text-sm font-semibold tracking-wide transition-colors shadow-sm";
+    // Opens the video popup when explicitly enabled in the CMS for the
+    // secondary button, or (legacy) when the button is labelled "How It Works".
+    const isVideoButton =
+      (secondaryButtonOpensVideo && button === secondaryButton) ||
+      normalizeLabel(button.label) === HOW_IT_WORKS_LABEL;
 
-    if (isHowItWorksButton && videoUrl) {
+    if (isVideoButton && videoUrl) {
       return (
         <button
           key={key}
@@ -83,8 +89,8 @@ export default function HeroSection({
           backgroundPosition: "center",
         }}
       >
-        <div className="absolute inset-0 bg-black" style={{ opacity: overlayOpacity }} />
-
+        {/* No dark overlay: the background image shows at its uploaded brightness.
+            Text stays readable via the translucent panels below. */}
         <div className="relative flex h-full flex-col justify-center">
           <Container>
             <div className="mx-auto max-w-4xl rounded-xl border border-white/10 bg-black/70 px-6 py-7 text-center shadow-lg backdrop-blur-md animate-slideDown md:px-10">

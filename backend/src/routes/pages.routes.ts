@@ -2,11 +2,15 @@ import { Router } from "express";
 import { z } from "zod";
 import { Page } from "../models/Page.js";
 import { requireAuth, requireRole, type AuthRequest } from "../middleware/auth.js";
+import { resolveMember, type MemberRequest } from "../middleware/member.js";
 import { validate } from "../middleware/validate.js";
 import { logAudit } from "../utils/audit.js";
 
 const sectionSchema = z.object({
   type: z.string().min(1),
+  // Sections saved before member gating existed carry no `access`, so treat a
+  // missing value as public rather than rejecting the page.
+  access: z.enum(["PUBLIC", "MEMBERS"]).default("PUBLIC"),
   data: z.record(z.any()).default({}),
 });
 
@@ -27,20 +31,53 @@ const pageSchema = z.object({
 export const publicRouter = Router();
 export const adminRouter = Router();
 
+// Fields a locked section still needs so the public site can draw its overlay.
+// Everything else in `data` is withheld.
+const LOCKED_PASSTHROUGH = ["lockedTitle", "lockedSubtitle"] as const;
+
+/**
+ * Removes the content of members-only sections for visitors who are not signed
+ * in to the investor dashboard.
+ *
+ * This is the gate. The public site also blurs these sections, but that is
+ * presentation -- what actually keeps fund terms private is that they are never
+ * written into this response.
+ */
+const applyMemberAccess = (page: any, isMember: boolean) => {
+  const plain = typeof page?.toObject === "function" ? page.toObject() : page;
+  if (!Array.isArray(plain?.sections)) return plain;
+
+  return {
+    ...plain,
+    sections: plain.sections.map((section: any) => {
+      if (section?.access !== "MEMBERS" || isMember) return section;
+
+      const data: Record<string, unknown> = {};
+      for (const key of LOCKED_PASSTHROUGH) {
+        if (section?.data?.[key] !== undefined) data[key] = section.data[key];
+      }
+
+      return { ...section, data, _locked: true };
+    }),
+  };
+};
+
 const normalizeSlug = (slug: string) => {
-  const trimmed = slug.trim();
+  const trimmed = slug.trim().toLowerCase();
   if (trimmed === "/" || trimmed === "root") return "home";
   return trimmed.replace(/^\/+/, "");
 };
 
-publicRouter.get("/", async (req, res) => {
+publicRouter.use(resolveMember);
+
+publicRouter.get("/", async (req: MemberRequest, res) => {
   const status = req.query.status === "published" ? "published" : undefined;
   const filter = status ? { status } : { status: "published" };
   const pages = await Page.find(filter).sort({ updatedAt: -1 });
-  res.json(pages);
+  res.json(pages.map((page) => applyMemberAccess(page, Boolean(req.member))));
 });
 
-publicRouter.get("/slug/:slug", async (req, res) => {
+publicRouter.get("/slug/:slug", async (req: MemberRequest, res) => {
   const rawSlug = req.params.slug;
   const normalized = normalizeSlug(rawSlug);
   const candidates = normalized === "home" ? ["/", "home"] : [normalized];
@@ -51,7 +88,7 @@ publicRouter.get("/slug/:slug", async (req, res) => {
     page = await Page.findOne({ aliases: { $in: candidates }, status: "published" });
   }
   if (!page) return res.status(404).json({ message: "Page not found" });
-  return res.json(page);
+  return res.json(applyMemberAccess(page, Boolean(req.member)));
 });
 
 adminRouter.use(requireAuth, requireRole(["admin", "editor"]));

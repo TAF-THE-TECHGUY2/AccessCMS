@@ -23,6 +23,11 @@ import ProfileCardsSection from "./sections/ProfileCardsSection.jsx";
 import AdvisorySection from "./sections/AdvisorySection.jsx";
 import ContactFormSection from "./sections/ContactFormSection.jsx";
 import FaqPageSection from "./sections/FaqPageSection.jsx";
+import NewsletterSection from "./sections/NewsletterSection.jsx";
+import MemberGateSection from "./sections/MemberGateSection.jsx";
+import FundDetailSection from "./sections/FundDetailSection.jsx";
+import LockedSection, { LockedPlaceholder } from "./LockedSection.jsx";
+import { useMemberSession } from "../lib/memberSession.js";
 
 const SectionMap = {
   HERO: HeroSection,
@@ -50,9 +55,38 @@ const SectionMap = {
   ADVISORY: AdvisorySection,
   CONTACT_FORM: ContactFormSection,
   FAQ_PAGE: FaqPageSection,
+  NEWSLETTER: NewsletterSection,
+  MEMBER_GATE: MemberGateSection,
+  FUND_DETAIL: FundDetailSection,
 };
 
+// MEMBER_GATE is the invitation to sign in, so it must stay readable to the
+// people it is addressed to -- blurring it would hide the only way through.
+const ALWAYS_READABLE = new Set(["MEMBER_GATE"]);
+
+// Sections that draw their own locked state. Every other type falls back to a
+// generic placeholder, because once the API strips the content there is nothing
+// left for the blur to sit on.
+const SELF_RENDERS_LOCKED = new Set(["FUND_DETAIL"]);
+
+// Types whose unlocked layout is a row of cards, so their placeholder should be
+// too. Anything else gets the single-card shape.
+const GRID_LIKE = new Set([
+  "PROPERTY_COLUMNS",
+  "PROPERTY_GRID",
+  "PORTFOLIO_CARD",
+  "GALLERY",
+  "TEAM_GRID",
+  "ICON_CARD_GRID",
+  "ICON_ACCORDION_GRID",
+  "PROFILE_CARDS",
+  "ADVISORY",
+]);
+
 export default function SectionRenderer({ sections = [] }) {
+  const { status } = useMemberSession();
+  const isMember = status === "member";
+
   // Group consecutive PORTFOLIO_CARD sections so they render side by side
   // instead of stacking. Any other section stands on its own.
   const groups = [];
@@ -82,7 +116,38 @@ export default function SectionRenderer({ sections = [] }) {
         return group.items.map(({ section, idx }) => {
           const Component = SectionMap[section.type];
           if (!Component) return null;
-          return <Component key={`${section.type}-${idx}`} data={section.data || {}} />;
+          const key = `${section.type}-${idx}`;
+
+          // `_locked` is the server's verdict: it means the real content was
+          // withheld from this response. `access` alone is only the author's
+          // intent, which the API may already have acted on.
+          const locked =
+            (section._locked || (section.access === "MEMBERS" && !isMember)) &&
+            !ALWAYS_READABLE.has(section.type);
+
+          if (locked) {
+            const body = SELF_RENDERS_LOCKED.has(section.type) ? (
+              <Component data={section.data || {}} locked />
+            ) : (
+              <LockedPlaceholder variant={GRID_LIKE.has(section.type) ? "grid" : "card"} />
+            );
+
+            return (
+              <LockedSection
+                key={key}
+                title={section.data?.lockedTitle}
+                subtitle={section.data?.lockedSubtitle}
+              >
+                {body}
+              </LockedSection>
+            );
+          }
+
+          return (
+            <React.Fragment key={key}>
+              <Component data={section.data || {}} locked={false} />
+            </React.Fragment>
+          );
         });
       })}
     </>

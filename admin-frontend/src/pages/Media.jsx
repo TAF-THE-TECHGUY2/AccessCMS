@@ -1,10 +1,36 @@
 import React, { useEffect, useState } from "react";
 import { api, API_BASE_URL } from "../api.js";
-import { Box, Button, Grid, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Grid,
+  IconButton,
+  Paper,
+  Snackbar,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import UploadIcon from "@mui/icons-material/Upload";
+import LockIcon from "@mui/icons-material/Lock";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
+import Chip from "@mui/material/Chip";
+
+const fullUrl = (url) => (url.startsWith("http") ? url : `${API_BASE_URL}${url}`);
 
 export default function Media() {
   const [items, setItems] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null); // item or null
+  const [copied, setCopied] = useState(false);
+  const [accessError, setAccessError] = useState("");
 
   const load = async () => {
     const data = await api.media.list();
@@ -25,39 +51,161 @@ export default function Media() {
     await load();
   };
 
+  // Members-only files are refused to anyone without a valid investor cookie,
+  // even by direct URL. Public files stay reachable by anyone who has the link.
+  const onToggleAccess = async (item) => {
+    const next = item.access === "MEMBERS" ? "PUBLIC" : "MEMBERS";
+    try {
+      await api.media.setAccess(item._id, next);
+      await load();
+    } catch (err) {
+      setAccessError(err?.message || "Could not change this file's access.");
+    }
+  };
+
   const onDelete = async (id) => {
     await api.media.remove(id);
+    setConfirmDelete(null);
     await load();
+  };
+
+  const onCopy = async (item) => {
+    try {
+      await navigator.clipboard.writeText(item.url);
+      setCopied(true);
+    } catch {
+      // clipboard unavailable (http/permissions) — show the URL to copy manually
+      window.prompt("Copy the image URL:", item.url);
+    }
   };
 
   return (
     <Stack spacing={2}>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="h5">Media Library</Typography>
-        <Button variant="contained" component="label" disabled={uploading}>
-          Upload
-          <input type="file" hidden onChange={onUpload} />
+        <Button variant="contained" color="secondary" component="label" disabled={uploading} startIcon={<UploadIcon />}>
+          {uploading ? "Uploading…" : "Upload"}
+          <input type="file" hidden accept="image/*,video/*" onChange={onUpload} />
         </Button>
       </Stack>
       <Grid container spacing={2}>
         {items.map((item) => (
-          <Grid item xs={12} sm={6} md={4} key={item._id}>
-            <Box sx={{ border: "1px solid #e5e7eb", borderRadius: 2, p: 2 }}>
-              <img
-                src={item.url.startsWith("http") ? item.url : `${API_BASE_URL}${item.url}`}
-                alt={item.key}
-                style={{ width: "100%", borderRadius: 8 }}
-              />
-              <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
-                <Typography variant="caption">{item.key}</Typography>
-                <Button size="small" color="error" onClick={() => onDelete(item._id)}>
-                  Delete
-                </Button>
+          <Grid item xs={12} sm={6} md={3} key={item._id}>
+            <Paper
+              variant="outlined"
+              sx={{
+                overflow: "hidden",
+                transition: "border-color .15s, box-shadow .15s",
+                "&:hover": { borderColor: "secondary.main", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" },
+              }}
+            >
+              {item.mime?.startsWith("video") || /\.(mp4|webm|mov)$/i.test(item.url) ? (
+                <Box sx={{ aspectRatio: "4 / 3", bgcolor: "#000" }}>
+                  <video
+                    src={fullUrl(item.url)}
+                    preload="metadata"
+                    muted
+                    controls
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                  />
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    aspectRatio: "4 / 3",
+                    backgroundImage: `url(${fullUrl(item.url)})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    bgcolor: "#f0f1f3",
+                  }}
+                />
+              )}
+              <Stack direction="row" alignItems="center" sx={{ px: 1.5, py: 0.75 }} spacing={0.5}>
+                <Typography variant="caption" noWrap sx={{ flex: 1 }} title={item.key}>
+                  {item.key}
+                </Typography>
+                {item.access === "MEMBERS" ? (
+                  <Chip
+                    size="small"
+                    color="warning"
+                    variant="outlined"
+                    icon={<LockIcon sx={{ fontSize: 14 }} />}
+                    label="Members"
+                    sx={{ height: 20, "& .MuiChip-label": { px: 0.75, fontSize: 11 } }}
+                  />
+                ) : null}
+                <Tooltip
+                  title={
+                    item.access === "MEMBERS"
+                      ? "Members only — refused to signed-out visitors, even by direct URL. Click to make public."
+                      : "Public — anyone with the link can download it. Click to restrict to signed-in investors."
+                  }
+                >
+                  <IconButton size="small" onClick={() => onToggleAccess(item)}>
+                    {item.access === "MEMBERS" ? (
+                      <LockIcon fontSize="inherit" />
+                    ) : (
+                      <LockOpenIcon fontSize="inherit" />
+                    )}
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Copy URL (paste into any image field)">
+                  <IconButton size="small" onClick={() => onCopy(item)}>
+                    <ContentCopyIcon fontSize="inherit" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Delete">
+                  <IconButton size="small" color="error" onClick={() => setConfirmDelete(item)}>
+                    <DeleteOutlineIcon fontSize="inherit" />
+                  </IconButton>
+                </Tooltip>
               </Stack>
-            </Box>
+            </Paper>
           </Grid>
         ))}
+        {items.length === 0 ? (
+          <Grid item xs={12}>
+            <Paper variant="outlined" sx={{ p: 5, textAlign: "center" }}>
+              <Typography color="text.secondary">
+                No images yet. Upload one to use it on pages and properties.
+              </Typography>
+            </Paper>
+          </Grid>
+        ) : null}
       </Grid>
+
+      <Dialog open={Boolean(confirmDelete)} onClose={() => setConfirmDelete(null)}>
+        <DialogTitle>Delete this image?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            “{confirmDelete?.key}” will be permanently deleted. Any page or property still using
+            it will show a broken image.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button color="inherit" onClick={() => setConfirmDelete(null)}>
+            Cancel
+          </Button>
+          <Button color="error" variant="contained" onClick={() => onDelete(confirmDelete._id)}>
+            Delete image
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={Boolean(accessError)}
+        autoHideDuration={8000}
+        onClose={() => setAccessError("")}
+        message={accessError}
+      />
+
+      <Snackbar
+        open={copied}
+        autoHideDuration={2000}
+        onClose={() => setCopied(false)}
+        message="Image URL copied"
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      />
     </Stack>
   );
 }

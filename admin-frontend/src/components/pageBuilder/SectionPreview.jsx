@@ -1,8 +1,11 @@
 import React from "react";
-import { Box, Chip, Divider, Stack, Typography } from "@mui/material";
+import { Box, Chip, Divider, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import InlineText from "./InlineText.jsx";
 
-const SectionShell = ({ title, selected, onClick, children, dragProps }) => (
+const SectionShell = ({ title, selected, onClick, children, dragProps, toolbar }) => (
   <Box
     onClick={onClick}
     sx={{
@@ -13,22 +16,90 @@ const SectionShell = ({ title, selected, onClick, children, dragProps }) => (
       boxShadow: selected ? "0 8px 30px rgba(0,0,0,0.08)" : "none",
       cursor: "pointer",
       position: "relative",
+      // Reveal the toolbar on hover (it is always shown when selected)
+      "&:hover .section-toolbar": { opacity: 1 },
     }}
     {...dragProps}
   >
-    <Chip label={title} size="small" sx={{ position: "absolute", top: 12, right: 12 }} />
+    <Stack
+      direction="row"
+      spacing={0.5}
+      alignItems="center"
+      sx={{ position: "absolute", top: 8, right: 12, zIndex: 2 }}
+    >
+      {toolbar ? (
+        <Stack
+          direction="row"
+          spacing={0.5}
+          className="section-toolbar"
+          sx={{
+            opacity: selected ? 1 : 0,
+            transition: "opacity .15s",
+            bgcolor: "#fff",
+            border: "1px solid #e0e0e0",
+            borderRadius: 1.5,
+            mr: 0.5,
+          }}
+        >
+          {toolbar}
+        </Stack>
+      ) : null}
+      <Chip label={title} size="small" />
+    </Stack>
     {children}
   </Box>
 );
 
-export default function SectionPreview({ section, selected, editMode, onSelect, onUpdate, dragProps }) {
+export default function SectionPreview({
+  section,
+  selected,
+  editMode,
+  onSelect,
+  onUpdate,
+  dragProps,
+  onMoveUp,
+  onMoveDown,
+  onRemove,
+  canMoveUp = false,
+  canMoveDown = false,
+}) {
   const data = section.data || {};
   const update = (key, value) => onUpdate({ ...section, data: { ...data, [key]: value } });
+
+  const stop = (fn) => (e) => {
+    e.stopPropagation();
+    fn?.();
+  };
+
+  const toolbar = (
+    <>
+      <Tooltip title="Move up">
+        <span>
+          <IconButton size="small" disabled={!canMoveUp} onClick={stop(onMoveUp)}>
+            <ArrowUpwardIcon fontSize="inherit" />
+          </IconButton>
+        </span>
+      </Tooltip>
+      <Tooltip title="Move down">
+        <span>
+          <IconButton size="small" disabled={!canMoveDown} onClick={stop(onMoveDown)}>
+            <ArrowDownwardIcon fontSize="inherit" />
+          </IconButton>
+        </span>
+      </Tooltip>
+      <Tooltip title="Remove section">
+        <IconButton size="small" color="error" onClick={stop(onRemove)}>
+          <DeleteOutlineIcon fontSize="inherit" />
+        </IconButton>
+      </Tooltip>
+    </>
+  );
 
   const baseProps = {
     selected,
     onClick: onSelect,
     dragProps,
+    toolbar,
   };
 
   switch (section.type) {
@@ -165,6 +236,23 @@ export default function SectionPreview({ section, selected, editMode, onSelect, 
           </Stack>
         </SectionShell>
       );
+    case "NEWSLETTER":
+      return (
+        <SectionShell title="Newsletter" {...baseProps}>
+          <Stack spacing={2} alignItems="center" textAlign="center">
+            <InlineText
+              editMode={editMode}
+              value={data.title}
+              variant="h5"
+              onChange={(val) => update("title", val)}
+            />
+            <Typography color="text.secondary">{data.subtitle || "Newsletter blurb"}</Typography>
+            <Box sx={{ px: 4, py: 1.2, borderRadius: 2, backgroundColor: "#374151", color: "#fff" }}>
+              {data.buttonLabel || "Subscribe"}
+            </Box>
+          </Stack>
+        </SectionShell>
+      );
     case "CTA":
       return (
         <SectionShell title="CTA" {...baseProps}>
@@ -176,6 +264,26 @@ export default function SectionPreview({ section, selected, editMode, onSelect, 
               onChange={(val) => update("headline", val)}
             />
             <Typography color="text.secondary">{data.subtext || "CTA subtext"}</Typography>
+            <Box
+              sx={{
+                display: data.buttonLayout === "split-columns" ? "grid" : "flex",
+                gridTemplateColumns:
+                  data.buttonLayout === "split-columns" ? "repeat(2, minmax(0, 1fr))" : undefined,
+                gap: 2,
+                width: "100%",
+                justifyItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {(data.buttons || []).map((button, index) => (
+                <Box
+                  key={`${button.label}-${index}`}
+                  sx={{ px: 2.5, py: 1, borderRadius: 1, backgroundColor: "#111", color: "#fff" }}
+                >
+                  {button.label || `Button ${index + 1}`}
+                </Box>
+              ))}
+            </Box>
           </Stack>
         </SectionShell>
       );
@@ -316,6 +424,29 @@ export default function SectionPreview({ section, selected, editMode, onSelect, 
                 Dropdown + single audio player render on the public site.
               </Typography>
             </Box>
+          </Stack>
+        </SectionShell>
+      );
+    case "MEMBER_GATE":
+      return (
+        <SectionShell title="members gate" {...baseProps}>
+          <Stack spacing={1}>
+            <Typography variant="h6">{data.title || "Create an account to view fund information"}</Typography>
+            <Typography color="text.secondary">
+              {(data.benefits || []).length} benefit{(data.benefits || []).length === 1 ? "" : "s"} &middot; hidden once the visitor signs in
+            </Typography>
+          </Stack>
+        </SectionShell>
+      );
+    case "FUND_DETAIL":
+      return (
+        <SectionShell title="fund detail" {...baseProps}>
+          <Stack spacing={1}>
+            <Typography variant="h6">{data.title || "Fund name"}</Typography>
+            <Typography color="text.secondary">
+              {(data.facts || []).length} fact{(data.facts || []).length === 1 ? "" : "s"} &middot;{" "}
+              {section.access === "MEMBERS" ? "members only" : "visible to everyone"}
+            </Typography>
           </Stack>
         </SectionShell>
       );

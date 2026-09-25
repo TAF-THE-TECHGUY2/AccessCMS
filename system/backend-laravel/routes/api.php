@@ -20,6 +20,11 @@ Route::middleware(['throttle:20,1'])->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
 });
 
+Route::middleware(['throttle:6,1'])->group(function () {
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+});
+
 Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::get('/auth/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
 

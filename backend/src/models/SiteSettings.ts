@@ -6,6 +6,12 @@ export interface SiteSettingsDoc extends Document {
   favicon?: string;
   primaryColor?: string;
   navLinks: { label: string; href: string; children?: { label: string; href: string }[] }[];
+  header?: {
+    loginLabel?: string;
+    loginHref?: string;
+    signupLabel?: string;
+    signupHref?: string;
+  };
   footer: {
     address?: string;
     phones?: string[];
@@ -13,6 +19,8 @@ export interface SiteSettingsDoc extends Document {
     socialLinks?: { label: string; url: string }[];
     quickLinks?: { label: string; href: string }[];
     ctaLine?: string;
+    ctaSubline?: string;
+    companyTagline?: string;
   };
   defaultSeo: {
     metaTitle?: string;
@@ -42,6 +50,13 @@ const SiteSettingsSchema = new Schema<SiteSettingsDoc>(
       ],
       default: [],
     },
+    // Login / Sign Up buttons in the public site's top bar
+    header: {
+      loginLabel: String,
+      loginHref: String,
+      signupLabel: String,
+      signupHref: String,
+    },
     footer: {
       address: String,
       phones: { type: [String], default: [] },
@@ -49,6 +64,8 @@ const SiteSettingsSchema = new Schema<SiteSettingsDoc>(
       socialLinks: { type: [{ label: String, url: String }], default: [] },
       quickLinks: { type: [{ label: String, href: String }], default: [] },
       ctaLine: String,
+      ctaSubline: String,
+      companyTagline: String,
     },
     defaultSeo: {
       metaTitle: String,

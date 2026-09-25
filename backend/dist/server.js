@@ -16,6 +16,10 @@ import { publicRouter as teamPublicRouter, adminRouter as teamAdminRouter } from
 import { publicRouter as faqPublicRouter, adminRouter as faqAdminRouter } from "./routes/faq.routes.js";
 import mediaRoutes from "./routes/media.routes.js";
 import { publicRouter as siteSettingsPublicRouter, adminRouter as siteSettingsAdminRouter } from "./routes/siteSettings.routes.js";
+import { publicRouter as contactPublicRouter, adminRouter as contactAdminRouter } from "./routes/contact.routes.js";
+import { publicRouter as memberPublicRouter } from "./routes/member.routes.js";
+import { resolveMember } from "./middleware/member.js";
+import { guardUploads } from "./middleware/protectedUploads.js";
 import { swaggerRouter } from "./config/swagger.js";
 const app = express();
 const allowedOrigins = [env.clientUrl, env.adminUrl]
@@ -23,13 +27,19 @@ const allowedOrigins = [env.clientUrl, env.adminUrl]
     .map((value) => value.trim())
     .filter(Boolean);
 const isLocalDevOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+// Allow this app's Azure Static Web Apps hostnames: the production default host
+// plus every preview/staging environment (their hostnames vary by region/slice/PR).
+const isAzureStaticWebAppOrigin = (origin) => /^https:\/\/gentle-water-099e3771e[a-z0-9.-]*\.azurestaticapps\.net$/i.test(origin);
 app.set("trust proxy", 1);
 app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin) || isLocalDevOrigin(origin)) {
+        if (!origin ||
+            allowedOrigins.includes(origin) ||
+            isLocalDevOrigin(origin) ||
+            isAzureStaticWebAppOrigin(origin)) {
             callback(null, true);
             return;
         }
@@ -48,7 +58,9 @@ app.use(morgan("combined", {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 if (env.storageDriver === "local") {
-    app.use("/uploads", express.static(path.join(__dirname, "..", env.uploadDir)));
+    // resolveMember and guardUploads run before express.static so a members-only
+    // file is never handed to a guest, even by direct URL.
+    app.use("/uploads", resolveMember, guardUploads, express.static(path.join(__dirname, "..", env.uploadDir)));
 }
 app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
@@ -56,6 +68,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/docs", swaggerRouter);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/member", memberPublicRouter);
 app.use("/api/pages", pagesPublicRouter);
 app.use("/api/admin/pages", pagesAdminRouter);
 app.use("/api/properties", propertiesPublicRouter);
@@ -67,6 +80,8 @@ app.use("/api/admin/faq", faqAdminRouter);
 app.use("/api/admin/media", mediaRoutes);
 app.use("/api/site-settings", siteSettingsPublicRouter);
 app.use("/api/admin/site-settings", siteSettingsAdminRouter);
+app.use("/api/contact", contactPublicRouter);
+app.use("/api/admin/contact", contactAdminRouter);
 app.use(notFound);
 app.use(errorHandler);
 export default app;

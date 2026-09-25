@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Facebook, Linkedin, Instagram } from "lucide-react";
 import { api } from "../api.js";
 
-const INVEST_NOW_URL = "/invest-now";
 const isExternalHref = (href = "") => /^https?:\/\//i.test(href);
 
 export default function Footer() {
@@ -14,16 +13,13 @@ export default function Footer() {
   }, []);
 
   const footer = settings?.footer || {};
-  const quickLinks = (footer.quickLinks || [
-    { label: "Invest Now", href: INVEST_NOW_URL },
+  // Quick links come straight from Site Settings — no label-based overrides.
+  const quickLinks = footer.quickLinks || [
+    { label: "Invest Now", href: "/invest-now" },
     { label: "FAQ", href: "/faq" },
     { label: "Contact Us", href: "/contact" },
     { label: "Privacy Policy", href: "/privacy-policy" },
-  ]).map((link) =>
-    String(link?.label || "").trim().toLowerCase() === "invest now"
-      ? { ...link, href: INVEST_NOW_URL }
-      : link
-  );
+  ];
 
   const socialLinks = footer.socialLinks || [];
   const getIcon = (label) => {
@@ -40,7 +36,9 @@ export default function Footer() {
           <p className="text-2xl md:text-3xl font-semibold tracking-tight">
             {footer.ctaLine || "Start investing in real estate today"}
           </p>
-          <p className="mt-3 text-gray-400 text-base">It's easier than you think.</p>
+          <p className="mt-3 text-gray-400 text-base">
+            {footer.ctaSubline || "It's easier than you think."}
+          </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             {quickLinks.map((link) => (
               isExternalHref(link.href) ? (
@@ -68,7 +66,7 @@ export default function Footer() {
           <div>
             <p className="font-semibold text-white">{settings?.siteName || "Access Properties"}</p>
             <p className="mt-1 text-sm text-gray-400 max-w-md">
-              Simple Real Estate Investing for Anyone, Anywhere
+              {footer.companyTagline || "Simple Real Estate Investing for Anyone, Anywhere"}
             </p>
             <div className="mt-4 flex items-center gap-3">
               {socialLinks.map((link) => {

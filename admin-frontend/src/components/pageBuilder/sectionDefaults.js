@@ -1,33 +1,36 @@
 export const SECTION_TYPES = [
-  { type: "HERO", label: "Hero" },
-  { type: "SIMPLE_CONTENT", label: "Title + Content" },
-  { type: "TITLE_IMAGE", label: "Title + Image" },
-  { type: "RICH_TEXT", label: "Rich Text" },
-  { type: "IMAGE_BANNER", label: "Image Banner" },
-  { type: "STATS", label: "Stats" },
-  { type: "CTA", label: "Call To Action" },
-  { type: "TEAM_GRID", label: "Team Grid" },
-  { type: "FAQ_ACCORDION", label: "FAQ Accordion" },
-  { type: "PROPERTY_GRID", label: "Property Grid" },
-  { type: "GALLERY", label: "Gallery" },
-  { type: "DIVIDER", label: "Divider" },
-  { type: "SPACER", label: "Spacer" },
-  { type: "DISCLOSURE", label: "Disclosure" },
-  { type: "ICON_ACCORDION_GRID", label: "Icon Accordion Grid" },
-  { type: "ICON_CARD_GRID", label: "Icon Card Grid" },
-  { type: "TESTIMONIALS", label: "Testimonials" },
-  { type: "SOCIALS", label: "Social Links" },
-  { type: "PORTFOLIO_CARD", label: "Portfolio Cards" },
-  { type: "GREATER_BOSTON_REASONS", label: "Greater Boston Reasons" },
-  { type: "PROPERTY_COLUMNS", label: "Property Columns" },
-  { type: "PROFILE_CARDS", label: "Profile Cards" },
-  { type: "ADVISORY", label: "Advisory" },
-  { type: "CONTACT_FORM", label: "Contact Form" },
-  { type: "FAQ_PAGE", label: "FAQ Page" },
+  { type: "HERO", label: "Hero", description: "Big headline with background image and buttons — usually the first block." },
+  { type: "SIMPLE_CONTENT", label: "Title + Content", description: "A heading followed by one or more paragraphs of text." },
+  { type: "TITLE_IMAGE", label: "Title + Image", description: "A heading paired with a single large image." },
+  { type: "RICH_TEXT", label: "Rich Text", description: "Free-form formatted text (bold, lists, links)." },
+  { type: "IMAGE_BANNER", label: "Image Banner", description: "Full-width image strip, optionally with a caption." },
+  { type: "STATS", label: "Stats", description: "A row of key numbers (e.g. properties, investors, returns)." },
+  { type: "CTA", label: "Call To Action", description: "Short pitch with a button to drive clicks." },
+  { type: "TEAM_GRID", label: "Team Grid", description: "Grid of team members pulled from the Team list." },
+  { type: "FAQ_ACCORDION", label: "FAQ Accordion", description: "Expandable question/answer list." },
+  { type: "PROPERTY_GRID", label: "Property Grid", description: "Cards for properties pulled from the Properties list." },
+  { type: "GALLERY", label: "Gallery", description: "A grid of images." },
+  { type: "DIVIDER", label: "Divider", description: "A thin horizontal line between sections." },
+  { type: "SPACER", label: "Spacer", description: "Empty vertical space to breathe." },
+  { type: "DISCLOSURE", label: "Disclosure", description: "Small-print legal or regulatory text." },
+  { type: "ICON_ACCORDION_GRID", label: "Icon Accordion Grid", description: "Grid of expandable items, each with an icon." },
+  { type: "ICON_CARD_GRID", label: "Icon Card Grid", description: "Grid of cards with icon, title and text." },
+  { type: "TESTIMONIALS", label: "Testimonials", description: "Quotes from clients or investors." },
+  { type: "SOCIALS", label: "Social Links", description: "Row of social media links." },
+  { type: "PORTFOLIO_CARD", label: "Portfolio Cards", description: "Card linking to a portfolio/fund with image and stats." },
+  { type: "GREATER_BOSTON_REASONS", label: "Greater Boston Reasons", description: "Reasons-to-invest list for the Greater Boston page." },
+  { type: "PROPERTY_COLUMNS", label: "Property Columns", description: "Columns of grouped property links." },
+  { type: "PROFILE_CARDS", label: "Profile Cards", description: "Founder/leader profiles with photo and audio interview." },
+  { type: "ADVISORY", label: "Advisory", description: "Advisory board members block." },
+  { type: "CONTACT_FORM", label: "Contact Form", description: "Form that sends visitor messages to you." },
+  { type: "FAQ_PAGE", label: "FAQ Page", description: "Full FAQ page layout with categories, pulled from the FAQ list." },
+  { type: "NEWSLETTER", label: "Newsletter Signup", description: "Heading, blurb and a Subscribe button linking to your mailing list." },
+  { type: "MEMBER_GATE", label: "Members Gate", description: "Sign-up card inviting visitors to log in to the investor dashboard. Hidden once they are signed in." },
+  { type: "FUND_DETAIL", label: "Fund Detail", description: "Fund overview with objective and key facts. Mark it Members Only to blur it for signed-out visitors." },
 ];
 
 export const createSection = (type) => {
-  const base = { type, data: {} };
+  const base = { type, access: "PUBLIC", data: {} };
   switch (type) {
     case "HERO":
       return {
@@ -36,7 +39,6 @@ export const createSection = (type) => {
           title: "Headline for this page",
           subtitle: "Support the headline with a clear value statement.",
           backgroundImage: "",
-          overlayOpacity: 0.35,
           primaryButton: { label: "Invest Now", href: "/invest-now" },
           secondaryButton: { label: "How It Works", href: "" },
         },
@@ -94,6 +96,7 @@ export const createSection = (type) => {
         data: {
           headline: "Ready to invest?",
           subtext: "Start with as little as $100 or qualify as accredited.",
+          buttonLayout: "centered",
           buttons: [
             { label: "Invest Now", href: "/invest-now" },
             { label: "Contact", href: "/contact" },
@@ -313,6 +316,68 @@ export const createSection = (type) => {
           image: "",
           items: [
             { question: "Question", answer: "Answer text." },
+          ],
+        },
+      };
+    case "NEWSLETTER":
+      return {
+        ...base,
+        data: {
+          title: "Subscribe to Our Newsletter",
+          subtitle: "Get periodic updates from Access Properties.",
+          buttonLabel: "Subscribe",
+          buttonHref: "https://mailchi.mp/052b0234689c/access-properties",
+        },
+      };
+    case "MEMBER_GATE":
+      return {
+        ...base,
+        data: {
+          title: "Create an account to view fund information",
+          body: "Detailed fund information, offering documents, and investment materials are available to registered users and prospective investors.",
+          loginLabel: "Log In",
+          loginHref: "https://investor.ap.boston/login",
+          registerLabel: "Invest Now",
+          registerHref: "https://investor.ap.boston",
+          footnote: "Certain materials are available only to registered users and prospective investors.",
+          benefits: [
+            {
+              iconName: "BarChart3",
+              title: "View fund overview",
+              body: "Explore strategy, target returns, and key highlights.",
+            },
+            {
+              iconName: "BadgeCheck",
+              title: "Begin investor onboarding",
+              body: "Complete your profile and start the investment process.",
+            },
+            {
+              iconName: "Briefcase",
+              title: "Review offering documents",
+              body: "Access confidential offering memoranda and reports.",
+            },
+          ],
+        },
+      };
+    case "FUND_DETAIL":
+      return {
+        ...base,
+        // Fund terms are the thing worth gating, so this type starts locked.
+        access: "MEMBERS",
+        data: {
+          eyebrow: "Private Fund",
+          title: "Access Real Estate Fund I",
+          body: "Detailed fund information, offering documents, and investment materials are available to verified, accredited investors.",
+          objectiveTitle: "Investment Objective",
+          objectiveBody: "Describe what the fund is trying to achieve for its investors.",
+          factsTitle: "Fund Overview",
+          lockedTitle: "Members access",
+          lockedSubtitle: "Sign up or log in to unlock full fund details.",
+          facts: [
+            { iconName: "Building2", label: "Asset Class", value: "Residential Real Estate" },
+            { iconName: "Settings", label: "Strategy", value: "Core-Plus" },
+            { iconName: "TrendingUp", label: "Target Net IRR", value: "Mid Teens" },
+            { iconName: "DollarSign", label: "Minimum Investment", value: "$250,000" },
           ],
         },
       };

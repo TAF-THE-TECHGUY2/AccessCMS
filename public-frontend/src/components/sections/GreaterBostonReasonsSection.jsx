@@ -1,4 +1,14 @@
 import React from "react";
+import { API_BASE_URL } from "../../api.js";
+
+// Uploaded images live on the API server; a bare /uploads path would resolve
+// against the website's own domain and 404.
+const resolveUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  if (url.startsWith("/uploads")) return `${API_BASE_URL}${url}`;
+  return url;
+};
 
 export default function GreaterBostonReasonsSection({ data }) {
   const reasons = data?.reasons || [];
@@ -15,11 +25,10 @@ export default function GreaterBostonReasonsSection({ data }) {
       <div className="max-w-6xl mx-auto px-4 mt-8 md:mt-18">
         <div className="relative w-full h-[500px] sm:h-[340px] md:h-[380px] overflow-hidden rounded-lg border border-gray-200">
           <img
-            src={data?.imageUrl}
+            src={resolveUrl(data?.imageUrl)}
             alt={data?.imageAlt || "Boston skyline"}
             className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/10" />
 
           <div className="absolute left-3 right-3 sm:left-[4%] sm:right-[4%] md:left-[6%] top-[15%] sm:top-[20%] md:top-[22%] max-w-full sm:w-[92%] md:w-[560px] bg-black/70 sm:bg-black/60 border border-white/20 p-4 sm:p-6 rounded">
             <ul className="list-disc pl-4 sm:pl-6 space-y-2 sm:space-y-3 text-white text-sm sm:text-[15px] md:text-base leading-relaxed">

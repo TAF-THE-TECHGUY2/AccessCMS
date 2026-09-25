@@ -3,6 +3,7 @@ import { useParams, Navigate } from "react-router-dom";
 import { api } from "../api.js";
 import PageRenderer from "./PageRenderer.jsx";
 import PropertyDetails from "./PropertyDetails.jsx";
+import { PageLoading, PageError } from "../components/PageStates.jsx";
 
 // Renders whatever published CMS page matches the URL. If the URL matches an
 // old slug (alias), redirects to the page's current slug. If no page matches,
@@ -10,22 +11,22 @@ import PropertyDetails from "./PropertyDetails.jsx";
 export default function DynamicPage() {
   const { slug: rawSlug } = useParams();
   const slug = rawSlug || "home";
-  const [state, setState] = useState({ status: "loading" });
+  const [loaded, setLoaded] = useState({ status: "loading", forSlug: slug });
 
   useEffect(() => {
     let active = true;
-    setState({ status: "loading" });
+    setLoaded({ status: "loading", forSlug: slug });
     api
       .getPage(slug)
       .then((page) => {
-        if (active) setState({ status: "page", page });
+        if (active) setLoaded({ status: "page", page, forSlug: slug });
       })
       .catch((err) => {
         if (!active) return;
         if (err.status === 404) {
-          setState({ status: "property" });
+          setLoaded({ status: "property", forSlug: slug });
         } else {
-          setState({ status: "error", message: err.message || "Failed to load page" });
+          setLoaded({ status: "error", message: err.message || "Failed to load page", forSlug: slug });
         }
       });
     return () => {
@@ -33,14 +34,18 @@ export default function DynamicPage() {
     };
   }, [slug]);
 
+  // On client-side navigation the state still holds the PREVIOUS page for one
+  // render; treating it as current would redirect back to the old URL.
+  const state = loaded.forSlug === slug ? loaded : { status: "loading" };
+
   if (state.status === "loading") {
-    return <div className="max-w-4xl mx-auto px-4 py-10 text-gray-500">Loading...</div>;
+    return <PageLoading />;
   }
   if (state.status === "property") {
     return <PropertyDetails />;
   }
   if (state.status === "error") {
-    return <div className="max-w-4xl mx-auto px-4 py-10 text-red-600">{state.message}</div>;
+    return <PageError message={state.message} />;
   }
 
   const page = state.page;

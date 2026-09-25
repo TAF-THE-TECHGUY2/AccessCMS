@@ -1,28 +1,43 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   Grid,
-  Menu,
+  MenuItem,
+  Paper,
   Stack,
   Switch,
   TextField,
   Typography,
-  MenuItem,
   Snackbar,
   Alert,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { api, API_BASE_URL } from "../api.js";
 import SectionPreview from "../components/pageBuilder/SectionPreview.jsx";
 import SectionInspector from "../components/pageBuilder/SectionInspector.jsx";
+import SectionPickerDialog from "../components/pageBuilder/SectionPickerDialog.jsx";
+import ImagePicker from "../components/pageBuilder/ImagePicker.jsx";
+import MemberAccessPanel from "../components/pageBuilder/MemberAccessPanel.jsx";
 import { SECTION_TYPES, createSection } from "../components/pageBuilder/sectionDefaults.js";
 import { moveItem } from "../components/pageBuilder/utils.js";
 
 export default function PageEditor() {
   const { id } = useParams();
-  const isNew = id === "new";
+  // The /pages/new route is static, so useParams() has no id there — treat a
+  // missing id as "new" or the editor tries to load/update page "undefined".
+  const isNew = !id || id === "new";
   const navigate = useNavigate();
   const autosaveRef = useRef(null);
   const [form, setForm] = useState({
@@ -31,6 +46,7 @@ export default function PageEditor() {
     status: "draft",
   });
   const [sections, setSections] = useState([]);
+  const [seo, setSeo] = useState({ metaTitle: "", metaDescription: "", ogImage: "" });
   const [aliases, setAliases] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editMode, setEditMode] = useState(true);
@@ -38,11 +54,17 @@ export default function PageEditor() {
   const [lastSaved, setLastSaved] = useState("");
   const [error, setError] = useState("");
   const [toast, setToast] = useState({ open: false, message: "", severity: "success" });
-  const [menuAnchor, setMenuAnchor] = useState(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(null); // section index or null
   const [loaded, setLoaded] = useState(isNew);
   const livePath = form.slug.trim() === "home" || form.slug.trim() === "/" ? "/" : `/${form.slug.trim()}`;
+  // The public website's address — the admin runs on its own domain, so the
+  // live link must be absolute or it points at the admin host and 404s.
+  const PUBLIC_SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL || "https://ap.boston";
+  const liveUrl = `${PUBLIC_SITE_URL}${livePath}`;
 
   useEffect(() => {
+    setError(""); // don't carry a stale error into another page or "New Page"
     if (isNew) return;
     const load = async () => {
       try {
@@ -54,6 +76,11 @@ export default function PageEditor() {
         }
         setForm({ title: page.title, slug: page.slug, status: page.status });
         setSections(page.sections || []);
+        setSeo({
+          metaTitle: page.seo?.metaTitle || "",
+          metaDescription: page.seo?.metaDescription || "",
+          ogImage: page.seo?.ogImage || "",
+        });
         setAliases(page.aliases || []);
         setSelectedIndex(0);
       } catch (err) {
@@ -68,8 +95,8 @@ export default function PageEditor() {
   const payload = useMemo(() => {
     const trimmedSlug = form.slug.trim();
     const normalizedSlug = trimmedSlug === "/" ? "home" : trimmedSlug;
-    return { ...form, slug: normalizedSlug, sections };
-  }, [form, sections]);
+    return { ...form, slug: normalizedSlug, sections, seo };
+  }, [form, sections, seo]);
 
   const onReorder = (from, to) => {
     setSections((prev) => moveItem(prev, from, to));
@@ -97,7 +124,8 @@ export default function PageEditor() {
       setLastSaved(new Date().toLocaleTimeString());
       setToast({ open: true, message: "Saved successfully.", severity: "success" });
       if (updated.status === "published") {
-        fetch(`${API_BASE_URL}/api/pages/slug/${encodeURIComponent(payload.slug)}`)
+        // Check with the server-normalized slug, not what was typed
+        fetch(`${API_BASE_URL}/api/pages/slug/${encodeURIComponent(updated.slug)}`)
           .then((res) => {
             if (!res.ok) {
               throw new Error("Public page not updated yet.");
@@ -135,7 +163,8 @@ export default function PageEditor() {
       setAliases(updated.aliases || []);
       setLastSaved(new Date().toLocaleTimeString());
       setToast({ open: true, message: "Published successfully.", severity: "success" });
-      fetch(`${API_BASE_URL}/api/pages/slug/${encodeURIComponent(payload.slug)}`)
+      // Check with the server-normalized slug, not what was typed
+      fetch(`${API_BASE_URL}/api/pages/slug/${encodeURIComponent(updated.slug)}`)
         .then((res) => {
           if (!res.ok) {
             throw new Error("Public page not updated yet.");
@@ -177,7 +206,7 @@ export default function PageEditor() {
     const nextSection = createSection(type);
     setSections((prev) => [...prev, nextSection]);
     setSelectedIndex(sections.length);
-    setMenuAnchor(null);
+    setPickerOpen(false);
   };
 
   const onUpdateSection = (index, nextSection) => {
@@ -193,15 +222,24 @@ export default function PageEditor() {
     <Stack spacing={2}>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ xs: "stretch", md: "center" }}>
         <Box sx={{ flex: 1 }}>
-          <Typography variant="h5">{isNew ? "New Page" : "Edit Page"}</Typography>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Typography variant="h5">
+              {isNew ? "New Page" : form.title || "Edit Page"}
+            </Typography>
+            <Chip
+              label={form.status === "published" ? "Published" : "Draft"}
+              size="small"
+              color={form.status === "published" ? "success" : "default"}
+            />
+          </Stack>
           <Typography variant="body2" color="text.secondary">
             {lastSaved ? `Last saved at ${lastSaved}` : "Autosave is on for drafts."}
           </Typography>
           {!isNew ? (
             <Typography variant="body2" color="text.secondary">
               Live URL:{" "}
-              <a href={livePath} target="_blank" rel="noreferrer">
-                {livePath}
+              <a href={liveUrl} target="_blank" rel="noreferrer">
+                {liveUrl}
               </a>
             </Typography>
           ) : null}
@@ -209,21 +247,27 @@ export default function PageEditor() {
         <Stack direction="row" spacing={2} alignItems="center">
           <Typography variant="body2">Edit mode</Typography>
           <Switch checked={editMode} onChange={(e) => setEditMode(e.target.checked)} />
-          <Button variant="outlined" onClick={() => navigate("/pages")}>
+          <Button variant="outlined" color="inherit" onClick={() => navigate("/pages")}>
             Back
           </Button>
-          <Button variant="contained" onClick={onSave} disabled={saving}>
+          <Button variant="outlined" onClick={onSave} disabled={saving}>
             Save
           </Button>
-          <Button onClick={onPublish} disabled={saving || isNew}>
+          <Button variant="contained" color="secondary" onClick={onPublish} disabled={saving || isNew}>
             Publish
           </Button>
         </Stack>
       </Stack>
 
+      {error ? (
+        <Alert severity="error" onClose={() => setError("")}>
+          {error}
+        </Alert>
+      ) : null}
+
       <Grid container spacing={2}>
         <Grid item xs={12} md={8}>
-          <Stack spacing={2}>
+          <Stack component={Paper} variant="outlined" spacing={2} sx={{ p: 2.5 }}>
             <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
               <TextField
                 label="Title"
@@ -254,22 +298,50 @@ export default function PageEditor() {
               </TextField>
             </Stack>
 
+            <Accordion disableGutters elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, "&:before": { display: "none" } }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle2">SEO — browser tab &amp; Google/sharing preview</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack spacing={2}>
+                  <TextField
+                    label="Meta title"
+                    value={seo.metaTitle}
+                    onChange={(e) => setSeo((s) => ({ ...s, metaTitle: e.target.value }))}
+                    helperText={`Browser tab & search result title. Empty = "${form.title || "Page title"} | Access Properties"`}
+                    fullWidth
+                  />
+                  <TextField
+                    label="Meta description"
+                    value={seo.metaDescription}
+                    onChange={(e) => setSeo((s) => ({ ...s, metaDescription: e.target.value }))}
+                    helperText="1–2 sentences shown under the title in Google results (~155 characters)."
+                    multiline
+                    minRows={2}
+                    fullWidth
+                  />
+                  <ImagePicker
+                    label="Share image (shown when the page is linked on social media)"
+                    value={seo.ogImage}
+                    onChange={(val) => setSeo((s) => ({ ...s, ogImage: val }))}
+                  />
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
+
+            <Divider />
+
+            <MemberAccessPanel sections={sections} onChange={setSections} />
+
             <Divider />
 
             <Stack direction="row" spacing={2} alignItems="center">
               <Typography variant="subtitle1">Page Canvas</Typography>
-              <Button variant="outlined" onClick={(e) => setMenuAnchor(e.currentTarget)}>
+              <Button variant="outlined" onClick={() => setPickerOpen(true)}>
                 Add Section
               </Button>
-              <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-                {SECTION_TYPES.map((section) => (
-                  <MenuItem key={section.type} onClick={() => onAddSection(section.type)}>
-                    {section.label}
-                  </MenuItem>
-                ))}
-              </Menu>
               <Typography variant="body2" color="text.secondary">
-                Drag sections to reorder
+                Drag sections to reorder, or use the arrows on each section
               </Typography>
             </Stack>
 
@@ -282,6 +354,11 @@ export default function PageEditor() {
                   editMode={editMode}
                   onSelect={() => setSelectedIndex(idx)}
                   onUpdate={(nextSection) => onUpdateSection(idx, nextSection)}
+                  onMoveUp={() => onReorder(idx, idx - 1)}
+                  onMoveDown={() => onReorder(idx, idx + 1)}
+                  onRemove={() => setConfirmRemove(idx)}
+                  canMoveUp={idx > 0}
+                  canMoveDown={idx < sections.length - 1}
                   dragProps={{
                     draggable: true,
                     onDragStart: (e) => e.dataTransfer.setData("text/plain", String(idx)),
@@ -302,17 +379,47 @@ export default function PageEditor() {
           </Stack>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Box sx={{ border: "1px solid #e0e0e0", borderRadius: 2, bgcolor: "#fff", height: "100%" }}>
+          <Paper variant="outlined" sx={{ height: "100%" }}>
             <SectionInspector
               section={selectedSection}
               onChange={(nextSection) => onUpdateSection(selectedIndex, nextSection)}
-              onRemove={() => onRemoveSection(selectedIndex)}
+              onRemove={() => setConfirmRemove(selectedIndex)}
             />
-          </Box>
+          </Paper>
         </Grid>
       </Grid>
 
-      {error ? <Typography color="error">{error}</Typography> : null}
+      <SectionPickerDialog open={pickerOpen} onClose={() => setPickerOpen(false)} onPick={onAddSection} />
+
+      <Dialog open={confirmRemove !== null} onClose={() => setConfirmRemove(null)}>
+        <DialogTitle>Remove this section?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {confirmRemove !== null
+              ? `The "${
+                  SECTION_TYPES.find((s) => s.type === sections[confirmRemove]?.type)?.label ||
+                  sections[confirmRemove]?.type ||
+                  "selected"
+                }" section and its content will be removed from this page. This takes effect when you save.`
+              : ""}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button color="inherit" onClick={() => setConfirmRemove(null)}>
+            Cancel
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => {
+              onRemoveSection(confirmRemove);
+              setConfirmRemove(null);
+            }}
+          >
+            Remove section
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={toast.open}
