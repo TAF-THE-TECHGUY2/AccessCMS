@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { stripEmptyParagraphs } from "../lib/html.js";
 
 // The seeded CMS body is a placeholder — treat it as "no content" so the
 // built-in legal copy below still shows until real content is written.
@@ -41,7 +42,7 @@ export default function DisclosureBar({ title, bodyHtml }) {
                 <div className="h-px bg-gray-300 mb-6" />
                 <div
                   className="space-y-4 text-gray-700 text-sm leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: bodyHtml }}
+                  dangerouslySetInnerHTML={{ __html: stripEmptyParagraphs(bodyHtml) }}
                 />
               </div>
             )}

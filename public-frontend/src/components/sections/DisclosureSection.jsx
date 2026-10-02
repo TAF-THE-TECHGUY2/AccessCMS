@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import DisclosureBar from "../DisclosureBar.jsx";
+import { stripEmptyParagraphs } from "../../lib/html.js";
 
 export default function DisclosureSection({ data }) {
   const [open, setOpen] = useState(false);
@@ -13,7 +14,7 @@ export default function DisclosureSection({ data }) {
             <div
               className="px-5 pb-5 text-sm text-gray-600"
               dangerouslySetInnerHTML={{
-                __html: data?.body || "Disclosure details can be edited in the CMS.",
+                __html: stripEmptyParagraphs(data?.body) || "Disclosure details can be edited in the CMS.",
               }}
             />
           </div>
@@ -52,8 +53,7 @@ export default function DisclosureSection({ data }) {
                   className="space-y-4 text-gray-700 text-sm leading-relaxed"
                   dangerouslySetInnerHTML={{
                     __html:
-                      data?.bodyHtml ||
-                      data?.body ||
+                      stripEmptyParagraphs(data?.bodyHtml || data?.body) ||
                       "<p>Disclosure details can be edited in the CMS.</p>",
                   }}
                 />
